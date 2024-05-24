@@ -14,6 +14,7 @@ public readonly struct MultiString
     public readonly string German;
     public readonly string French;
     public readonly string Japanese;
+    public readonly string ChineseSimplified;
 
     public string this[ClientLanguage lang]
         => Name(lang);
@@ -22,14 +23,15 @@ public readonly struct MultiString
         => Name(ClientLanguage.English);
 
     public string ToWholeString()
-        => $"{English}|{German}|{French}|{Japanese}";
+        => $"{English}|{German}|{French}|{Japanese}|{ChineseSimplified}";
 
-    public MultiString(string en, string de, string fr, string jp)
+    public MultiString(string en, string de, string fr, string jp, string chs)
     {
         English  = en;
         German   = de;
         French   = fr;
         Japanese = jp;
+        ChineseSimplified = chs;
     }
 
 
@@ -39,16 +41,18 @@ public readonly struct MultiString
         var de = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.PlaceName>(ClientLanguage.German)!.GetRow(id)?.Name);
         var fr = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.PlaceName>(ClientLanguage.French)!.GetRow(id)?.Name);
         var jp = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.PlaceName>(ClientLanguage.Japanese)!.GetRow(id)?.Name);
-        return new MultiString(en, de, fr, jp);
+        var chs = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.PlaceName>((ClientLanguage)4)!.GetRow(id)?.Name);
+        return new MultiString(en, de, fr, jp, chs);
     }
 
     public static MultiString FromItem(IDataManager gameData, uint id)
     {
-        var en = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.English)!.GetRow(id)?.Name);
-        var de = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.German)!.GetRow(id)?.Name);
-        var fr = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.French)!.GetRow(id)?.Name);
-        var jp = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.Japanese)!.GetRow(id)?.Name);
-        return new MultiString(en, de, fr, jp);
+        var en  = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.English)!.GetRow(id)?.Name);
+        var de  = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.German)!.GetRow(id)?.Name);
+        var fr  = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.French)!.GetRow(id)?.Name);
+        var jp  = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>(ClientLanguage.Japanese)!.GetRow(id)?.Name);
+        var chs = ParseSeStringLumina(gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>((ClientLanguage)4)!.GetRow(id)?.Name);
+        return new MultiString(en, de, fr, jp, chs);
     }
 
     private string Name(ClientLanguage lang)
@@ -58,8 +62,9 @@ public readonly struct MultiString
             ClientLanguage.German   => German,
             ClientLanguage.Japanese => Japanese,
             ClientLanguage.French   => French,
+            (ClientLanguage)4       => ChineseSimplified,
             _                       => throw new ArgumentException(),
         };
 
-    public static readonly MultiString Empty = new(string.Empty, string.Empty, string.Empty, string.Empty);
+    public static readonly MultiString Empty = new(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
 }
