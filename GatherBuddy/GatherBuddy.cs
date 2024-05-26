@@ -22,6 +22,7 @@ using GatherBuddy.Weather;
 using OtterGui.Classes;
 using OtterGui.Log;
 using ECommons;
+using GatherBuddy.AutoGather;
 
 namespace GatherBuddy;
 
@@ -58,7 +59,7 @@ public partial class GatherBuddy : IDalamudPlugin
     public static CurrentWeather CurrentWeather { get; private set; } = null!;
     public static SeTugType      TugType        { get; private set; } = null!;
     public static WaymarkManager WaymarkManager { get; private set; } = null!;
-    public static AutoGather AutoGather { get; private set; } = null!;
+    public static AutoGather.AutoGather AutoGather { get; private set; } = null!;
 
 
     internal readonly GatherGroup.GatherGroupManager GatherGroupManager;
@@ -103,7 +104,7 @@ public partial class GatherBuddy : IDalamudPlugin
             LocationManager     = LocationManager.Load();
             AlarmManager        = AlarmManager.Load();
             GatherWindowManager = GatherWindowManager.Load(AlarmManager);
-            AutoGather = new AutoGather(this);
+            AutoGather = new AutoGather.AutoGather(this);
             AlarmManager.ForceEnable();
 
             InitializeCommands();
@@ -121,12 +122,27 @@ public partial class GatherBuddy : IDalamudPlugin
             Dalamud.Framework.Update += Update;
 
             Ipc = new GatherBuddyIpc(this);
+            CheckForOGGB();
             //Wotsit = new WotsitIpc();
         }
         catch
         {
             ((IDisposable)this).Dispose();
             throw;
+        }
+    }
+
+    private void CheckForOGGB()
+    {
+        var plugins = Dalamud.PluginInterface.InstalledPlugins;
+        foreach (var plugin in plugins)
+        {
+            if (plugin.Name == "GatherBuddy" && plugin.IsLoaded)
+            {
+                Log.Error("First Party GatherBuddy detected. Please uninstall it to use this version.");
+                Communicator.PrintError("[GatherBuddy Reborn] First Party GatherBuddy detected. Please uninstall it and restart your game to use this version.");
+                break;
+            }
         }
     }
 
