@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
+using ECommons.Automation;
 using ECommons.Automation.NeoTaskManager;
 using ECommons.DalamudServices;
 using ECommons.ExcelServices;
@@ -10,6 +11,7 @@ using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
@@ -253,6 +255,21 @@ namespace GatherBuddy.Plugin
             {
                 AutoState = AutoStateType.Error;
                 AutoStatus = $"Switching to {neededJob} for {DesiredItem.Name[GatherBuddy.Language]}...";
+                var gearsetModule = RaptureGearsetModule.Instance();
+                for (var i = 0; i < 100; i++)
+                {
+                    var gearset = gearsetModule->GetGearset(i);
+                    if (gearset == null) continue;
+                    if (!gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.Exists)) continue;
+                    if (gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.MainHandMissing)) continue;
+                    if (gearset->ID != i) continue;
+                    if (gearset->ClassJob == (byte)neededJob)
+                    {
+                        Chat.Instance.SendMessage($"/gearset change {gearset->ID + 1}");
+                        break;
+                    }
+                }
+
                 return;
             }
 

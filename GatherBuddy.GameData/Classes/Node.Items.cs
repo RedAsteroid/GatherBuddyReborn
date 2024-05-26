@@ -12,7 +12,7 @@ public partial class GatheringNode
     public List<Gatherable> Items { get; init; }
 
     // Print all items separated by '|' or the given separator.
-    public string PrintItems(string separator = "|", ClientLanguage lang = ClientLanguage.English)
+    public string PrintItems(string separator = "|", ClientLanguage lang = (ClientLanguage)4)
         => string.Join(separator, Items.Select(it => it.Name[lang]));
 
     // Node contains any of the given items (in english names).
