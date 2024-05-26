@@ -28,6 +28,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using ECommons.Throttlers;
 using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIFarmManagement;
 
 namespace GatherBuddy.Plugin
@@ -255,21 +256,24 @@ namespace GatherBuddy.Plugin
             {
                 AutoState = AutoStateType.Error;
                 AutoStatus = $"Switching to {neededJob} for {DesiredItem.Name[GatherBuddy.Language]}...";
-                var gearsetModule = RaptureGearsetModule.Instance();
-                for (var i = 0; i < 100; i++)
+                if (EzThrottler.Throttle("SwitchGear", 1000))
                 {
-                    var gearset = gearsetModule->GetGearset(i);
-                    if (gearset == null) continue;
-                    if (!gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.Exists)) continue;
-                    if (gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.MainHandMissing)) continue;
-                    if (gearset->ID != i) continue;
-                    if (gearset->ClassJob == (byte)neededJob)
+                    var gearsetModule = RaptureGearsetModule.Instance();
+                    for (var i = 0; i < 100; i++)
                     {
-                        Chat.Instance.SendMessage($"/gearset change {gearset->ID + 1}");
-                        break;
+                        var gearset = gearsetModule->GetGearset(i);
+                        if (gearset == null) continue;
+                        if (!gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.Exists)) continue;
+                        if (gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.MainHandMissing)) continue;
+                        if (gearset->ID != i) continue;
+                        if (gearset->ClassJob == (byte)neededJob)
+                        {
+                            Chat.Instance.SendMessage($"/gearset change {gearset->ID + 1}");
+                            break;
+                        }
                     }
                 }
-
+                
                 return;
             }
 
