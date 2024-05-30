@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ECommons.GameHelpers;
+using GatherBuddy.CustomInfo;
+using GatherBuddy.Enums;
 
 namespace GatherBuddy.AutoGather
 {
@@ -71,25 +74,35 @@ namespace GatherBuddy.AutoGather
                 TaskManager.Enqueue(VNavmesh_IPCSubscriber.Path_Stop);
                 TaskManager.Enqueue(DoActionTasks);
             }
-            else if (location.Territory.Id != Dalamud.ClientState.TerritoryType)
-            {
-                AutoStatus = $"Teleporting to {location.Territory.Name}...";
-                TaskManager.Enqueue(VNavmesh_IPCSubscriber.Path_Stop);
-                TaskManager.Enqueue(MoveToClosestAetheryte);
-            }
             else if (IsPathGenerating)
             {
                 AutoStatus = "Generating path...";
             }
             else if (ValidNodesInRange.Any())
             {
+                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering)
+                {
+                    AutoStatus = "Waiting for GP to regenerate...";
+                    return;
+                }
                 AutoStatus = "Moving to node...";
                 HiddenRevealed = false;
                 TaskManager.Enqueue(MoveToCloseNode);
             }
-            else if (DesiredNodesInZone.Any())
+            else if (location.Territory.Id != Dalamud.ClientState.TerritoryType || location.GatheringType.ToGroup() != JobAsGatheringType)
             {
-                AutoStatus = "Moving to far node...";
+                AutoStatus  = $"Moving to gather item in {location.Territory.Name}...";
+                HasSeenFlag = false;
+                TaskManager.Enqueue(VNavmesh_IPCSubscriber.Path_Stop);
+                TaskManager.Enqueue(MoveToClosestAetheryte);
+            }
+            else if (MapFlagPosition != null && MapFlagPosition.Value.DistanceToPlayer() > 150 && ShouldUseFlag)
+            {
+                AutoStatus  = "Moving to farming area...";
+                TaskManager.Enqueue(MoveToFlag);
+            }
+            else if (DesiredNodeCoordsInZone.Any())
+            {
                 TaskManager.Enqueue(MoveToFarNode);
             }
             else

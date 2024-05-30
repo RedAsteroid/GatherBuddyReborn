@@ -62,6 +62,23 @@ public partial class Interface
         public static void DrawAutoGatherBox()
             => DrawCheckbox("Enable Gathering Window Interaction (DISABLING THIS IS UNSUPPORTED)", "Toggle whether to automatically gather items. (Disable this for 'nav only mode')", GatherBuddy.Config.AutoGatherConfig.DoGathering, b => GatherBuddy.Config.AutoGatherConfig.DoGathering = b);
 
+        public static void DrawMinimumGPGathering()
+        {
+            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering;
+            ImGui.DragInt("Minimum GP for Gathering", ref tmp, 1, 0, 30000);
+            GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering = (uint)tmp;
+        }
+
+        public static void DrawUseFlagBox()
+            => DrawCheckbox("Disable flag navigation",                  "Whether or not to navigate to the flag on the map",
+                GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing, b => GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing = b);
+        public static void DrawFarNodeFilterDistance()
+        {
+            var tmp = GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance;
+            ImGui.DragFloat("Far Node Filter Distance", ref tmp, 0.1f, 0.1f, 100f);
+            ImGuiUtil.HoverTooltip("When looking for non-empty nodes GBR will filter out any nodes that are closer to you than this. Prevents checking nodes you can already see are empty.");
+            GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance = tmp;
+        }
         public static void DrawBYIIBox()
             => DrawCheckbox("Use BYII", "Toggle whether to use BYII for gathering.", GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction, b => GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction = b);
 
@@ -588,6 +605,7 @@ public partial class Interface
             {
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
+                ConfigFunctions.DrawMinimumGPGathering();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Actions"))
@@ -611,9 +629,11 @@ public partial class Interface
             if (ImGui.TreeNodeEx("Advanced"))
             {
                 ConfigFunctions.DrawAutoGatherBox();
+                ConfigFunctions.DrawUseFlagBox();
                 ConfigFunctions.DrawForceWalkingBox();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
+                ConfigFunctions.DrawFarNodeFilterDistance();
                 ImGui.TreePop();
             }
         }
