@@ -24,7 +24,37 @@ namespace GatherBuddy.AutoGather
         private GatherBuddy _plugin;
 
         public TaskManager TaskManager { get; }
-        public bool Enabled { get; set; } = false;
+
+        private bool _enabled { get; set; } = false;
+
+        public unsafe bool Enabled
+        {
+            get => _enabled;
+            set
+            {
+                if (!value)
+                {
+                    //Do Reset Tasks
+                    var gatheringMasterpiece = (AddonGatheringMasterpiece*)Dalamud.GameGui.GetAddonByName("GatheringMasterpiece", 1);
+                    if (gatheringMasterpiece != null && !gatheringMasterpiece->AtkUnitBase.IsVisible)
+                    {
+                        gatheringMasterpiece->AtkUnitBase.IsVisible = true;
+                    }
+
+                    if (IsPathing || IsPathGenerating)
+                    {
+                        VNavmesh_IPCSubscriber.Path_Stop();
+                    }
+                    
+                    TaskManager.Abort();
+                    HasSeenFlag    = false;
+                    HiddenRevealed = false;
+                    AutoStatus     = "Idle...";
+                }
+
+                _enabled = value;
+            }
+        }
 
         public unsafe void DoAutoGather()
         {
@@ -44,21 +74,6 @@ namespace GatherBuddy.AutoGather
             }
             if (!Enabled)
             {
-                AutoStatus = "Not running...";
-                //Do Reset Tasks
-                var gatheringMasterpiece = (AddonGatheringMasterpiece*)Dalamud.GameGui.GetAddonByName("GatheringMasterpiece", 1);
-                if (gatheringMasterpiece != null && !gatheringMasterpiece->AtkUnitBase.IsVisible)
-                {
-                    gatheringMasterpiece->AtkUnitBase.IsVisible = true;
-                }
-
-                if (IsPathing || IsPathGenerating)
-                {
-                    VNavmesh_IPCSubscriber.Path_Stop();
-                }
-
-                HasSeenFlag    = false;
-                HiddenRevealed = false;
                 return;
             }
             if (TaskManager.NumQueuedTasks > 0)
@@ -66,19 +81,11 @@ namespace GatherBuddy.AutoGather
                 //GatherBuddy.Log.Verbose("TaskManager has tasks, skipping DoAutoGather");
                 return;
             }
-            if (!ItemsToGather.Any())
+            if (!_plugin.GatherWindowManager.ActiveItems.Any(i => i.InventoryCount < i.Quantity))
             {
                 AutoStatus         = "No items to gather...";
                 Enabled            = false;
                 CurrentDestination = null;
-                VNavmesh_IPCSubscriber.Path_Stop();
-                return;
-            }
-            var location = _plugin.Executor.FindClosestLocation(ItemsToGather.FirstOrDefault());
-            if (location == null)
-            {
-                AutoStatus = "No locations found...";
-                Enabled = false;
                 VNavmesh_IPCSubscriber.Path_Stop();
                 return;
             }
@@ -97,14 +104,14 @@ namespace GatherBuddy.AutoGather
             {
                 AutoStatus = "Generating path...";
             }
+            var location = _plugin.Executor.FindClosestLocation(ItemsToGather.FirstOrDefault());
+            if (location == null)
+            {
+                AutoStatus = "No locations to travel to ...";
+                return;
+            }
             else if (ValidNodesInRange.Any())
             {
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering)
-                {
-                    AutoStatus = "Waiting for GP to regenerate...";
-                    return;
-                }
-                AutoStatus = "Moving to node...";
                 HiddenRevealed = false;
                 TaskManager.Enqueue(MoveToCloseNode);
             }

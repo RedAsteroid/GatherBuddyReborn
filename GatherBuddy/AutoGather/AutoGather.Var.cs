@@ -9,10 +9,13 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using ECommons;
 using ECommons.ExcelServices;
 using ECommons.GameHelpers;
+using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Enums;
+using GatherBuddy.Time;
 
 namespace GatherBuddy.AutoGather
 {
@@ -105,6 +108,7 @@ namespace GatherBuddy.AutoGather
         }
         public string AutoStatus { get; set; } = "Idle";
         public int    LastCollectability = 0;
+        public int    LastIntegrity      = 0;
         public Dictionary<uint, List<Vector3>> DesiredNodesInZone
         {
             get
@@ -148,8 +152,37 @@ namespace GatherBuddy.AutoGather
             return false;
         }
 
-        public IEnumerable<IGatherable> ItemsToGather => _plugin.GatherWindowManager.ActiveItems.Where(i => i.InventoryCount < i.Quantity);
-        public IEnumerable<IGatherable> ItemsToGatherInZone => ItemsToGather.Where(i => i.Locations.Any(l => l.Territory.Id == Dalamud.ClientState.TerritoryType));
+        public IEnumerable<IGatherable> ItemsToGather
+        {
+            get
+            {
+                List<IGatherable> toGather       = new();
+                var                      allActiveItems = _plugin.GatherWindowManager.ActiveItems.Where(i => i.InventoryCount < i.Quantity);
+                foreach (var item in allActiveItems)
+                {
+                    if (GatherBuddy.UptimeManager.TimedGatherables.Contains(item))
+                    {
+                        var location = GatherBuddy.UptimeManager.BestLocation(item);
+                        if (location.Interval.InRange(GatherBuddy.Time.ServerTime.AddSeconds(GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog)))
+                            toGather.Add(item);
+                    }
+                    else
+                    {
+                        toGather.Add(item);
+                    }
+                }
+
+                return toGather;
+            }
+        }
+        public  IEnumerable<IGatherable> ItemsToGatherInZone => ItemsToGather.Where(i => i.Locations.Any(l => l.Territory.Id == Dalamud.ClientState.TerritoryType)).Where(GatherableMatchesJob);
+
+        private bool GatherableMatchesJob(IGatherable arg)
+        {
+            var gatherable = arg as Gatherable;
+            return gatherable != null && gatherable.GatheringType.ToGroup() == JobAsGatheringType;
+        }
+
         public bool CanAct
         {
             get

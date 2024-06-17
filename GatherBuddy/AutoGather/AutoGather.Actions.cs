@@ -66,7 +66,7 @@ namespace GatherBuddy.AutoGather
 
                 var desiredItem = ItemsToGatherInZone.FirstOrDefault();
 
-                if (gatheringMasterpiece != null && (desiredItem?.ItemData.IsCollectable ?? false))
+                if (gatheringMasterpiece != null)
                 {
                     DoCollectibles(gatheringMasterpiece);
                 }
@@ -83,22 +83,25 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void DoGatherWindowActions(AddonGathering* gatheringWindow, IGatherable? desiredItem)
         {
-            List<uint> ids = new List<uint>()
+            if (EzThrottler.Throttle("Gather Window", 1000))
             {
-                gatheringWindow->GatheredItemId1,
-                gatheringWindow->GatheredItemId2,
-                gatheringWindow->GatheredItemId3,
-                gatheringWindow->GatheredItemId4,
-                gatheringWindow->GatheredItemId5,
-                gatheringWindow->GatheredItemId6,
-                gatheringWindow->GatheredItemId7,
-                gatheringWindow->GatheredItemId8,
-            };
-            if (ShouldUseLuck(ids, desiredItem as Gatherable))
-                TaskManager.Enqueue(() => UseAction(Actions.Luck));
-            if (ShoulduseBYII())
-                TaskManager.Enqueue(() => UseAction(Actions.Bountiful));
-            TaskManager.Enqueue(() => DoGatherWindowTasks(gatheringWindow, desiredItem));
+                List<uint> ids = new List<uint>()
+                {
+                    gatheringWindow->GatheredItemId1,
+                    gatheringWindow->GatheredItemId2,
+                    gatheringWindow->GatheredItemId3,
+                    gatheringWindow->GatheredItemId4,
+                    gatheringWindow->GatheredItemId5,
+                    gatheringWindow->GatheredItemId6,
+                    gatheringWindow->GatheredItemId7,
+                    gatheringWindow->GatheredItemId8,
+                };
+                if (ShouldUseLuck(ids, desiredItem as Gatherable))
+                    TaskManager.Enqueue(() => UseAction(Actions.Luck));
+                if (ShoulduseBYII())
+                    TaskManager.Enqueue(() => UseAction(Actions.Bountiful));
+                TaskManager.Enqueue(() => DoGatherWindowTasks(gatheringWindow, desiredItem));
+            }
         }
 
         private unsafe void UseAction(Actions.BaseAction act)
@@ -115,37 +118,69 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void DoCollectibles(AddonGatheringMasterpiece* gatheringMasterpiece)
         {
-            if (gatheringMasterpiece->AtkUnitBase.IsVisible)
+            if (EzThrottler.Throttle("Collectibles", 1000))
             {
-                gatheringMasterpiece->AtkUnitBase.IsVisible = false;
-            }
-            var textNode = gatheringMasterpiece->AtkUnitBase.GetTextNodeById(47);
-            var text     = textNode->NodeText.ToString();
+                if (gatheringMasterpiece->AtkUnitBase.IsVisible)
+                {
+                    gatheringMasterpiece->AtkUnitBase.IsVisible = false;
+                }
 
+                var textNode = gatheringMasterpiece->AtkUnitBase.GetTextNodeById(47);
+                var text     = textNode->NodeText.ToString();
 
-            if (!int.TryParse(text, out var collectibility))
-            {
-                collectibility = 99999; // default value
-                //Communicator.Print("Parsing failed, item is not collectable.");
-            }
+                var integrityNode = gatheringMasterpiece->AtkUnitBase.GetTextNodeById(126);
+                var integrityText = integrityNode->NodeText.ToString();
 
-            if (collectibility < 99999)
-            {
-                LastCollectability = collectibility;
-                if (ShouldUseScrutiny(collectibility))
-                    TaskManager.Enqueue(() => UseAction(Actions.Scrutiny));
-                if (ShouldUseMeticulous(collectibility))
-                    TaskManager.Enqueue(() => UseAction((Actions.Meticulous)));
-                if (ShouldUseSolidAge(collectibility))
-                    TaskManager.Enqueue(() => UseAction(Actions.SolidAge));
-                if (ShouldUseWise(collectibility))
-                    TaskManager.Enqueue(() => UseAction((Actions.Wise)));
-                if (ShouldCollect(collectibility))
-                    TaskManager.Enqueue(() => UseAction(Actions.Collect));
+                if (!int.TryParse(text, out var collectibility))
+                {
+                    collectibility = 99999; // default value
+                    //Communicator.Print("Parsing failed, item is not collectable.");
+                }
+
+                if (!int.TryParse(integrityText, out var integrity))
+                {
+                    collectibility = 99999;
+                    integrity      = 99999;
+                }
+
+                if (collectibility < 99999)
+                {
+                    LastCollectability = collectibility;
+                    LastIntegrity      = integrity;
+                    if (ShouldUseScrutiny(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction(Actions.Scrutiny));
+                    if (ShouldUseScour(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction(Actions.Scour));
+                    if (ShouldUseMeticulous(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction((Actions.Meticulous)));
+                    if (ShouldUseSolidAge(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction(Actions.SolidAge));
+                    if (ShouldUseWise(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction((Actions.Wise)));
+                    if (ShouldCollect(collectibility, integrity))
+                        TaskManager.Enqueue(() => UseAction(Actions.Collect));
+                }
             }
         }
 
-        private bool ShouldUseWise(int collectability)
+        private bool ShouldUseScour(int collectibility, int integrity)
+        {
+            if (Player.Level < Actions.Scour.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.Scour.GpCost)
+                return false;
+            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP
+             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP)
+                return false;
+
+            if (collectibility is < 1000 and >= 800 && !Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2418) && integrity > 0)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldUseWise(int collectability, int integrity)
         {
             if (Player.Level < Actions.Wise.MinLevel)
                 return false;
@@ -154,7 +189,7 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.WiseConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.WiseConfig.MaximumGP)
                 return false;
-            if (collectability == 1000 && Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2765))
+            if (collectability == 1000 && Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2765) && integrity < 4)
             {
                 return true;
             }
@@ -162,7 +197,7 @@ namespace GatherBuddy.AutoGather
             return false;
         }
 
-        private bool ShouldCollect(int collectability)
+        private bool ShouldCollect(int collectability, int integrity)
         {
             if (Player.Level < Actions.Collect.MinLevel)
                 return false;
@@ -171,13 +206,13 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.CollectConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.CollectConfig.MaximumGP)
                 return false;
-            if (collectability == 1000)
+            if (collectability == 1000 && integrity > 0)
                 return true;
 
             return false;
         }
 
-        private bool ShouldUseMeticulous(int collectability)
+        private bool ShouldUseMeticulous(int collectability, int integrity)
         {
             if (Player.Level < Actions.Meticulous.MinLevel)
                 return false;
@@ -186,13 +221,15 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MaximumGP)
                 return false;
-            if (collectability < 1000)
+            if (collectability is >= 800 and < 1000 && Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2418))
+                return true;
+            if (collectability < 1000 && integrity > 0)
                 return true;
 
             return false;
         }
 
-        private bool ShouldUseScrutiny(int collectability)
+        private bool ShouldUseScrutiny(int collectability, int integrity)
         {
             if (Player.Level < Actions.Scrutiny.MinLevel)
                 return false;
@@ -201,13 +238,13 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MaximumGP)
                 return false;
-            if (collectability < 800)
+            if (collectability < 800 && integrity > 2)
                 return true;
 
             return false;
         }
 
-        private bool ShouldUseSolidAge(int collectability)
+        private bool ShouldUseSolidAge(int collectability, int integrity)
         {
             if (Player.Level < Actions.SolidAge.MinLevel)
                 return false;
@@ -216,7 +253,7 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.SolidAgeConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.SolidAgeConfig.MaximumGP)
                 return false;
-            if (collectability == 1000)
+            if (collectability == 1000 && integrity < 4)
                 return true;
 
             return false;
