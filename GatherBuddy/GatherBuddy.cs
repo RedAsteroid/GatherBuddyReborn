@@ -45,7 +45,7 @@ public partial class GatherBuddy : IDalamudPlugin
     public static Configuration  Config   { get; private set; } = null!;
     public static GameData       GameData { get; private set; } = null!;
     public static Logger         Log      { get; private set; } = null!;
-    public static ClientLanguage Language { get; private set; } = ClientLanguage.English;
+    public static ClientLanguage Language { get; private set; } = (ClientLanguage)4;
     public static SeTime         Time     { get; private set; } = null!;
 #if DEBUG
     public static bool DebugMode { get; private set; } = true;

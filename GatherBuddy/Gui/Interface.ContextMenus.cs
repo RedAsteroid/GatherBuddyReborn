@@ -100,6 +100,7 @@ public partial class Interface
             ClientLanguage.German   => "de",
             ClientLanguage.French   => "fr",
             ClientLanguage.Japanese => "ja",
+            (ClientLanguage)4       => "chs",
             _                       => "en",
         };
 

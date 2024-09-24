@@ -214,6 +214,7 @@ public class Executor
             GatheringType.Miner => GatherBuddy.Config.MinerSetName,
             _ => null,
         };
+
         if (set == null)
         {
             Communicator.PrintError("No job type associated with location ", _location.Name, GatherBuddy.Config.SeColorArguments, ".");
