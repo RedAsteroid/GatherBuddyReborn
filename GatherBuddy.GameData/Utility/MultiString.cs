@@ -1,20 +1,20 @@
 using System;
-using Dalamud;
+using Dalamud.Game;
 using Dalamud.Plugin.Services;
 using Lumina.Text;
 
 namespace GatherBuddy.Utility;
 
-public readonly struct MultiString
+public readonly struct MultiString(string en, string de, string fr, string jp, string chs)
 {
     public static string ParseSeStringLumina(SeString? luminaString)
         => luminaString == null ? string.Empty : Dalamud.Game.Text.SeStringHandling.SeString.Parse(luminaString.RawData).TextValue;
 
-    public readonly string English;
-    public readonly string German;
-    public readonly string French;
-    public readonly string Japanese;
-    public readonly string ChineseSimplified;
+    public readonly string English = en;
+    public readonly string German = de;
+    public readonly string French = fr;
+    public readonly string Japanese = jp;
+    public readonly string ChineseSimplified = chs;
 
     public string this[ClientLanguage lang]
         => Name(lang);
@@ -24,16 +24,6 @@ public readonly struct MultiString
 
     public string ToWholeString()
         => $"{English}|{German}|{French}|{Japanese}|{ChineseSimplified}";
-
-    public MultiString(string en, string de, string fr, string jp, string chs)
-    {
-        English  = en;
-        German   = de;
-        French   = fr;
-        Japanese = jp;
-        ChineseSimplified = chs;
-    }
-
 
     public static MultiString FromPlaceName(IDataManager gameData, uint id)
     {

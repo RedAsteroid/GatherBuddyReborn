@@ -1,218 +1,305 @@
 ﻿using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using GatherBuddy.Classes;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ECommons.Throttlers;
-using FFXIVClientStructs.FFXIV.Component.GUI;
-using GatherBuddy.Interfaces;
-using GatherBuddy.Plugin;
-using Lumina.Data.Parsing;
+using Dalamud.Game.ClientState.Conditions;
+using ItemSlot = GatherBuddy.AutoGather.GatheringTracker.ItemSlot;
 
 namespace GatherBuddy.AutoGather
 {
     public partial class AutoGather
     {
-        public bool ShouldUseLuck(List<uint> ids, Gatherable gatherable)
+        public bool ShouldUseLuck(Gatherable? gatherable)
         {
             if (gatherable == null)
                 return false;
+            if (LuckUsed[1] || NodeTarcker.HiddenRevealed)
+                return false;
             if (Player.Level < Actions.Luck.MinLevel)
                 return false;
-            if (!gatherable.GatheringData.IsHidden)
+            if (Player.Object.CurrentGp < Actions.Luck.GpCost)
                 return false;
-
-            if (ids.Count > 0 && ids.Any(i => i == gatherable.ItemId))
-            {
+            if (!gatherable.GatheringData.IsHidden && !gatherable.IsTreasureMap)
                 return false;
-            }
-
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.LuckConfig.MinimumGP)
                 return false;
             if (Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.LuckConfig.MaximumGP)
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.LuckConfig, gatherable))
                 return false;
 
             return GatherBuddy.Config.AutoGatherConfig.LuckConfig.UseAction;
         }
 
-        public bool ShoulduseBYII()
+        public bool ShoulduseBYII(ItemSlot slot)
         {
             if (Player.Level < Actions.Bountiful.MinLevel)
                 return false;
-            if (Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 1286 || s.StatusId == 756))
+            if (Player.Object.CurrentGp < Actions.Bountiful.GpCost)
                 return false;
-            if ((Dalamud.ClientState.LocalPlayer?.CurrentGp ?? 0) < GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP)
+            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => BountifulYieldStatuses.Contains(s.StatusId)))
                 return false;
-            if ((Dalamud.ClientState.LocalPlayer?.CurrentGp ?? 0) > GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP)
+            if (Dalamud.ClientState.LocalPlayer!.CurrentGp < GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP)
+                return false;
+            if (Dalamud.ClientState.LocalPlayer!.CurrentGp > GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP)
+                return false;
+            if (slot.Item.IsCrystal && !GatherBuddy.Config.AutoGatherConfig.BYIIConfig.GetOptionalProperty<bool>("UseWithCystals"))
+                return false;
+            if (slot.Rare)
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.BYIIConfig, slot.Item))
                 return false;
 
             return GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction;
         }
 
-        private unsafe void DoActionTasks()
+        public uint[] KingsYieldStatuses =
+        [
+            219, //KYI and KYII
+        ];
+
+        public uint[] BountifulYieldStatuses =
+        [
+            756,  //BYI?
+            1286, //BYII
+        ];
+
+        public bool ShouldUseKingII(ItemSlot slot)
         {
-            if (EzThrottler.Throttle("Gather", 1600))
-            {
-                var gatheringWindow = (AddonGathering*)Dalamud.GameGui.GetAddonByName("Gathering", 1);
+            if (Player.Level < Actions.Yield2.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.Yield2.GpCost)
+                return false;
+            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => KingsYieldStatuses.Contains(s.StatusId)))
+                return false;
+            if (Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MaximumGP
+             || Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MinimumGP)
+                return false;
+            if (slot.Item.IsCrystal && !GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.GetOptionalProperty<bool>("UseWithCystals"))
+                return false;
+            if (slot.Rare)
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.YieldIIConfig, slot.Item))
+                return false;
 
-                var gatheringMasterpiece = (AddonGatheringMasterpiece*)Dalamud.GameGui.GetAddonByName("GatheringMasterpiece", 1);
-                if (gatheringWindow == null && gatheringMasterpiece == null)
-                    return;
-
-                var desiredItem = ItemsToGatherInZone.FirstOrDefault();
-
-                if (gatheringMasterpiece != null)
-                {
-                    DoCollectibles(gatheringMasterpiece);
-                }
-                else if (gatheringWindow != null && !(desiredItem?.ItemData.IsCollectable ?? false))
-                {
-                    TaskManager.Enqueue(() => DoGatherWindowActions(gatheringWindow, desiredItem));
-                }
-                else if (gatheringWindow != null && (desiredItem?.ItemData.IsCollectable ?? false))
-                {
-                    TaskManager.Enqueue(() => DoGatherWindowTasks(gatheringWindow, desiredItem));
-                }
-            }
+            return GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.UseAction;
         }
 
-        private unsafe void DoGatherWindowActions(AddonGathering* gatheringWindow, IGatherable? desiredItem)
+        public bool ShouldUseKingI(ItemSlot slot)
         {
-            if (EzThrottler.Throttle("Gather Window", 1000))
+            if (Player.Level < Actions.Yield1.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.Yield1.GpCost)
+                return false;
+            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => KingsYieldStatuses.Contains(s.StatusId)))
+                return false;
+            if (Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MaximumGP
+             || Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MinimumGP)
+                return false;
+            if (slot.Item.IsCrystal && !GatherBuddy.Config.AutoGatherConfig.YieldIConfig.GetOptionalProperty<bool>("UseWithCystals"))
+                return false;
+            if (slot.Rare)
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.YieldIConfig, slot.Item))
+                return false;
+
+            return GatherBuddy.Config.AutoGatherConfig.YieldIConfig.UseAction;
+        }
+
+        private bool ShouldUseGivingLand(ItemSlot slot)
+        {
+            if (!slot.Item.IsCrystal)
+                return false;
+            if (!GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.UseAction)
+                return false;
+            if (Player.Level < Actions.GivingLand.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.GivingLand.GpCost)
+                return false;
+            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MinimumGP
+             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MaximumGP)
+                return false;
+            if (HasGivingLandBuff)
+                return false;
+            if (!IsGivingLandOffCooldown)
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.GivingLandConfig, slot.Item))
+                return false;
+            if (InventoryCount(slot.Item) > 9999 - GivingLandYeild - slot.Yield)
+                return false;
+
+            return true;
+        }
+
+        private unsafe bool ShouldUseTwelvesBounty(ItemSlot slot)
+        {
+            if (!slot.Item.IsCrystal)
+                return false;
+            if (!GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.UseAction)
+                return false;
+            if (Player.Level < Actions.TwelvesBounty.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.TwelvesBounty.GpCost)
+                return false;
+            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MinimumGP
+             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MaximumGP)
+                return false;
+            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == 825))
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig, slot.Item))
+                return false;
+            if (InventoryCount(slot.Item) > 9999 - 3 - slot.Yield - (slot.RandomYield ? GivingLandYeild : 0))
+                return false;
+
+            return true;
+        }
+
+
+        private unsafe void DoActionTasks(Gatherable? desiredItem)
+        {
+            if (MasterpieceAddon != null)
             {
-                List<uint> ids = new List<uint>()
+                DoCollectibles();
+            }
+            else if (GatheringAddon != null && NodeTarcker.Ready)
+            {
+                if (desiredItem?.ItemData.IsCollectable == true)
+                    EnqueueGatherItem(GetItemSlotToGather(desiredItem).Slot);
+                else
+                    DoGatherWindowActions(desiredItem);
+            }
+            if (MasterpieceAddon == null)
+                CurrentRotation = null;
+        }
+
+        private unsafe void DoGatherWindowActions(Gatherable? desiredItem)
+        {
+            if (LuckUsed[1] && !LuckUsed[2] && NodeTarcker.Revisit) LuckUsed = new(0);
+
+            if (!HasGivingLandBuff && ShouldUseLuck(desiredItem))
+            {
+                var wouldUseGivingLand = GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown;
+                if (wouldUseGivingLand)
                 {
-                    gatheringWindow->GatheredItemId1,
-                    gatheringWindow->GatheredItemId2,
-                    gatheringWindow->GatheredItemId3,
-                    gatheringWindow->GatheredItemId4,
-                    gatheringWindow->GatheredItemId5,
-                    gatheringWindow->GatheredItemId6,
-                    gatheringWindow->GatheredItemId7,
-                    gatheringWindow->GatheredItemId8,
-                };
-                if (ShouldUseLuck(ids, desiredItem as Gatherable))
-                    TaskManager.Enqueue(() => UseAction(Actions.Luck));
-                if (ShoulduseBYII())
-                    TaskManager.Enqueue(() => UseAction(Actions.Bountiful));
-                TaskManager.Enqueue(() => DoGatherWindowTasks(gatheringWindow, desiredItem));
+                    var anyCrystall = NodeTarcker.Aviable.Where(s => s.Item.IsCrystal).OrderBy(s => InventoryCount(s.Item)).FirstOrDefault();
+                    if (anyCrystall == null || !ShouldUseGivingLand(anyCrystall))
+                        wouldUseGivingLand = false;
+                }
+                if (!wouldUseGivingLand)
+                {
+                    LuckUsed[1] = true;
+                    LuckUsed[2] = NodeTarcker.Revisit;
+                    EnqueueGatherAction(() => UseAction(Actions.Luck));
+                    return;
+                }
+            }
+
+            var (useSkills, slot) = GetItemSlotToGather(desiredItem);
+            if (useSkills)
+            {
+                if (ShouldUseWise(NodeTarcker.Integrity, NodeTarcker.MaxIntegrity))
+                    EnqueueGatherAction(() => UseAction(Actions.Wise));
+                else if (ShouldUseSolidAgeGatherables(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.SolidAge));
+                else if (ShouldUseGivingLand(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.GivingLand));
+                else if (ShouldUseTwelvesBounty(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.TwelvesBounty));
+                else if (ShouldUseKingII(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.Yield2));
+                else if (ShouldUseKingI(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.Yield1));
+                else if (ShoulduseBYII(slot))
+                    EnqueueGatherAction(() => UseAction(Actions.Bountiful));
+                else
+                    EnqueueGatherItem(slot);
+            }
+            else
+            {
+                EnqueueGatherItem(slot);
             }
         }
 
         private unsafe void UseAction(Actions.BaseAction act)
         {
-            if (EzThrottler.Throttle($"Action: {act.Name}", ActionCooldown))
+            var amInstance = ActionManager.Instance();
+            if (amInstance->GetActionStatus(ActionType.Action, act.ActionID) == 0)
             {
-                var amInstance = ActionManager.Instance();
-                if (amInstance->GetActionStatus(ActionType.Action, act.ActionID) == 0)
-                {
-                    amInstance->UseAction(ActionType.Action, act.ActionID);
-                }
+                //Communicator.Print("Action used: " + act.Name);
+                amInstance->UseAction(ActionType.Action, act.ActionID);
             }
         }
 
-        private unsafe void DoCollectibles(AddonGatheringMasterpiece* gatheringMasterpiece)
+        private void EnqueueGatherAction(Action action, int additionalDelay = 0)
         {
-            if (EzThrottler.Throttle("Collectibles", 1000))
-            {
-                if (gatheringMasterpiece->AtkUnitBase.IsVisible)
-                {
-                    gatheringMasterpiece->AtkUnitBase.IsVisible = false;
-                }
-
-                var textNode = gatheringMasterpiece->AtkUnitBase.GetTextNodeById(47);
-                var text     = textNode->NodeText.ToString();
-
-                var integrityNode = gatheringMasterpiece->AtkUnitBase.GetTextNodeById(126);
-                var integrityText = integrityNode->NodeText.ToString();
-
-                if (!int.TryParse(text, out var collectibility))
-                {
-                    collectibility = 99999; // default value
-                    //Communicator.Print("Parsing failed, item is not collectable.");
-                }
-
-                if (!int.TryParse(integrityText, out var integrity))
-                {
-                    collectibility = 99999;
-                    integrity      = 99999;
-                }
-
-                if (collectibility < 99999)
-                {
-                    LastCollectability = collectibility;
-                    LastIntegrity      = integrity;
-                    if (ShouldUseScrutiny(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction(Actions.Scrutiny));
-                    if (ShouldUseScour(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction(Actions.Scour));
-                    if (ShouldUseMeticulous(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction((Actions.Meticulous)));
-                    if (ShouldUseSolidAge(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction(Actions.SolidAge));
-                    if (ShouldUseWise(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction((Actions.Wise)));
-                    if (ShouldCollect(collectibility, integrity))
-                        TaskManager.Enqueue(() => UseAction(Actions.Collect));
-                }
-            }
+            TaskManager.Enqueue(action);
+            if (additionalDelay > 0)
+                TaskManager.DelayNextImmediate(additionalDelay);
+            TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Gathering42]);
+            //Communicator.Print("Ready for next action.");
         }
 
-        private bool ShouldUseScour(int collectibility, int integrity)
+        private unsafe void DoCollectibles()
         {
-            if (Player.Level < Actions.Scour.MinLevel)
-                return false;
-            if (Player.Object.CurrentGp < Actions.Scour.GpCost)
-                return false;
-            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP
-             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP)
-                return false;
+            if (MasterpieceAddon == null)
+                return;
 
-            if (collectibility is < 1000 and >= 800 && !Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2418) && integrity > 0)
+            CurrentRotation ??= new CollectableRotation(GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectableRotation);
+
+            var textNode = MasterpieceAddon->AtkUnitBase.GetTextNodeById(6);
+            if (textNode == null)
+                return;
+            var text = textNode->NodeText.ToString();
+
+            var integrityNode = MasterpieceAddon->AtkUnitBase.GetTextNodeById(126);
+            if (integrityNode == null)
+                return;
+            var integrityText = integrityNode->NodeText.ToString();
+
+            if (!int.TryParse(text, out var collectibility))
             {
-                return true;
+                collectibility = 99999; // default value
             }
-            return false;
+
+            if (!int.TryParse(integrityText, out var integrity))
+            {
+                collectibility = 99999;
+                integrity      = 99999;
+            }
+
+            if (collectibility < 99999)
+            {
+                LastCollectability = collectibility;
+                LastIntegrity      = integrity;
+
+                var collectibleAction = CurrentRotation.GetNextAction(MasterpieceAddon);
+                if (collectibleAction == null)
+                {
+                    GatherBuddy.Log.Debug("Collectible action was null, all actions are disabled by user");
+                    return;
+                }
+
+                EnqueueGatherAction(() => { UseAction(collectibleAction); }, 250);
+            }
         }
 
-        private bool ShouldUseWise(int collectability, int integrity)
+        private static bool ShouldUseWise(int integrity, int maxIntegrity)
         {
             if (Player.Level < Actions.Wise.MinLevel)
                 return false;
             if (Player.Object.CurrentGp < Actions.Wise.GpCost)
                 return false;
-            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.WiseConfig.MinimumGP
-             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.WiseConfig.MaximumGP)
-                return false;
-            if (collectability == 1000 && Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2765) && integrity < 4)
-            {
-                return true;
-            }
 
-            return false;
-        }
-
-        private bool ShouldCollect(int collectability, int integrity)
-        {
-            if (Player.Level < Actions.Collect.MinLevel)
-                return false;
-            if (Player.Object.CurrentGp < Actions.Collect.GpCost)
-                return false;
-            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.CollectConfig.MinimumGP
-             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.CollectConfig.MaximumGP)
-                return false;
-            if (collectability == 1000 && integrity > 0)
+            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == 2765) && integrity < maxIntegrity)
                 return true;
 
             return false;
         }
 
-        private bool ShouldUseMeticulous(int collectability, int integrity)
+
+        private static bool ShouldUseMeticulous()
         {
             if (Player.Level < Actions.Meticulous.MinLevel)
                 return false;
@@ -221,15 +308,37 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MaximumGP)
                 return false;
-            if (collectability is >= 800 and < 1000 && Dalamud.ClientState.LocalPlayer.StatusList.Any(s => s.StatusId == 2418))
-                return true;
-            if (collectability < 1000 && integrity > 0)
-                return true;
 
-            return false;
+            return GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.UseAction;
         }
 
-        private bool ShouldUseScrutiny(int collectability, int integrity)
+        private static bool ShouldUseScour()
+        {
+            if (Player.Level < Actions.Brazen.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.Brazen.GpCost)
+                return false;
+            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP
+             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP)
+                return false;
+
+            return GatherBuddy.Config.AutoGatherConfig.ScourConfig.UseAction;
+        }
+
+        private static bool ShouldUseBrazen()
+        {
+            if (Player.Level < Actions.Meticulous.MinLevel)
+                return false;
+            if (Player.Object.CurrentGp < Actions.Meticulous.GpCost)
+                return false;
+            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MinimumGP
+             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MaximumGP)
+                return false;
+
+            return GatherBuddy.Config.AutoGatherConfig.BrazenConfig.UseAction;
+        }
+
+        private static bool ShouldUseScrutiny()
         {
             if (Player.Level < Actions.Scrutiny.MinLevel)
                 return false;
@@ -238,29 +347,69 @@ namespace GatherBuddy.AutoGather
             if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MinimumGP
              || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MaximumGP)
                 return false;
-            if (collectability < 800 && integrity > 2)
-                return true;
+            if (!Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == 757))
+                return GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.UseAction;
 
             return false;
         }
 
-        private bool ShouldUseSolidAge(int collectability, int integrity)
+        private static bool ShouldSolidAgeCollectables(int integrity, int maxIntegrity)
+            => ShouldUseSolidAge(GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig, integrity, maxIntegrity);
+
+        private bool ShouldUseSolidAgeGatherables(ItemSlot slot)
+        {
+            if (slot.Yield < GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.GetOptionalProperty<int>("MinimumYield"))
+                return false;
+            if (slot.Item.IsCrystal && !GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.GetOptionalProperty<bool>("UseWithCystals"))
+                return false;
+            if (!CheckConditions(GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig, slot.Item))
+                return false;
+
+            if (!ShouldUseSolidAge(GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig, NodeTarcker.Integrity, NodeTarcker.MaxIntegrity))
+                return false;
+
+            return true;
+        }
+
+        private static bool ShouldUseSolidAge(AutoGatherConfig.ActionConfig SolidAgeConfig, int integrity, int maxIntegrity)
         {
             if (Player.Level < Actions.SolidAge.MinLevel)
                 return false;
             if (Player.Object.CurrentGp < Actions.SolidAge.GpCost)
                 return false;
-            if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.SolidAgeConfig.MinimumGP
-             || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.SolidAgeConfig.MaximumGP)
+            if (Player.Object.CurrentGp < SolidAgeConfig.MinimumGP
+             || Player.Object.CurrentGp > SolidAgeConfig.MaximumGP)
                 return false;
-            if (collectability == 1000 && integrity < 4)
-                return true;
+            if (!Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == 2765) && integrity < maxIntegrity)
+                return SolidAgeConfig.UseAction;
 
             return false;
         }
 
+        private unsafe bool CheckConditions(AutoGatherConfig.ActionConfig config, Gatherable item)
+        {
+            if (!config.Conditions.UseConditions)
+                return true;
 
-        public bool HiddenRevealed = false;
+            if (config.Conditions.RequiredIntegrity > NodeTarcker.MaxIntegrity)
+                return false;
+
+            if (config.Conditions.UseOnlyOnFirstStep && NodeTarcker.Touched)
+                return false;
+
+            if (config.Conditions.FilterNodeTypes)
+            {
+                var node = config.Conditions.NodeFilter.GetNodeConfig(item.NodeType);
+
+                if (!node.Use || item.Level < node.NodeLevel && !(node.AvoidCap && IsGpMax))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsGpMax
+            => Dalamud.ClientState.LocalPlayer?.CurrentGp == Dalamud.ClientState.LocalPlayer?.MaxGp;
 
         private const int ActionCooldown = 2000;
     }

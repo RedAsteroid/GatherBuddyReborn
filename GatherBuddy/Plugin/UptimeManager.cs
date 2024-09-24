@@ -245,6 +245,8 @@ public class UptimeManager : IDisposable
     public (ILocation? Location, TimeInterval interval) NextUptime(Gatherable item, GatheringType type, TimeStamp now,
         IReadOnlyList<ILocation>? excludes = null)
     {
+        if (item.InternalLocationId == 0)
+            return (item.Locations.FirstOrDefault(), TimeInterval.Always);
         if (item.InternalLocationId < 0)
             return (FindClosestAetheryte(item, type), TimeInterval.Always);
 
@@ -297,7 +299,7 @@ public class UptimeManager : IDisposable
         _currentTerritory = territory;
         var rawT = Dalamud.GameData.GetExcelSheet<TerritoryTypeTelepo>()!.GetRow(territory);
         (_aetherStreamX, _aetherStreamY, _aetherPlane) =
-            rawT == null ? ((ushort)0, (ushort)0, (ushort)0) : (rawT.Unknown0, rawT.Unknown1, rawT.Unknown2);
+            rawT == null ? ((ushort)0, (ushort)0, (ushort)0) : (rawT.X, rawT.Y, (ushort) rawT.TelepoRelay.Row);
 
         if (GatherBuddy.Config.AetherytePreference == AetherytePreference.Cost)
             ResetLocations();

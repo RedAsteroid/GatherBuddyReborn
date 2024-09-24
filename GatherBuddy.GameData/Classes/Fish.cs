@@ -49,7 +49,7 @@ public partial class Fish : IComparable<Fish>, IGatherable
         => _fishData is SpearFishRow;
 
     public bool IsBigFish
-        => BigFishOverride.Value ?? FishData?.IsHidden ?? false;
+        => BigFishOverride.Value ?? ItemData.Rarity > 1;
 
     public OceanArea OceanArea { get; internal set; } = OceanArea.None;
 
@@ -59,16 +59,6 @@ public partial class Fish : IComparable<Fish>, IGatherable
     public FishRestrictions FishRestrictions { get; set; }
 
     public string Folklore { get; init; }
-
-    public uint Quantity { get; set; } = 1;
-    public unsafe int InventoryCount
-    {
-        get
-        {
-            var inventory = InventoryManager.Instance();
-            return inventory->GetInventoryItemCount(ItemId);
-        }
-    }
 
     public Fish(IDataManager gameData, SpearFishRow fishRow, ExcelSheet<FishingNoteInfo> catchData)
     {
@@ -87,18 +77,18 @@ public partial class Fish : IComparable<Fish>, IGatherable
 
     public Fish(IDataManager gameData, FishRow fishRow, ExcelSheet<FishingNoteInfo> catchData)
     {
-        ItemData  = gameData.GetExcelSheet<ItemRow>()?.GetRow((uint)fishRow.Item) ?? new Item();
+        ItemData  = gameData.GetExcelSheet<ItemRow>()?.GetRow((uint)fishRow.Item) ?? new ItemRow();
         _fishData = fishRow;
         var note = catchData.GetRow(fishRow.RowId);
         FishRestrictions = (note is { TimeRestriction: 1 } ? FishRestrictions.Time : FishRestrictions.None)
           | (note is { WeatherRestriction: 1 } ? FishRestrictions.Weather : FishRestrictions.None);
-        Name      = MultiString.FromItem(gameData, ItemData.RowId);
-        Folklore  = MultiString.ParseSeStringLumina(fishRow.GatheringSubCategory.Value?.FolkloreBook);
-        Size      = SpearfishSize.None;
-        Speed     = SpearfishSpeed.None;
-        BiteType  = BiteType.Unknown;
-        Snagging  = Snagging.Unknown;
-        HookSet   = HookSet.Unknown;
+        Name     = MultiString.FromItem(gameData, ItemData.RowId);
+        Folklore = MultiString.ParseSeStringLumina(fishRow.GatheringSubCategory.Value?.FolkloreBook);
+        Size     = SpearfishSize.None;
+        Speed    = SpearfishSpeed.None;
+        BiteType = BiteType.Unknown;
+        Snagging = Snagging.Unknown;
+        HookSet  = HookSet.Unknown;
     }
 
     public int CompareTo(Fish? obj)

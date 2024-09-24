@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud;
 using Dalamud.Game.ClientState.Objects.Enums;
 using GatherBuddy.AutoGather;
+using Dalamud.Game;
+using ECommons.DalamudServices;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Levenshtein;
@@ -16,6 +17,7 @@ using ImGuiNET;
 using OtterGui;
 using static GatherBuddy.FishTimer.FishRecord;
 using ImRaii = OtterGui.Raii.ImRaii;
+using System.Text;
 
 namespace GatherBuddy.Gui;
 
@@ -143,7 +145,7 @@ public partial class Interface
 
         var fw = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance();
         ImGuiUtil.DrawTableColumn("Framework Timestamp");
-        ImGuiUtil.DrawTableColumn(fw == null ? "NULL" : fw->UtcTime.TimeStamp.ToString());
+        ImGuiUtil.DrawTableColumn(fw == null ? "NULL" : fw->UtcTime.Timestamp.ToString());
         ImGuiUtil.DrawTableColumn("Framework Eorzea");
         ImGuiUtil.DrawTableColumn(fw == null ? "NULL" : fw->ClientTime.EorzeaTime.ToString());
         ImGuiUtil.DrawTableColumn("Framework Func");
@@ -183,11 +185,19 @@ public partial class Interface
         ImGuiUtil.DrawTableColumn("Event Framework Address");
         ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.Address.ToString("X"));
         ImGuiUtil.DrawTableColumn("Fishing Manager Address");
-        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.FishingManager.ToString("X"));
-        ImGuiUtil.DrawTableColumn("Fishing State Address");
-        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.FishingStatePtr.ToString("X"));
+        ImGuiUtil.DrawTableColumn($"0x{(nint)GatherBuddy.EventFramework.FishingManager:X}");
         ImGuiUtil.DrawTableColumn("Fishing State");
         ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.FishingState.ToString());
+        ImGuiUtil.DrawTableColumn("Num SwimBait");
+        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.NumSwimBait.ToString());
+        ImGuiUtil.DrawTableColumn("Selected SwimBait");
+        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.CurrentSwimBait?.ToString() ?? "NULL");
+        ImGuiUtil.DrawTableColumn("SwimBait 1");
+        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.SwimBait(0)?.ToString() ?? "NULL");
+        ImGuiUtil.DrawTableColumn("SwimBait 2");
+        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.SwimBait(1)?.ToString() ?? "NULL");
+        ImGuiUtil.DrawTableColumn("SwimBait 3");
+        ImGuiUtil.DrawTableColumn(GatherBuddy.EventFramework.SwimBait(2)?.ToString() ?? "NULL");
         ImGuiUtil.DrawTableColumn("Bite Type Address");
         ImGuiUtil.DrawTableColumn(GatherBuddy.TugType.Address.ToString("X"));
         ImGuiUtil.DrawTableColumn("Bite Type");
@@ -527,12 +537,12 @@ public partial class Interface
         {
             using var group = ImRaii.Group();
             ImGui.Text("Gatherables within 200 yalms");
-            var gatherables = Dalamud.ObjectTable.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
+            var gatherables = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
             foreach (var obj in gatherables)
             {
-                ImGui.PushID(obj.ObjectId.ToString());
-                var node = GatherBuddy.GameData.GatheringNodes.TryGetValue(obj.ObjectId, out var n) ? n : null;
-                ImGui.Text($"{obj.ObjectId}: {obj.Name ?? "Unknown"} - DataId: {obj.DataId}");
+                ImGui.PushID(obj.GameObjectId.ToString());
+                var node = GatherBuddy.GameData.GatheringNodes.TryGetValue((uint)obj.GameObjectId, out var n) ? n : null;
+                ImGui.Text($"{obj.GameObjectId}: {obj.Name ?? "Unknown"} - DataId: {obj.DataId}");
                 ImGui.SameLine();
                 if (ImGui.SmallButton("NavTo"))
                 {
@@ -567,47 +577,108 @@ public partial class Interface
         if (!ImGui.CollapsingHeader("AutoGather"))
             return;
 
+        if (ImGui.Button("Clear Timed Node Memory"))
+        {
+            GatherBuddy.Log.Information("Timed node memory cleared manually!");
+            GatherBuddy.AutoGather.VisitedTimedLocations.Clear();
+        }
+
         ImGui.Text($"Enabled: {GatherBuddy.AutoGather.Enabled}");
         ImGui.Text($"Status: {GatherBuddy.AutoGather.AutoStatus}");
         ImGui.Text($"Navigation: {GatherBuddy.AutoGather.LastNavigationResult}");
-        ImGui.Text($"Target Node: {GatherBuddy.AutoGather.NearestNode?.Name} {GatherBuddy.AutoGather.NearestNode?.Position}");
         ImGui.Text($"Current Destination: {GatherBuddy.AutoGather.CurrentDestination}");
-        ImGui.Text($"ShouldFly: {GatherBuddy.AutoGather.ShouldFly}");
         ImGui.Text($"IsGathering: {GatherBuddy.AutoGather.IsGathering}");
         ImGui.Text($"IsPathing: {GatherBuddy.AutoGather.IsPathing}");
         ImGui.Text($"IsPathGenerating: {GatherBuddy.AutoGather.IsPathGenerating}");
         ImGui.Text($"NavReady: {GatherBuddy.AutoGather.NavReady}");
         ImGui.Text($"CanAct: {GatherBuddy.AutoGather.CanAct}");
-        ImGui.Text($"NearestNodeDistance: {GatherBuddy.AutoGather.NearestNodeDistance}");
-        ImGui.Text($"DesiredNodesInZone: {GatherBuddy.AutoGather.DesiredNodesInZone.Count}");
-        ImGui.Text($"DesiredNodeCoordsInZone: {GatherBuddy.AutoGather.DesiredNodeCoordsInZone.Count}");
-        ImGui.Text($"ValidNodesInRange: {GatherBuddy.AutoGather.ValidNodesInRange.Count()}");
         ImGui.Text($"BlacklistedNodes: {GatherBuddy.Config.AutoGatherConfig.BlacklistedNodesByTerritoryId.Count}");
         ImGui.Text($"ItemsToGatherInZone: {GatherBuddy.AutoGather.ItemsToGatherInZone.Count()}");
         ImGui.Text($"ItemsToGather: {GatherBuddy.AutoGather.ItemsToGather.Count()}");
         ImGui.Text($"ShouldUseFlag: {GatherBuddy.AutoGather.ShouldUseFlag}");
-        ImGui.Text(($"HasSeenFlag: {GatherBuddy.AutoGather.HasSeenFlag}"));
         ImGui.Text($"LastIntegrity: {GatherBuddy.AutoGather.LastIntegrity}");
         ImGui.Text($"LastCollectScore: {GatherBuddy.AutoGather.LastCollectability}");
-        
-        if (ImGui.CollapsingHeader("Item Priority (Current Zone)"))
+        ImGui.Text($"IsCordialOnCooldown: {GatherBuddy.AutoGather.IsCordialOnCooldown}");
+        ImGui.Text($"IsFoodBuffUp: {GatherBuddy.AutoGather.IsFoodBuffUp}");
+        ImGui.Text($"IsPotionBuffUp: {GatherBuddy.AutoGather.IsPotionBuffUp}");
+        ImGui.Text($"IsManualBuffUp: {GatherBuddy.AutoGather.IsManualBuffUp}");
+        ImGui.Text($"IsSquadronManualBuffUp: {GatherBuddy.AutoGather.IsSquadronManualBuffUp}");
+        ImGui.Text($"IsSquadronPassBuffUp: {GatherBuddy.AutoGather.IsSquadronPassBuffUp}");
+        ImGui.Text($"SortingMethodType: {GatherBuddy.Config.AutoGatherConfig.SortingMethod.ToString()}");
+
+        if (ImGui.CollapsingHeader("Timed Node Memory"))
         {
-            for (int i = 0; i < GatherBuddy.AutoGather.ItemsToGatherInZone.Count(); i++)
+            foreach (var (location, time) in GatherBuddy.AutoGather.VisitedTimedLocations)
             {
-                var item = GatherBuddy.AutoGather.ItemsToGatherInZone.ElementAt(i);
-                ImGui.Text($"{item.Name} - Priority {i}");
+                ImGui.Text($"{location.Id} {time.End}");
             }
         }
 
-        if (ImGui.CollapsingHeader("Item Priority (All)"))
+        if (ImGui.CollapsingHeader("Visited nodes"))
         {
-            for (int i = 0; i < GatherBuddy.AutoGather.ItemsToGather.Count(); i++)
+            foreach (var pos in GatherBuddy.AutoGather.VisitedNodes)
             {
-                var item = GatherBuddy.AutoGather.ItemsToGather.ElementAt(i);
-                ImGui.Text($"{item.Name} - Priority {i}");
+                ImGui.Text($"{pos}");
             }
         }
 
+        if (ImGui.CollapsingHeader("Far Nodes Seen So Far"))
+        {
+            foreach (var pos in GatherBuddy.AutoGather.FarNodesSeenSoFar)
+            {
+                ImGui.Text($"{pos}");
+            }
+        }
+
+        if (ImGui.CollapsingHeader("Nodes to Gather"))
+        {
+            foreach (var item in GatherBuddy.AutoGather.ItemsToGather)
+            {
+                ImGui.Text(item.Item.Name[GatherBuddy.Language]);
+            }
+        }
+
+        var tr = GatherBuddy.AutoGather.NodeTarcker;
+        if (ImGui.CollapsingHeader("GatheringTracker"))
+        {
+            var text = new StringBuilder();
+            if (tr.Ready)
+            {
+                text.AppendLine($"Type: {tr.NodeType}");
+                text.AppendLine($"Revisit: {tr.Revisit}");
+                text.AppendLine($"Touched: {tr.Touched}");
+                text.AppendLine($"HiddenRevealed: {tr.HiddenRevealed}");
+                text.AppendLine($"Integrty: {tr.Integrity}/{tr.MaxIntegrity}");
+                text.Append($"Quick gathering: {(!tr.QuckGatheringAllowed ? "not" : "")} allowed");
+                if (tr.QuckGatheringAllowed) text.Append($", {(!tr.QuckGatheringChecked ? "not" : "")} checked");
+                if (tr.QuckGatheringInProcess) text.Append($", in process");
+                text.AppendLine();
+                for (var i = 0; i < 8; i++)
+                {
+                    var n = tr[i];
+                    text.Append($"Slot {i}:");
+                    if (n.Empty)
+                    {
+                        text.AppendLine(" empty;");
+                        continue;
+                    }
+                    text.Append($" {n.Item.Name};");
+                    if (!n.Enabled) text.Append(" disabled;");
+                    text.Append($" level: {n.Level}; yield: {n.Yield}{(n.RandomYield?"+?":"")}; chance: {n.GatherChance}; boon: {n.BoonChance};");
+                    if (n.Hidden) text.Append(" hidden;");
+                    if (n.Rare) text.Append(" rare;");
+                    if (n.Bonus) text.Append(" bonus;");
+                    if (n.Collectable) text.Append($" collectable;");
+                    text.AppendLine();
+                }
+            }   
+            else
+            {
+                text.AppendLine("Not ready");
+            }
+
+            ImGui.TextWrapped(text.ToString());
+        }
 
         AutoGatherUI.DrawDebugTables();
     }

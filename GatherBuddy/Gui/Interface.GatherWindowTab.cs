@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using ECommons;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Alarms;
 using GatherBuddy.Config;
@@ -169,12 +170,22 @@ public partial class Interface
                     {
                         var gatherable =
                             GatherBuddy.GameData.Gatherables.Values.FirstOrDefault(g => g.Name[Dalamud.ClientState.ClientLanguage] == item.Key);
-                        if (gatherable == null)
+                        if (gatherable == null || gatherable.NodeList.Count == 0)
                             continue;
 
-                        gatherable.Quantity = (uint)item.Value;
+                        if (preset.Quantities.TryGetValue(gatherable.ItemId, out var quantity))
+                        {
+                            preset.Quantities[gatherable.ItemId] += (uint)item.Value;
+                        }
+                        else
+                        {
+                            preset.Quantities.Add(gatherable.ItemId, (uint)item.Value);
+                        }
                         preset.Add(gatherable);
                     }
+                    
+                    if (preset.Enabled)
+                        _plugin.GatherWindowManager.SetActiveItems();
                 }
                 catch (Exception e)
                 {
@@ -224,15 +235,17 @@ public partial class Interface
                 _plugin.GatherWindowManager.ChangeItem(preset, GatherGroupCache.AllGatherables[newIdx], i);
             ImGui.SameLine();
             ImGui.Text("Inventory: ");
-            ImGui.SameLine();
-            var invTotal = item.InventoryCount;
-            ImGui.SetNextItemWidth(100f);
+            var invTotal = _plugin.GatherWindowManager.GetInventoryCountForItem(item);
+            ImGui.SameLine(0f, ImGui.CalcTextSize($"0000 / ").X - ImGui.CalcTextSize($"{invTotal} / ").X);
             ImGui.Text($"{invTotal} / ");
-            ImGui.SameLine();
-            int quantity = (int)item.Quantity;
+            ImGui.SameLine(0, 3f);
+            int quantity = preset.Quantities.TryGetValue(item.ItemId, out var q) ? (int)q : 1;
             ImGui.SetNextItemWidth(100f);
             if (ImGui.InputInt("##quantity", ref quantity, 1, 10))
-                _plugin.GatherWindowManager.ChangeQuantity(preset, quantity, i);
+                _plugin.GatherWindowManager.ChangeQuantity(preset, (uint)quantity, item.ItemId);
+            ImGui.SameLine();
+            if (DrawLocationInput(item, preset.PreferredLocations.TryGetValue(item.ItemId, out var locId) ? GatherBuddy.GameData.GatheringNodes.GetValueOrDefault(locId) : null, out var newLoc))
+                _plugin.GatherWindowManager.ChangePreferredLocation(preset, item, newLoc);
             group.Dispose();
 
             _gatherWindowCache.Selector.CreateDropSource(new GatherWindowDragDropData(preset, item, i), item.Name[GatherBuddy.Language]);

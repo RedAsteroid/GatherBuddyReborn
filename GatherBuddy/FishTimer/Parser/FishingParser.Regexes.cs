@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
-using Dalamud;
+using Dalamud.Game;
 
 namespace GatherBuddy.FishTimer.Parser;
 
@@ -42,7 +42,7 @@ public partial class FishingParser
         {
             Cast           = new Regex(@".*? has?t mit dem Fischen (?<FishingSpotWithArticle>.+) begonnen\.(?<FishingSpot>invalid)?", RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
             AreaDiscovered = new Regex(@"Die neue Angelstelle (?<FishingSpot>.*) wurde in deinem Fischer-Notizbuch vermerkt\.",       RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
-            Mooch          = new Regex(@"Du hast die Leine mit",                                                                      RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
+            Mooch          = new Regex(@"ha[^\s]+ die Leine mit",                                                                     RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
             Undiscovered   = "unerforschten Angelplatz",
         });
 
@@ -50,7 +50,7 @@ public partial class FishingParser
         {
             Cast           = new Regex(@".*? commencez? à pêcher\.\s*Point de pêche: (?<FishingSpot>.+)\.",        RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
             AreaDiscovered = new Regex(@"Vous notez le banc de poissons “(?<FishingSpot>.+)” dans votre carnet\.", RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
-            Mooch          = new Regex(@"Vous essayez de pêcher au vif avec",                                      RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
+            Mooch          = new Regex(@"essa[^\s]+ de pêcher au vif avec",                                        RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.ExplicitCapture),
             Undiscovered   = "Zone de pêche inconnue",
         });
 

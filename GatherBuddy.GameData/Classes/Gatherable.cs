@@ -17,56 +17,6 @@ public class Gatherable : IComparable<Gatherable>, IGatherable
     public MultiString          Name          { get; }
     public IList<GatheringNode> NodeList      { get; } = new List<GatheringNode>();
 
-    public List<InventoryType> InventoryTypes
-    {
-        get
-        {
-            List<InventoryType> types = new List<InventoryType>()
-            {
-                InventoryType.Inventory1,
-                InventoryType.Inventory2,
-                InventoryType.Inventory3,
-                InventoryType.Inventory4,
-            };
-            return types;
-        }
-    }
-
-    public uint                Quantity { get; set; } = 1;
-    public unsafe int InventoryCount
-    {
-        get
-        {
-            if (ItemData.IsCollectable)
-            {
-                int count   = 0;
-                var manager = InventoryManager.Instance();
-                if (manager == null)
-                    return count;
-                foreach (var inv in InventoryTypes)
-                {
-                    var container = manager->GetInventoryContainer(inv);
-                    if (container == null || container->Loaded == 0)
-                        continue;
-                    for (int i = 0; i < container->Size; i++)
-                    {
-                        var item = container->GetInventorySlot(i);
-                        if (item == null || item->ItemID == 0 || item->ItemID != ItemId) continue;
-
-                        count++;
-                    }
-                }
-
-                return count;
-            }
-            else
-            {
-                var inventory = InventoryManager.Instance();
-                return inventory->GetInventoryItemCount(ItemId);
-            }
-        }
-    }
-
     public int InternalLocationId { get; internal set; } = 0;
 
     public IEnumerable<ILocation> Locations
@@ -116,6 +66,10 @@ public class Gatherable : IComparable<Gatherable>, IGatherable
 
     public int CompareTo(Gatherable? rhs)
         => ItemId.CompareTo(rhs?.ItemId ?? 0);
+
+    public bool IsCrystal => ItemData.FilterGroup == 11;
+
+    public bool IsTreasureMap => ItemData.FilterGroup == 18;
 
     private readonly int _levelStars;
 

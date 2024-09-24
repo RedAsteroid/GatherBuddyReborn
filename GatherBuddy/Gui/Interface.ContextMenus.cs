@@ -6,7 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Dalamud;
+using Dalamud.Game;
 using Dalamud.Game.Text.SeStringHandling;
 using GatherBuddy.Alarms;
 using GatherBuddy.Classes;
@@ -236,7 +236,9 @@ public partial class Interface
             Items       = new List<IGatherable> { item },
             Description = AutomaticallyGenerated,
             Name        = PresetName,
+            Quantities = new Dictionary<uint, uint>(),
         };
+        preset.Quantities.TryAdd(item.ItemId, 1);
         _plugin.GatherWindowManager.AddPreset(preset);
 
         return preset;

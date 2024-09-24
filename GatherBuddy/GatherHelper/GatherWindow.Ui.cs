@@ -29,7 +29,11 @@ public class GatherWindow : Window
 
     public GatherWindow(GatherBuddy plugin)
         : base("##GatherHelper",
-            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoScrollbar)
+            ImGuiWindowFlags.AlwaysAutoResize
+          | ImGuiWindowFlags.NoTitleBar
+          | ImGuiWindowFlags.NoFocusOnAppearing
+          | ImGuiWindowFlags.NoNavFocus
+          | ImGuiWindowFlags.NoScrollbar)
     {
         _plugin            = plugin;
         IsOpen             = GatherBuddy.Config.ShowGatherWindow;
@@ -99,7 +103,8 @@ public class GatherWindow : Window
 
         ImGui.Text(TooltipText(loc, time));
         ImGui.NewLine();
-        extendedFish.SetTooltip(loc?.Territory ?? Territory.Invalid, ImGuiHelpers.ScaledVector2(40, 40), ImGuiHelpers.ScaledVector2(20, 20), ImGuiHelpers.ScaledVector2(30, 30),
+        extendedFish.SetTooltip(loc?.Territory ?? Territory.Invalid, ImGuiHelpers.ScaledVector2(40, 40), ImGuiHelpers.ScaledVector2(20, 20),
+            ImGuiHelpers.ScaledVector2(30,                                                          30),
             false);
     }
 
@@ -113,13 +118,20 @@ public class GatherWindow : Window
         if (ImGui.TableNextColumn())
         {
             using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemSpacing / 2);
-            var       icon  = Icons.DefaultStorage[item.ItemData.Icon];
-            ImGuiUtil.HoverIcon(icon.ImGuiHandle, icon.Size, new Vector2(ImGui.GetTextLineHeight()));
+            if (Icons.DefaultStorage.TryLoadIcon(item.ItemData.Icon, out var icon))
+                ImGuiUtil.HoverIcon(icon.ImGuiHandle, icon.Size, new Vector2(ImGui.GetTextLineHeight()));
+            else
+                ImGui.Dummy(new Vector2(ImGui.GetTextLineHeight()));
             ImGui.SameLine();
             var colorId = time == TimeInterval.Always    ? ColorId.GatherWindowText :
                 time.Start > GatherBuddy.Time.ServerTime ? ColorId.GatherWindowUpcoming : ColorId.GatherWindowAvailable;
-            using var color = ImRaii.PushColor(ImGuiCol.Text, colorId.Value());
-            if (ImGui.Selectable($"{item.Name[GatherBuddy.Language]} ({item.InventoryCount}/{item.Quantity})", false))
+
+            var inventoryCount                      = _plugin.GatherWindowManager.GetInventoryCountForItem(item);
+            var quantity                            = _plugin.GatherWindowManager.GetTotalQuantitiesForItem(item);
+            if (inventoryCount >= quantity)
+                colorId = ColorId.DisabledText;
+            using var color                         = ImRaii.PushColor(ImGuiCol.Text, colorId.Value());
+            if (ImGui.Selectable($"{item.Name[GatherBuddy.Language]} ({inventoryCount}/{quantity})", false))
             {
                 if (_plugin.Executor.LastItem != item)
                     _plugin.Executor.GatherItem(item);
@@ -248,9 +260,9 @@ public class GatherWindow : Window
         if (_lastSize == size)
             return;
 
-        _newPosition = ImGui.GetWindowPos();
+        _newPosition   =  ImGui.GetWindowPos();
         _newPosition.Y += _lastSize.Y - size.Y;
-        _lastSize = size;
+        _lastSize      =  size;
     }
 
     public override void Draw()
