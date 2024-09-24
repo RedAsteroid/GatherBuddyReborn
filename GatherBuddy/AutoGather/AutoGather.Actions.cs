@@ -277,7 +277,7 @@ namespace GatherBuddy.AutoGather
                 var collectibleAction = CurrentRotation.GetNextAction(MasterpieceAddon);
                 if (collectibleAction == null)
                 {
-                    GatherBuddy.Log.Debug("Collectible action was null, all actions are disabled by user");
+                    GatherBuddy.Log.Debug("收藏品技能为空, 所有技能已被用户禁用");
                     return;
                 }
 

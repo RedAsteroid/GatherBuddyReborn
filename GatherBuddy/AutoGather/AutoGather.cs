@@ -60,7 +60,7 @@ namespace GatherBuddy.AutoGather
                     _movementController.Enabled         = false;
                     _movementController.DesiredPosition = Vector3.Zero;
                     StopNavigation();
-                    AutoStatus = "Idle...";
+                    AutoStatus = "空闲中...";
                 }
                 else
                 {
@@ -91,7 +91,7 @@ namespace GatherBuddy.AutoGather
                 TaskManager.DelayNext(1000);
             }
             else 
-                GatherBuddy.Log.Warning("Lifestream not found or not ready");
+                GatherBuddy.Log.Warning("未安装或启用 Lifestream");
         }
 
         private class NoGatherableItemsInNodeExceptions : Exception { }
@@ -109,20 +109,20 @@ namespace GatherBuddy.AutoGather
             {
                 if (!NavReady && Enabled)
                 {
-                    AutoStatus = "Waiting for Navmesh...";
+                    AutoStatus = "等待导航中...";
                     return;
                 }
             }
             catch (Exception e)
             {
                 //GatherBuddy.Log.Error(e.Message);
-                AutoStatus = "vnavmesh communication failed. Do you have it installed??";
+                AutoStatus = "未安装或启用 vnavmesh";
                 return;
             }
 
             if (_movementController.Enabled)
             {
-                AutoStatus = $"Advanced unstuck in progress!";
+                AutoStatus = $"高级移动逻辑处理中...";
                 AdvancedUnstuckCheck();
                 return;
             }
@@ -136,13 +136,13 @@ namespace GatherBuddy.AutoGather
 
             if (!CanAct)
             {
-                AutoStatus = "Player is busy...";
+                AutoStatus = "玩家当前无法行动";
                 return;
             }
 
             if (FreeInventorySlots == 0)
             {
-                AbortAutoGather("Inventory is full");
+                AbortAutoGather("背包已满");
                 return;
             }
 
@@ -169,7 +169,7 @@ namespace GatherBuddy.AutoGather
 
                 if (GatherBuddy.Config.AutoGatherConfig.DoGathering)
                 {
-                    AutoStatus = "Gathering...";
+                    AutoStatus = "采集中...";
                     StopNavigation();
                     try
                     {
@@ -182,7 +182,7 @@ namespace GatherBuddy.AutoGather
                         //We may stuck in infinite loop attempt to gather the same item, therefore disable auto-gather
                         if (ItemsToGather.Count > 0 && targetInfo?.Item == ItemsToGather[0].Item)
                         {
-                            AbortAutoGather("Couldn't gather any items from the last node, aborted");
+                            AbortAutoGather("未能从上一节点中采集到任何物品, 已放弃");
                         }
                         else
                         {
@@ -197,7 +197,7 @@ namespace GatherBuddy.AutoGather
 
             if (IsPathGenerating)
             {
-                AutoStatus = "Generating path...";
+                AutoStatus = "正在生成路径...";
                 advancedLastMovementTime = DateTime.Now;
                 lastMovementTime = DateTime.Now;
                 return;
@@ -228,7 +228,7 @@ namespace GatherBuddy.AutoGather
                     }
 
                     GoHome();
-                    AutoStatus = "No available items to gather";
+                    AutoStatus = "无可用的待采集物品";
                     return;
                 }
 
@@ -252,7 +252,7 @@ namespace GatherBuddy.AutoGather
             if (targetInfo.Location == null)
             {
                 //Should not happen because UpdateItemsToGather filters out all unaviable items
-                GatherBuddy.Log.Debug("Couldn't find any location for the target item");
+                GatherBuddy.Log.Debug("未能找到任一导向该物品的目标地点");
                 return;
             }
 
@@ -267,7 +267,7 @@ namespace GatherBuddy.AutoGather
             {
                 StopNavigation();
                 MoveToTerritory(targetInfo.Location);
-                AutoStatus = "Teleporting...";
+                AutoStatus = "传送中...";
                 return;
             }
 
@@ -288,16 +288,16 @@ namespace GatherBuddy.AutoGather
 
             if (closestTargetableNode != null)
             {
-                AutoStatus = "Moving to node...";
+                AutoStatus = "正在移动至较近节点...";
                 MoveToCloseNode(closestTargetableNode, targetInfo.Item);
                 return;
             }
 
-            AutoStatus = "Moving to far node...";
+            AutoStatus = "正在移动至较远节点...";
 
             if (CurrentDestination != default && !allPositions.Contains(CurrentDestination))
             {
-                GatherBuddy.Log.Debug("Current destination doesn't match the target item, resetting navigation");
+                GatherBuddy.Log.Debug("当前目的地与待采集物品地点不符, 已重置导航");
                 StopNavigation();
                 FarNodesSeenSoFar.Clear();
                 VisitedNodes.Clear();
@@ -307,7 +307,7 @@ namespace GatherBuddy.AutoGather
             {
                 var currentNode = visibleNodes.FirstOrDefault(o => o.Position == CurrentDestination);
                 if (currentNode != null && !currentNode.IsTargetable)
-                    GatherBuddy.Log.Verbose($"Far node is not targetable, distance {currentNode.Position.DistanceToPlayer()}.");
+                    GatherBuddy.Log.Verbose($"下一节点距离较远, 当前尚不可选中, 距离: {currentNode.Position.DistanceToPlayer()}.");
 
                 //It takes some time (roundtrip to the server) before a node becomes targetable after it becomes visible,
                 //so we need to delay excluding it. But instead of measuring time, we use distance, since character is traveling at a constant speed.
@@ -317,7 +317,7 @@ namespace GatherBuddy.AutoGather
 
                 if (FarNodesSeenSoFar.Contains(CurrentDestination))
                 {
-                    GatherBuddy.Log.Verbose("Far node is not targetable, choosing another");
+                    GatherBuddy.Log.Verbose("下一节点距离较远, 当前尚不可选中, 已切换至另一节点");
                 }
                 else
                 {
@@ -334,7 +334,7 @@ namespace GatherBuddy.AutoGather
                 // marker not yet loaded on game
                 if (pos == null)
                 {
-                    AutoStatus = "Waiting on flag show up";
+                    AutoStatus = "等待标点出现中";
                     return;
                 }
 
@@ -354,7 +354,7 @@ namespace GatherBuddy.AutoGather
                 if (selectedFarNode == default)
                 {
                     FarNodesSeenSoFar.Clear();
-                    GatherBuddy.Log.Verbose($"Selected node was null and far node filters have been cleared");
+                    GatherBuddy.Log.Verbose($"当前选择节点为空, 较远节点筛选器已被清空");
                     return;
                 }
 

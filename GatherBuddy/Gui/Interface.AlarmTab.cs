@@ -20,10 +20,10 @@ namespace GatherBuddy.Gui;
 public partial class Interface
 {
     private static string CheckUnnamed(string name)
-        => name.Length > 0 ? name : "<Unnamed>";
+        => name.Length > 0 ? name : "<未命名>";
 
     private static string CheckUndescribed(string desc)
-        => desc.Length > 0 ? desc : "<No Description>";
+        => desc.Length > 0 ? desc : "<无描述>";
 
 
     private class AlarmWindowDragDropData
@@ -96,7 +96,7 @@ public partial class Interface
                 };
 
                 if (group.Alarms.Count < configGroup.Alarms.Count())
-                    GatherBuddy.Log.Warning("Invalid alarms skipped");
+                    GatherBuddy.Log.Warning("已跳过无效的闹钟");
 
                 _manager.AddGroup(group);
                 return true;
@@ -133,7 +133,7 @@ public partial class Interface
         public static readonly Sounds[] SoundIds = Enum.GetValues<Sounds>().Where(s => s != Sounds.Unknown).ToArray();
 
         public static readonly string SoundIdNames =
-            string.Join("\0", SoundIds.Select(s => s == Sounds.None ? "No Sound" : $"Sound {s.ToIdx()}"));
+            string.Join("\0", SoundIds.Select(s => s == Sounds.None ? "无音效" : $"音效 {s.ToIdx()}"));
 
         public readonly AlarmSelector  Selector;
         public readonly TimedItemCombo ItemCombo = new(string.Empty);
@@ -171,19 +171,19 @@ public partial class Interface
         var       enabled = alarm.Enabled;
 
         ImGui.TableNextColumn();
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "Delete this Alarm...", false, true))
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "删除此闹钟...", false, true))
             _plugin.AlarmManager.DeleteAlarm(group, alarmIdx--);
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(SetInputWidth);
         var name = alarm.Name;
         if (ImGui.InputTextWithHint("##name", CheckUnnamed(string.Empty), ref name, 64))
             _plugin.AlarmManager.ChangeAlarmName(group, alarmIdx, name);
-        ImGuiUtil.HoverTooltip("Names are optional and can be used in the alarm message that is printed to chat.");
+        ImGuiUtil.HoverTooltip("闹钟名称将用于相关输出信息之中, 可为空");
 
         ImGui.TableNextColumn();
         if (ImGui.Checkbox("##Enabled", ref enabled) && enabled != alarm.Enabled)
             _plugin.AlarmManager.ToggleAlarm(group, alarmIdx);
-        ImGuiUtil.HoverTooltip("Enable this Alarm.");
+        ImGuiUtil.HoverTooltip("启用此闹钟");
 
         ImGui.TableNextColumn();
         if (_alarmCache.ItemCombo.Draw(alarm.Item.InternalLocationId - 1, out var newIdx))
