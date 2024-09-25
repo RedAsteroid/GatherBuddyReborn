@@ -43,7 +43,7 @@ public partial class Interface
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip($"Set the name of your {jobName.ToLowerInvariant()} set. Can also be the numerical id instead.");
+            ImGuiUtil.HoverTooltip($"设置你的 {jobName.ToLowerInvariant()} 装备组名称或ID。");
         }
 
         private static void DrawCheckbox(string label, string description, bool oldValue, Action<bool> setter)
@@ -61,8 +61,8 @@ public partial class Interface
 
         // Auto-Gather Config
         public static void DrawAutoGatherBox()
-            => DrawCheckbox("Enable Gathering Window Interaction (DISABLING THIS IS UNSUPPORTED)",
-                "Toggle whether to automatically gather items. (Disable this for 'nav only mode')",
+            => DrawCheckbox("启用聚集窗口互动（不推荐禁用此功能）",
+                "是否启用自动采集物品。（“仅寻路模式”中建议禁用)",
                 GatherBuddy.Config.AutoGatherConfig.DoGathering, b => GatherBuddy.Config.AutoGatherConfig.DoGathering = b);
 
         public static void DrawGoHomeBox()
@@ -70,25 +70,25 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle = b);
 
         public static void DrawAdvancedUnstuckBox()
-            => DrawCheckbox("Enable Experimental Unstuck Method",
-                "Use super special movement techniques to manually move your character without navmesh when stuck",
+            => DrawCheckbox("启用避免卡死测试功能",
+                "当角色卡住时，使用非寻路的特殊移动技巧",
                 GatherBuddy.Config.AutoGatherConfig.UseExperimentalUnstuck,
                 b => GatherBuddy.Config.AutoGatherConfig.UseExperimentalUnstuck = b);
 
         public static void DrawHonkModeBox()
-            => DrawCheckbox("Play a sound when done gathering", "Play a sound when auto-gathering shuts down because your list is complete",
+            => DrawCheckbox("采集完成时播放音效", "列表采集完成后自动采集结束并播放音效",
                 GatherBuddy.Config.AutoGatherConfig.HonkMode,   b => GatherBuddy.Config.AutoGatherConfig.HonkMode = b);
 
         public static void DrawMaterialExtraction()
-            => DrawCheckbox("Enable materia Extraction",
-                "You need YesAlready installed with : Bothers -> MaterializeDialog",
+            => DrawCheckbox("启用精炼",
+                "你需要安装 YesAlready 并开启: Bothers -> MaterializeDialog",
                 GatherBuddy.Config.AutoGatherConfig.DoMaterialize,
                 b => GatherBuddy.Config.AutoGatherConfig.DoMaterialize = b);
 
         public static void DrawMinimumGPGathering()
         {
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering;
-            if (ImGui.DragInt("Minimum GP for Gathering", ref tmp, 1, 0, 30000))
+            if (ImGui.DragInt("采集时的最低 GP", ref tmp, 1, 0, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering = (uint)tmp;
                 GatherBuddy.Config.Save();
@@ -98,21 +98,21 @@ public partial class Interface
         public static void DrawMinimumGPCollectibleRotation()
         {
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectableRotation;
-            if (ImGui.DragInt("Minimum GP for using skills on collectibles", ref tmp, 1, 0, 30000))
+            if (ImGui.DragInt("采集时使用技能的最低 GP", ref tmp, 1, 0, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectableRotation = (uint)tmp;
                 GatherBuddy.Config.Save();
             }
         }
         public static void DrawAlwaysUseSolidAgeCollectables()
-            => DrawCheckbox("Ignore the above setting for Solid Reason / Ageless Words", "Use Solid Reason / Ageless Words regardless of starting GP if target collectability score is reached",
+            => DrawCheckbox("使用 石工之理 / 农夫之智 时忽略上述选项", "如果满足采集分，无视开始时 GP ，使用 石工之理 / 农夫之智",
                 GatherBuddy.Config.AutoGatherConfig.AlwaysUseSolidAgeCollectables, b => GatherBuddy.Config.AutoGatherConfig.AlwaysUseSolidAgeCollectables = b);
 
         public static void DrawMinimumGPCollectable()
         {
             ImGui.PushItemWidth(300);
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable;
-            if (ImGui.DragInt("Minimum GP for Gathering Collectables", ref tmp, 1, 0, 30000))
+            if (ImGui.DragInt("采集收藏品的最小 GP", ref tmp, 1, 0, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable = (uint)tmp;
                 GatherBuddy.Config.Save();
