@@ -399,7 +399,7 @@ public partial class Interface
             _plugin.GatherWindowManager.AddPreset(preset);
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Create Alarms", Vector2.Zero, "Create a new Alarm Group from this gather group.",
+        if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "Create a new Alarm Group from this gather group.",
                 _gatherGroupCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherGroupCache.Selector.Current!);
