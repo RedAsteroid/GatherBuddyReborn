@@ -189,7 +189,7 @@ public partial class Interface
                 }
                 catch (Exception e)
                 {
-                    Communicator.PrintClipboardMessage("Error importing gather window preset", e.ToString());
+                    Communicator.PrintClipboardMessage("导入采集窗口时出错", e.ToString());
                 }
             }
         }
@@ -256,7 +256,7 @@ public partial class Interface
         }
 
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize,
-                "Add this item at the end of the preset, if it is not already included...",
+                "如果此物品还未被加入，则加入到预设的底部",
                 preset.Items.Contains(GatherGroupCache.AllGatherables[_gatherWindowCache.NewGatherableIdx]), true))
             _plugin.GatherWindowManager.AddItem(preset, GatherGroupCache.AllGatherables[_gatherWindowCache.NewGatherableIdx]);
 

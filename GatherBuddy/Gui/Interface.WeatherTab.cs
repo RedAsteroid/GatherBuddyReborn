@@ -168,8 +168,8 @@ public partial class Interface
     {
         using var id  = ImRaii.PushId("Weather");
         using var tab = ImRaii.TabItem("Weather");
-        ImGuiUtil.HoverTooltip("Yes, 'Gloom' is weather.\n"
-          + "See the weather forecast in all zones for the following days, as well as the last one.");
+        ImGuiUtil.HoverTooltip("没错 '妖雾' 是天气。\n"
+          + "查看前一天和接下来几天的所有区域的天气。");
 
         if (!tab)
             return;
