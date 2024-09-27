@@ -136,7 +136,7 @@ public partial class Interface
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Create Alarms", Vector2.Zero, "Create a new Alarm Group from this gather window preset.", _gatherWindowCache.Selector.Current == null))
+        if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "Create a new Alarm Group from this gather window preset.", _gatherWindowCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherWindowCache.Selector.Current!);
             _plugin.AlarmManager.AddGroup(preset);

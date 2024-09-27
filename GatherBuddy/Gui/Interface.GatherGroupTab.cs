@@ -399,7 +399,9 @@ public partial class Interface
             _plugin.GatherWindowManager.AddPreset(preset);
         }
 
+
         if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "创建当前采集组的采集闹钟",
+        main
                 _gatherGroupCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherGroupCache.Selector.Current!);
