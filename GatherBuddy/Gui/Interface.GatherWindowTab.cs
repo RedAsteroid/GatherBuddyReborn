@@ -268,10 +268,10 @@ public partial class Interface
     private void DrawGatherWindowTab()
     {
         using var id  = ImRaii.PushId("GatherWindow");
-        using var tab = ImRaii.TabItem("Auto-Gather");
+        using var tab = ImRaii.TabItem("自动采集");
 
         ImGuiUtil.HoverTooltip(
-            "You read that right! Auto-gather!");
+            "你没看错！自动采集！");
 
         if (!tab)
             return;

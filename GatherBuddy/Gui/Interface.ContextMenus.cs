@@ -215,7 +215,7 @@ public partial class Interface
 
     private static void DrawAddToAutoGather(IGatherable item)
     {
-        if (ImGui.Selectable($"Add to Auto-Gather List"))
+        if (ImGui.Selectable($"添加到自动采集列表"))
         {
             // Fetch preset if exists.
             var preset = _plugin.GatherWindowManager.Presets.FirstOrDefault(p => p.Name == PresetName);
