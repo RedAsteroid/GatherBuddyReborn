@@ -351,8 +351,8 @@ public partial class Interface
     private void DrawAlarmTab()
     {
         using var id  = ImRaii.PushId("Alarms");
-        using var tab = ImRaii.TabItem("Alarms");
-        ImGuiUtil.HoverTooltip("您经常发现自己马上就要在非常重要的约会中迟到了，却没有时间打招呼或再见？\n"
+        using var tab = ImRaii.TabItem("闹钟");
+        ImGuiUtil.HoverTooltip("您经常发现自己马上就要在非常重要的约会中迟到了，却没有时间打招呼？\n"
           + "设置自己的闹钟。维埃拉族甚至可以将其戴在脖子上。");
         if (!tab)
             return;
