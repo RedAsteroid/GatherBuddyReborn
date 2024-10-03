@@ -212,8 +212,8 @@ public partial class GatherBuddy
                     .AddColoredText("        window", Config.SeColorArguments).AddText(" - 切换采集窗口开启状态.\n")
                     .AddColoredText("        alarm",  Config.SeColorArguments).AddText(" - 切换闹钟开启状态\n")
                     .AddColoredText("        spear",  Config.SeColorArguments).AddText(" - 切换刺鱼助手开启状态\n")
-                    .AddColoredText("        fish",   Config.SeColorArguments).AddText(" - 切换钓鱼计时器开启状态\n")
-                    .AddColoredText("        edit",   Config.SeColorArguments).AddText(" - 切换钓鱼计时器至编辑状态\n")
+                    .AddColoredText("        fish",   Config.SeColorArguments).AddText(" - 切换捕鱼计时器开启状态\n")
+                    .AddColoredText("        edit",   Config.SeColorArguments).AddText(" - 切换捕鱼计时器至编辑状态\n")
                     .AddColoredText("        unlock", Config.SeColorArguments).AddText(" - 解锁主窗口")
                     .BuiltString;
                 Communicator.Print(shortHelpString);

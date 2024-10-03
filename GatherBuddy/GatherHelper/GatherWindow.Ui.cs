@@ -269,12 +269,12 @@ public class GatherWindow : Window
     {
         var       colorId = GatherBuddy.AutoGather.Enabled ? ColorId.GatherWindowAvailable.Value() : ColorId.GatherWindowText.Value();
         using var color = ImRaii.PushColor(ImGuiCol.Text, colorId);
-        if (ImGui.Selectable($"Auto-Gather: {GatherBuddy.AutoGather.AutoStatus}"))
+        if (ImGui.Selectable($"自动采集：{GatherBuddy.AutoGather.AutoStatus}"))
         {
             GatherBuddy.AutoGather.Enabled = !GatherBuddy.AutoGather.Enabled;
         }
         color.Pop();
-        ImGuiUtil.HoverTooltip("Click to enable/disable auto-gather");
+        ImGuiUtil.HoverTooltip("点击以启用/禁用自动采集");
         using var table = ImRaii.Table("##table", GatherBuddy.Config.ShowGatherWindowTimers ? 2 : 1);
         if (!table)
             return;

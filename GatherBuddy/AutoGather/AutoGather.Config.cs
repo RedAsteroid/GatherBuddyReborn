@@ -118,7 +118,7 @@ namespace GatherBuddy.AutoGather
                     return value;
                 }
 
-                throw new KeyNotFoundException($"Optional property with key '{key}' not found.");
+                throw new KeyNotFoundException($"未找到 '{key}' 键对应的属性");
             }
         }
 
