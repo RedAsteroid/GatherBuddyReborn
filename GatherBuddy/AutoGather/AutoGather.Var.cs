@@ -49,10 +49,10 @@ namespace GatherBuddy.AutoGather
                 var job = Player.Job;
                 switch (job)
                 {
-                    case Job.MIN: return GatheringType.Miner;
-                    case Job.BTN: return GatheringType.Botanist;
-                    case Job.FSH: return GatheringType.Fisher;
-                    default:      return GatheringType.Unknown;
+                    case Job.MIN: return GatheringType.采矿工;
+                    case Job.BTN: return GatheringType.园艺工;
+                    case Job.FSH: return GatheringType.捕鱼人;
+                    default:      return GatheringType.未知;
                 }
             }
         }
@@ -168,7 +168,7 @@ namespace GatherBuddy.AutoGather
                 res = (node, node.Times.NextUptime(AdjuctedServerTime));
             }
             //Second priority: location for preferred job.
-            else if (GatherBuddy.Config.PreferredGatheringType is GatheringType.Miner or GatheringType.Botanist)
+            else if (GatherBuddy.Config.PreferredGatheringType is GatheringType.采矿工 or GatheringType.园艺工)
             {
                 res = GatherBuddy.UptimeManager.NextUptime(item, GatherBuddy.Config.PreferredGatheringType, AdjuctedServerTime, [.. VisitedTimedLocations.Keys]);
             }
@@ -250,11 +250,11 @@ namespace GatherBuddy.AutoGather
             Gatherable gatherable = item;
             switch (gatherable?.NodeType)
             {
-                case NodeType.Legendary: return 0;
-                case NodeType.Unspoiled: return 1;
-                case NodeType.Ephemeral: return 2;
-                case NodeType.Regular:   return 9;
-                case NodeType.Unknown:   return 99;
+                case NodeType.传说: return 0;
+                case NodeType.未知: return 1;
+                case NodeType.限时: return 2;
+                case NodeType.常规:   return 9;
+                case NodeType.无:   return 99;
             }
 
             return 99;

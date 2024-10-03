@@ -33,8 +33,8 @@ public class OceanTimeline
     public IReadOnlyList<OceanRoute> this[OceanArea area]
         => area switch
         {
-            OceanArea.Aldenard => Aldenard,
-            OceanArea.Othard   => Othard,
+            OceanArea.Ω¸∫£ => Aldenard,
+            OceanArea.‘∂—Û   => Othard,
             _                  => Array.Empty<OceanRoute>(),
         };
 
@@ -145,7 +145,7 @@ public class GameData
                 .ToDictionary(group => group.Key, group => group.Select(g => g.RowId).Distinct().ToList());
 
             GatheringNodes = DataManager.GetExcelSheet<GatheringPointBase>()?
-                    .Where(b => b.GatheringType.Row < (int)Enums.GatheringType.Spearfishing)
+                    .Where(b => b.GatheringType.Row < (int)Enums.GatheringType.¥Ã”„)
                     .Select(b => new GatheringNode(this, tmpGatheringPoints, tmpGatheringItemPoint, b))
                     .Where(n => n.Territory.Id > 1 && n.Items.Count > 0)
                     .ToDictionary(n => n.Id, n => n)
@@ -195,7 +195,7 @@ public class GameData
 
             foreach (var gatherable in Gatherables.Values)
             {
-                if (gatherable.NodeType != NodeType.Unknown && !gatherable.NodeList.Any(n => n.Times.AlwaysUp()))
+                if (gatherable.NodeType != NodeType.Œﬁ && !gatherable.NodeList.Any(n => n.Times.AlwaysUp()))
                     gatherable.InternalLocationId = ++TimedGatherables;
                 else if (gatherable.NodeList.Count > 1)
                     gatherable.InternalLocationId = -++MultiNodeGatherables;
@@ -271,13 +271,13 @@ public class GameData
             var row = routeSheet.GetRow(i)!;
             var (start, day, sunset, night) = row.UnkData0[0].Time switch
             {
-                1 => (OceanTime.Sunset, spots[(int)row.UnkData0[1].Spot - 1], spots[(int)row.UnkData0[2].Spot - 1],
+                1 => (Sunset: OceanTime.»’¬‰, spots[(int)row.UnkData0[1].Spot - 1], spots[(int)row.UnkData0[2].Spot - 1],
                     spots[(int)row.UnkData0[0].Spot - 1]),
-                2 => (OceanTime.Night, spots[(int)row.UnkData0[0].Spot - 1], spots[(int)row.UnkData0[1].Spot - 1],
+                2 => (Night: OceanTime.“πÕÌ, spots[(int)row.UnkData0[0].Spot - 1], spots[(int)row.UnkData0[1].Spot - 1],
                     spots[(int)row.UnkData0[2].Spot - 1]),
-                3 => (OceanTime.Day, spots[(int)row.UnkData0[2].Spot - 1], spots[(int)row.UnkData0[0].Spot - 1],
+                3 => (Day: OceanTime.∞◊÷Á, spots[(int)row.UnkData0[2].Spot - 1], spots[(int)row.UnkData0[0].Spot - 1],
                     spots[(int)row.UnkData0[1].Spot - 1]),
-                _ => (OceanTime.Sunset, spots[(int)row.UnkData0[1].Spot - 1], spots[(int)row.UnkData0[2].Spot - 1],
+                _ => (Sunset: OceanTime.»’¬‰, spots[(int)row.UnkData0[1].Spot - 1], spots[(int)row.UnkData0[2].Spot - 1],
                     spots[(int)row.UnkData0[0].Spot - 1]),
             };
             ret[i - 1] = new OceanRoute
@@ -288,7 +288,7 @@ public class GameData
                 SpotDay    = day,
                 SpotSunset = sunset,
                 SpotNight  = night,
-                Area       = i < 13 ? OceanArea.Aldenard : i < 19 ? OceanArea.Othard : OceanArea.Unknown,
+                Area       = i < 13 ? OceanArea.Ω¸∫£ : i < 19 ? OceanArea.‘∂—Û : OceanArea.Unknown,
             };
         }
 

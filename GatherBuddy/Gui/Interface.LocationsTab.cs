@@ -104,12 +104,12 @@ public partial class Interface
             {
                 return location.GatheringType switch
                 {
-                    GatheringType.Mining       => FilterValue.HasFlag(JobFlags.Mining),
-                    GatheringType.Quarrying    => FilterValue.HasFlag(JobFlags.Quarrying),
-                    GatheringType.Logging      => FilterValue.HasFlag(JobFlags.Logging),
-                    GatheringType.Harvesting   => FilterValue.HasFlag(JobFlags.Harvesting),
-                    GatheringType.Spearfishing => FilterValue.HasFlag(JobFlags.Spearfishing),
-                    GatheringType.Fisher       => FilterValue.HasFlag(JobFlags.Fishing),
+                    GatheringType.采矿       => FilterValue.HasFlag(JobFlags.Mining),
+                    GatheringType.碎石    => FilterValue.HasFlag(JobFlags.Quarrying),
+                    GatheringType.伐木      => FilterValue.HasFlag(JobFlags.Logging),
+                    GatheringType.割草   => FilterValue.HasFlag(JobFlags.Harvesting),
+                    GatheringType.刺鱼 => FilterValue.HasFlag(JobFlags.Spearfishing),
+                    GatheringType.捕鱼人       => FilterValue.HasFlag(JobFlags.Fishing),
                     _                          => false,
                 };
             }

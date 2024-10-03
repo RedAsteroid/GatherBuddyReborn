@@ -264,10 +264,10 @@ public partial class Interface
         DrawLocationInput(group, i, node);
         ImGui.TableNextColumn();
         var length = node.Length();
-        ImGuiUtil.DrawTextButton($"{length} minutes", Vector2.Zero,
+        ImGuiUtil.DrawTextButton($"{length} 分钟", Vector2.Zero,
             minutes < length ? ColorId.WarningBg.Value() : ImGui.GetColorU32(ImGuiCol.FrameBg));
         if (minutes < length)
-            HoverTooltip($"{length - minutes} minutes are overwritten by overlap with earlier items.");
+            HoverTooltip($"有 {length - minutes} 分钟被更早的可采集物品出现时段所覆盖");
 
 
         ImGui.TableNextColumn();
@@ -401,7 +401,6 @@ public partial class Interface
 
 
         if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "创建当前采集组的采集闹钟",
-        main
                 _gatherGroupCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherGroupCache.Selector.Current!);

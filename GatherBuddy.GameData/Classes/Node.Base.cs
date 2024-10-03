@@ -35,10 +35,10 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         => (GatheringType)BaseNodeData.GatheringType.Row;
 
     public bool IsMiner
-        => GatheringType.ToGroup() == GatheringType.Miner;
+        => GatheringType.ToGroup() == GatheringType.采矿工;
 
     public bool IsBotanist
-        => GatheringType.ToGroup() == GatheringType.Botanist;
+        => GatheringType.ToGroup() == GatheringType.园艺工;
 
     public string Folklore { get; init; }
 
@@ -81,8 +81,8 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         Folklore = MultiString.ParseSeStringLumina(nodeRow?.GatheringSubCategory.Value?.FolkloreBook);
         var extendedRow = nodeRow == null ? null : data.DataManager.GetExcelSheet<GatheringPointTransient>()?.GetRow(nodeRow.RowId);
         (Times, NodeType) = GetTimes(extendedRow);
-        if (Folklore.Length > 0 && NodeType == NodeType.Unspoiled && nodeRow!.GatheringSubCategory.Value!.Item.Row != 0)
-            NodeType = NodeType.Legendary;
+        if (Folklore.Length > 0 && NodeType == NodeType.未知 && nodeRow!.GatheringSubCategory.Value!.Item.Row != 0)
+            NodeType = NodeType.传说;
 
         // Obtain the items and add the node to their individual lists.
         Items = node.Item
@@ -118,19 +118,19 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
     private static (BitfieldUptime, NodeType) GetTimes(GatheringPointTransient? row)
     {
         if (row == null)
-            return (BitfieldUptime.AllHours, NodeType.Regular);
+            return (BitfieldUptime.AllHours, NodeType.常规);
 
         // Check for ephemeral nodes
         if (row.GatheringRarePopTimeTable.Row == 0)
         {
             var time = new BitfieldUptime(row.EphemeralStartTime, row.EphemeralEndTime);
-            return time.AlwaysUp() ? (time, NodeType.Regular) : (time, NodeType.Ephemeral);
+            return time.AlwaysUp() ? (time, Regular: NodeType.常规) : (time, Ephemeral: NodeType.限时);
         }
         // and for unspoiled
         else
         {
             var time = new BitfieldUptime(row.GatheringRarePopTimeTable.Value!);
-            return time.AlwaysUp() ? (time, NodeType.Regular) : (time, NodeType.Unspoiled);
+            return time.AlwaysUp() ? (time, Regular: NodeType.常规) : (time, Unspoiled: NodeType.未知);
         }
     }
 }

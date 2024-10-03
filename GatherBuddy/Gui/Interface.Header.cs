@@ -102,10 +102,10 @@ public partial class Interface
     }
 
     private void DrawLastItemAlarm()
-        => DrawLastAlarm(true, "No Item Alarm Triggered");
+        => DrawLastAlarm(true, "无已触发的采集闹钟");
 
     private void DrawLastFishAlarm()
-        => DrawLastAlarm(false, "No Fish Alarm Triggered");
+        => DrawLastAlarm(false, "无已触发的钓鱼闹钟");
 
 
     private void DrawAlarmRow()
@@ -127,8 +127,8 @@ public partial class Interface
         {
             using var tt = ImRaii.Tooltip();
             ImGui.TextUnformatted("如果游戏中的艾欧泽亚时间不一致，请验证您的Windows系统时间是否准确。");
-            ImGui.TextUnformatted($"Next Aldenard Ocean Route: {OceanUptime.NextOceanRoute(OceanArea.Aldenard, TimeStamp.UtcNow)}");
-            ImGui.TextUnformatted($"Next Othard Ocean Route: {OceanUptime.NextOceanRoute(OceanArea.Othard,     TimeStamp.UtcNow)}");
+            ImGui.TextUnformatted($"下一近海航线: {OceanUptime.NextOceanRoute(OceanArea.近海, TimeStamp.UtcNow)}");
+            ImGui.TextUnformatted($"下一远洋航线: {OceanUptime.NextOceanRoute(OceanArea.远洋,     TimeStamp.UtcNow)}");
         }
     }
 
@@ -176,7 +176,7 @@ public partial class Interface
         nextHourS    -= nextHourM * RealTime.SecondsPerMinute;
         nextWeatherS -= nextWeatherM * RealTime.SecondsPerMinute;
 
-        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2} Min.  ";
+        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2} 分钟  ";
         var width = -(ImGui.CalcTextSize(nextWeatherString).X
           + (WeatherIconSize.X + ItemSpacing.X + FramePadding.X) * 3);
 
@@ -184,7 +184,7 @@ public partial class Interface
         using var _ = ImRaii.Group();
         DrawEorzeaTime($"ET {GatherBuddy.Time.EorzeaHourOfDay:D2}:{GatherBuddy.Time.EorzeaMinuteOfHour:D2}");
         ImGui.SameLine();
-        DrawNextEorzeaHour($"{nextHourM:D2}:{nextHourS:D2} Min to next hour.", new Vector2(width, WeatherIconSize.Y));
+        DrawNextEorzeaHour($"距下一小时还有 {nextHourM:D2}:{nextHourS:D2} 分钟", new Vector2(width, WeatherIconSize.Y));
         ImGui.SameLine();
         DrawNextWeather(nextWeatherString);
     }

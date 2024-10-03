@@ -446,8 +446,8 @@ public partial class Interface
             if (table)
                 for(var idx = 0; idx < GatherBuddy.GameData.OceanTimeline.Count; ++idx)
                 {
-                    var routeAldenard = GatherBuddy.GameData.OceanTimeline[OceanArea.Aldenard][idx];
-                    var routeOthard = GatherBuddy.GameData.OceanTimeline[OceanArea.Othard][idx];
+                    var routeAldenard = GatherBuddy.GameData.OceanTimeline[OceanArea.近海][idx];
+                    var routeOthard = GatherBuddy.GameData.OceanTimeline[OceanArea.远洋][idx];
                     ImGuiUtil.DrawTableColumn(idx.ToString());
                     ImGuiUtil.DrawTableColumn(routeAldenard.ToString());
                     ImGuiUtil.DrawTableColumn(routeAldenard.GetSpots(0).Normal.Name);

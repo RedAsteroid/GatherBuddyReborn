@@ -812,7 +812,7 @@ public partial class Interface
         public static void DrawPreferredJobSelect()
         {
             var v       = GatherBuddy.Config.PreferredGatheringType;
-            var current = v == GatheringType.Multiple ? "无偏好" : v.ToString();
+            var current = v == GatheringType.多职业 ? "无偏好" : v.ToString();
             ImGui.SetNextItemWidth(SetInputWidth);
             using var combo = ImRaii.Combo("偏好职业", current);
             ImGuiUtil.HoverTooltip(
@@ -822,21 +822,21 @@ public partial class Interface
             if (!combo)
                 return;
 
-            if (ImGui.Selectable("无偏好", v == GatheringType.Multiple) && v != GatheringType.Multiple)
+            if (ImGui.Selectable("无偏好", v == GatheringType.多职业) && v != GatheringType.多职业)
             {
-                GatherBuddy.Config.PreferredGatheringType = GatheringType.Multiple;
+                GatherBuddy.Config.PreferredGatheringType = GatheringType.多职业;
                 GatherBuddy.Config.Save();
             }
 
-            if (ImGui.Selectable(GatheringType.Miner.ToString(), v == GatheringType.Miner) && v != GatheringType.Miner)
+            if (ImGui.Selectable(GatheringType.采矿工.ToString(), v == GatheringType.采矿工) && v != GatheringType.采矿工)
             {
-                GatherBuddy.Config.PreferredGatheringType = GatheringType.Miner;
+                GatherBuddy.Config.PreferredGatheringType = GatheringType.采矿工;
                 GatherBuddy.Config.Save();
             }
 
-            if (ImGui.Selectable(GatheringType.Botanist.ToString(), v == GatheringType.Botanist) && v != GatheringType.Botanist)
+            if (ImGui.Selectable(GatheringType.园艺工.ToString(), v == GatheringType.园艺工) && v != GatheringType.园艺工)
             {
-                GatherBuddy.Config.PreferredGatheringType = GatheringType.Botanist;
+                GatherBuddy.Config.PreferredGatheringType = GatheringType.园艺工;
                 GatherBuddy.Config.Save();
             }
         }
@@ -1163,8 +1163,6 @@ public partial class Interface
     {
         using var id  = ImRaii.PushId("设置");
         using var tab = ImRaii.TabItem("设置");
-        ImGuiUtil.HoverTooltip("根据个人需求设置独属于你的 GatherBuddy 。\n"
-          + "If you treat him well, he might even become a real boy.");
 
         if (!tab)
             return;

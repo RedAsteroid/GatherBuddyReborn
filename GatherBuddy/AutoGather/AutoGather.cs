@@ -140,13 +140,13 @@ namespace GatherBuddy.AutoGather
             {
                 if (targetInfo != null)
                 {
-                    if (targetInfo.Location != null && targetInfo.Item.NodeType is NodeType.Unspoiled or NodeType.Legendary)
+                    if (targetInfo.Location != null && targetInfo.Item.NodeType is NodeType.未知 or NodeType.传说)
                         VisitedTimedLocations[targetInfo.Location] = targetInfo.Time;
 
                     var target = Svc.Targets.Target;
                     if (target != null
                         && target.ObjectKind is ObjectKind.GatheringPoint
-                        && targetInfo.Item.NodeType is NodeType.Regular or NodeType.Ephemeral
+                        && targetInfo.Item.NodeType is NodeType.常规 or NodeType.限时
                         && VisitedNodes.Last?.Value != target.Position
                         && targetInfo.Location?.Territory.Id >= 397)
                     {
@@ -290,7 +290,7 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.Unspoiled or NodeType.Legendary))
+            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.未知 or NodeType.传说))
                 return;
 
             if (DoUseConsumablesWithoutCastTime())
@@ -351,7 +351,7 @@ namespace GatherBuddy.AutoGather
             Vector3 selectedFarNode;
 
             // only Legendary and Unspoiled show marker
-            if (ShouldUseFlag && targetInfo.Item.NodeType is NodeType.Legendary or NodeType.Unspoiled)
+            if (ShouldUseFlag && targetInfo.Item.NodeType is NodeType.传说 or NodeType.未知)
             {
                 var pos = TimedNodePosition;
                 // marker not yet loaded on game

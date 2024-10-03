@@ -160,10 +160,10 @@ namespace GatherBuddy.AutoGather
                 {
                     return nodeType switch
                     {
-                        NodeType.Regular   => RegularNode,
-                        NodeType.Unspoiled => UnspoiledNode,
-                        NodeType.Ephemeral => EphemeralNode,
-                        NodeType.Legendary => LegendaryNode,
+                        NodeType.常规   => RegularNode,
+                        NodeType.未知 => UnspoiledNode,
+                        NodeType.限时 => EphemeralNode,
+                        NodeType.传说 => LegendaryNode,
                         _                  => RegularNode
                     };
                 }

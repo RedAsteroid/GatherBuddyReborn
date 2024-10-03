@@ -38,8 +38,8 @@ public partial class Interface
                 : data.NodeList.First().Folklore;
             Uptimes = data.NodeType switch
             {
-                NodeType.Regular => "Always",
-                NodeType.Unknown => "Unknown",
+                NodeType.常规 => "Always",
+                NodeType.无 => "Unknown",
                 _                => data.NodeList.Select(n => n.Times).Aggregate(BitfieldUptime.Combine).PrintHours(true),
             };
             Level     = Data.LevelString();
@@ -49,13 +49,13 @@ public partial class Interface
 
             Expansion = data.ExpansionIdx switch
             {
-                0 => "ARR",
-                1 => "HW",
-                2 => "SB",
-                3 => "ShB",
-                4 => "EW",
-                5 => "DT",
-                _ => "Unk",
+                0 => "2.0",
+                1 => "3.0",
+                2 => "4.0",
+                3 => "5.0",
+                4 => "6.0",
+                5 => "7.0",
+                _ => "未知",
             };
             Aetherytes = string.Join("\n",
                 data.NodeList.Where(n => n.ClosestAetheryte != null).Select(n => n.ClosestAetheryte!.Name).Distinct());

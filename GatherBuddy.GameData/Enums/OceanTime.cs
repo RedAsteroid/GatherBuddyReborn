@@ -7,12 +7,12 @@ namespace GatherBuddy.Enums;
 [Flags]
 public enum OceanTime : byte
 {
-    Never  = 0,
-    Sunset = 0x01,
-    Night  = 0x02,
-    Day    = 0x04,
+    ´Ó²»  = 0,
+    ÈÕÂä = 0x01,
+    Ò¹Íí  = 0x02,
+    °×Öç    = 0x04,
 
-    Always = Sunset | Night | Day,
+    ×ÜÊÇ = ÈÕÂä | Ò¹Íí | °×Öç,
 }
 
 public static class OceanTimeExtensions
@@ -20,28 +20,28 @@ public static class OceanTimeExtensions
     public static OceanTime Next(this OceanTime time)
         => time switch
         {
-            OceanTime.Sunset => OceanTime.Night,
-            OceanTime.Night  => OceanTime.Day,
-            OceanTime.Day    => OceanTime.Sunset,
-            _                => OceanTime.Sunset,
+            OceanTime.ÈÕÂä => OceanTime.Ò¹Íí,
+            OceanTime.Ò¹Íí  => OceanTime.°×Öç,
+            OceanTime.°×Öç    => OceanTime.ÈÕÂä,
+            _                => OceanTime.ÈÕÂä,
         };
 
     public static OceanTime Previous(this OceanTime time)
         => time switch
         {
-            OceanTime.Sunset => OceanTime.Day,
-            OceanTime.Night  => OceanTime.Sunset,
-            OceanTime.Day    => OceanTime.Night,
-            _                => OceanTime.Sunset,
+            OceanTime.ÈÕÂä => OceanTime.°×Öç,
+            OceanTime.Ò¹Íí  => OceanTime.ÈÕÂä,
+            OceanTime.°×Öç    => OceanTime.Ò¹Íí,
+            _                => OceanTime.ÈÕÂä,
         };
 
     public static IEnumerable<OceanTime> Enumerate(this OceanTime time)
     {
-        if (time.HasFlag(OceanTime.Sunset))
-            yield return OceanTime.Sunset;
-        if (time.HasFlag(OceanTime.Night))
-            yield return OceanTime.Night;
-        if (time.HasFlag(OceanTime.Day))
-            yield return OceanTime.Day;
+        if (time.HasFlag(OceanTime.ÈÕÂä))
+            yield return OceanTime.ÈÕÂä;
+        if (time.HasFlag(OceanTime.Ò¹Íí))
+            yield return OceanTime.Ò¹Íí;
+        if (time.HasFlag(OceanTime.°×Öç))
+            yield return OceanTime.°×Öç;
     }
 }

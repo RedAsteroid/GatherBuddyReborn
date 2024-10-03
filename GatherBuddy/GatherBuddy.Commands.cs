@@ -119,7 +119,7 @@ public partial class GatherBuddy
         if (arguments.Length == 0)
             Communicator.NoItemName(command, "item");
         else
-            Executor.GatherItemByName(arguments, GatheringType.Botanist);
+            Executor.GatherItemByName(arguments, GatheringType.园艺工);
     }
 
     private void OnGatherMin(string command, string arguments)
@@ -127,7 +127,7 @@ public partial class GatherBuddy
         if (arguments.Length == 0)
             Communicator.NoItemName(command, "item");
         else
-            Executor.GatherItemByName(arguments, GatheringType.Miner);
+            Executor.GatherItemByName(arguments, GatheringType.采矿工);
     }
 
     private void OnGatherFish(string command, string arguments)

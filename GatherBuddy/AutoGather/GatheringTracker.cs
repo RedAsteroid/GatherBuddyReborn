@@ -126,11 +126,11 @@ namespace GatherBuddy.AutoGather
                 else
                     NodeType = values[n].UInt switch
                     {
-                        2 => GatheringType.Logging,
-                        3 => GatheringType.Quarrying,
-                        4 => GatheringType.Harvesting,
-                        5 => GatheringType.Mining,
-                        _ => GatheringType.Unknown
+                        2 => GatheringType.伐木,
+                        3 => GatheringType.碎石,
+                        4 => GatheringType.割草,
+                        5 => GatheringType.采矿,
+                        _ => GatheringType.未知
                     };
             } 
             else
