@@ -176,13 +176,13 @@ public partial class Interface
         }
 
         public static void DrawBYIIBox()
-            => DrawCheckbox("使用 高产/丰收 II", "切换是否在采集中使用 高产/丰收 II 。", GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction,
+            => DrawCheckbox("使用 高产/丰收 II", "切换是否在采集中使用 高产/丰收 II", GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction,
                 b => GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction = b);
 
         public static void DrawBYIIMinGP()
         {
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP;
-            if (ImGui.DragInt("高产/丰收 II 最小 GP", ref tmp, 1, 100, 30000))
+            if (ImGui.DragInt("高产/丰收 II 最小使用 GP", ref tmp, 1, 100, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP = (uint)tmp;
                 GatherBuddy.Config.Save();
@@ -192,9 +192,18 @@ public partial class Interface
         public static void DrawBYIIMaxGP()
         {
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP;
-            if (ImGui.DragInt("高产/丰收 II 最大 GP", ref tmp, 1, 100, 30000))
+            if (ImGui.DragInt("高产/丰收 II 最大使用 GP", ref tmp, 1, 100, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP = (uint)tmp;
+                GatherBuddy.Config.Save();
+            }
+        }
+        public static void DrawBYIIMinimumIncrease()
+        {
+            var tmp = GatherBuddy.Config.AutoGatherConfig.BYIIConfig.GetOptionalProperty<int>("MinimumIncrease");
+            if (ImGui.DragInt("Minimum yield increase", ref tmp, 0.1f, 1, 3))
+            {
+                GatherBuddy.Config.AutoGatherConfig.BYIIConfig.SetOptionalProperty("MinimumIncrease", tmp);
                 GatherBuddy.Config.Save();
             }
         }
@@ -431,11 +440,6 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.UseAction,
                 b => GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.UseAction = b);
 
-        public static void DrawCollectCheckbox()
-            => DrawCheckbox("使用 收藏品采集 （收藏品）", "使用 收藏品采集 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.CollectConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.CollectConfig.UseAction = b);
-
         public static void DrawMountUpDistance()
         {
             var tmp = GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
@@ -514,19 +518,9 @@ public partial class Interface
         public static void DrawSolidAgeGatherablesMinYield()
         {
             int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.GetOptionalProperty<int>("MinimumYield");
-            if (ImGui.DragInt("最小 莫非王土/天赐收成", ref tmp, 1, 1, 20))
+            if (ImGui.DragInt("最小 莫非王土/天赐收成", ref tmp, 0.1f, 1, 20))
             {
                 GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.SetOptionalProperty("MinimumYield", tmp);
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawCollectMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.CollectConfig.MaximumGP;
-            if (ImGui.DragInt("登山者/开拓者的眼力 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Collect.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.CollectConfig.MaximumGP = (uint)tmp;
                 GatherBuddy.Config.Save();
             }
         }
@@ -587,16 +581,6 @@ public partial class Interface
             if (ImGui.DragInt("石工之理/农夫之智 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.SolidAge.GpCost, 30000))
             {
                 GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawCollectMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.CollectConfig.MinimumGP;
-            if (ImGui.DragInt("收藏品采集 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Collect.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.CollectConfig.MinimumGP = (uint)tmp;
                 GatherBuddy.Config.Save();
             }
         }
@@ -1224,6 +1208,7 @@ public partial class Interface
                     ConfigFunctions.DrawBYIIBox();
                     ConfigFunctions.DrawBYIIMinGP();
                     ConfigFunctions.DrawBYIIMaxGP();
+                    ConfigFunctions.DrawBYIIMinimumIncrease();
                     ConfigFunctions.DrawBYIIUseWithCrystals();
                     ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.BYIIConfig);
                     ImGui.TreePop();
@@ -1254,8 +1239,8 @@ public partial class Interface
                     ConfigFunctions.DrawSolidAgeGatherablesCheckbox();
                     ConfigFunctions.DrawSolidAgeGatherablesMinGp();
                     ConfigFunctions.DrawSolidAgeGatherablesMaxGp();
-                    ConfigFunctions.DrawSolidAgeGatherablesUseWithCrystals();
                     ConfigFunctions.DrawSolidAgeGatherablesMinYield();
+                    ConfigFunctions.DrawSolidAgeGatherablesUseWithCrystals();
                     ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig);
                     ImGui.TreePop();
                 }
@@ -1327,14 +1312,6 @@ public partial class Interface
                     ConfigFunctions.DrawSolidAgeCollectablesCheckbox();
                     ConfigFunctions.DrawSolidAgeCollectablesMinGp();
                     ConfigFunctions.DrawSolidAgeCollectablesMaxGp();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("收藏品采集"))
-                {
-                    ConfigFunctions.DrawCollectCheckbox();
-                    ConfigFunctions.DrawCollectMinGp();
-                    ConfigFunctions.DrawCollectMaxGp();
                     ImGui.TreePop();
                 }
 
