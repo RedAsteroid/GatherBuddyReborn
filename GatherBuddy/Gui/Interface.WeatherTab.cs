@@ -167,7 +167,7 @@ public partial class Interface
     private void DrawWeatherTab()
     {
         using var id  = ImRaii.PushId("Weather");
-        using var tab = ImRaii.TabItem("Weather");
+        using var tab = ImRaii.TabItem("天气");
         ImGuiUtil.HoverTooltip("没错 '妖雾' 是天气。\n"
           + "查看前一天和接下来几天的所有区域的天气。");
 
