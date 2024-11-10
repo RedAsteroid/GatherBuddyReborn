@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Utility;
 using GatherBuddy.Alarms;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
@@ -303,8 +304,9 @@ public partial class Interface
             ImGui.Text($"{invTotal} / ");
             ImGui.SameLine(0, 3f);
             var quantity = preset.Quantities.TryGetValue(item, out var q) ? (int)q : 1;
-            ImGui.SetNextItemWidth(100f);
-            if (ImGui.InputInt("##quantity", ref quantity, 1, 10))
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            ImGui.InputInt("##quantity", ref quantity, 1, 10);
+            if (ImGui.IsItemDeactivatedAfterEdit())
                 _plugin.GatherWindowManager.ChangeQuantity(preset, item, (uint)quantity);
             ImGui.SameLine();
             if (DrawLocationInput(item, preset.PreferredLocations.GetValueOrDefault(item), out var newLoc))

@@ -170,7 +170,8 @@ namespace GatherBuddy.AutoGather
                 res = (node, node.Times.NextUptime(time));
             }
             //Second priority: location for preferred job.
-            if ((res.Location == null || !res.Time.InRange(time)) && GatherBuddy.Config.PreferredGatheringType is GatheringType.Miner or GatheringType.Botanist)
+            if ((res.Location == null || !res.Time.InRange(time)) && 
+                GatherBuddy.Config.PreferredGatheringType is GatheringType.采矿工 or GatheringType.园艺工)
             {
                 res = GatherBuddy.UptimeManager.NextUptime(item, GatherBuddy.Config.PreferredGatheringType, time, [.. VisitedTimedLocations.Keys]);
             }

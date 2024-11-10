@@ -66,12 +66,15 @@ public partial class Interface
         }
 
         public static void DrawUseSkillsForFallabckBox()
-            => DrawCheckbox("Use skills for fallback items", "Use skills when gathering items from fallback presets",
+            => DrawCheckbox("为备选采集列表物品使用技能", 
+                "当采集备选采集列表内的物品时, 自动使用相关的采集技能",
                 GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems, b => GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems = b);
 
         public static void DrawAbandonNodesBox()
-            => DrawCheckbox("当采集点没有目标物品或你已经采集了足够的目标物品, 且采集点已经无其他需要采集的物品时, 自动取消采集该采集点",
-                GatherBuddy.Config.AutoGatherConfig.AbandonNodes, b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
+            => DrawCheckbox("自动取消采集点",
+                "当采集点没有目标物品或你已经采集了足够的目标物品, 且采集点已经无其他需要采集的物品时, 自动取消采集该采集点",
+                GatherBuddy.Config.AutoGatherConfig.AbandonNodes, 
+                b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
 
         public static void DrawAdvancedUnstuckBox()
             => DrawCheckbox("启用避免卡死测试功能",

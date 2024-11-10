@@ -154,14 +154,19 @@ public partial class Interface
     private void DrawNextWeather(string nextWeather)
     {
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-        DrawIconTint(_headerCache.LastWeather, _headerCache.LastWeatherIcon, WeatherIconSize, _headerCache.LastWeatherTint);
-        ImGui.SameLine();
-        DrawIcon(_headerCache.CurrentWeather, _headerCache.CurrentWeatherIcon, WeatherIconSize);
-        style.Pop();
-        ImGui.SameLine();
-        ImGuiUtil.DrawTextButton(nextWeather, Vector2.UnitY * WeatherIconSize.Y, ColorId.HeaderWeather.Value());
-        ImGui.SameLine();
-        DrawIcon(_headerCache.NextWeather, _headerCache.NextWeatherIcon, WeatherIconSize);
+        using (ImRaii.Group())
+        {
+            DrawIconTint(_headerCache.LastWeather, _headerCache.LastWeatherIcon, WeatherIconSize, _headerCache.LastWeatherTint);
+            ImGui.SameLine();
+            DrawIcon(_headerCache.CurrentWeather, _headerCache.CurrentWeatherIcon, WeatherIconSize);
+            style.Pop();
+            ImGui.SameLine();
+            ImGuiUtil.DrawTextButton(nextWeather, Vector2.UnitY * WeatherIconSize.Y, ColorId.HeaderWeather.Value());
+            ImGui.SameLine();
+            DrawIcon(_headerCache.NextWeather, _headerCache.NextWeatherIcon, WeatherIconSize);
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("距离切换至下一天气剩余的时间");
     }
 
     private void DrawTimeRow()
@@ -176,7 +181,7 @@ public partial class Interface
         nextHourS    -= nextHourM * RealTime.SecondsPerMinute;
         nextWeatherS -= nextWeatherM * RealTime.SecondsPerMinute;
 
-        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2} 分钟  ";
+        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2}  ";
         var width = -(ImGui.CalcTextSize(nextWeatherString).X
           + (WeatherIconSize.X + ItemSpacing.X + FramePadding.X) * 3);
 

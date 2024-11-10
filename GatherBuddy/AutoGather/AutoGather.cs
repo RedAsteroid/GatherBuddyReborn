@@ -147,7 +147,7 @@ namespace GatherBuddy.AutoGather
                     var target = Svc.Targets.Target;
                     if (target != null
                         && target.ObjectKind is ObjectKind.GatheringPoint
-                        && targetInfo.Item.NodeType is NodeType.Regular or NodeType.Ephemeral
+                        && targetInfo.Item.NodeType is NodeType.常规 or NodeType.限时
                         && VisitedNodes.Last?.Value != target.DataId
                         && targetInfo.Location?.WorldPositions.ContainsKey(target.DataId) == true)
                     {
@@ -334,7 +334,7 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.Unspoiled or NodeType.Legendary))
+            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.未知 or NodeType.传说))
                 return;
 
             if (DoUseConsumablesWithoutCastTime())
@@ -544,8 +544,8 @@ namespace GatherBuddy.AutoGather
         {
             var set = job switch
             {
-                GatheringType.Miner => GatherBuddy.Config.MinerSetName,
-                GatheringType.Botanist => GatherBuddy.Config.BotanistSetName,
+                GatheringType.采矿工 => GatherBuddy.Config.MinerSetName,
+                GatheringType.园艺工 => GatherBuddy.Config.BotanistSetName,
                 _ => null,
             };
             if (set == null || set.Length == 0)
