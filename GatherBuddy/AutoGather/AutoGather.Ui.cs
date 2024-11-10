@@ -72,9 +72,9 @@ namespace GatherBuddy.AutoGather
             {
                 ImGui.TableSetupColumn("名称");
                 ImGui.TableSetupColumn("可选中");
-                ImGui.TableSetupColumn("可采集");
+                ImGui.TableSetupColumn("节点 ID");
                 ImGui.TableSetupColumn("位置");
-                ImGui.TableSetupColumn("目的地");
+                ImGui.TableSetupColumn("距离");
                 ImGui.TableSetupColumn("操作");
 
                 ImGui.TableHeadersRow();
@@ -89,7 +89,7 @@ namespace GatherBuddy.AutoGather
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text(node.IsTargetable ? "是" : "否");
                     ImGui.TableSetColumnIndex(2);
-                    // ImGui.Text("Honk (Deprecated)"); 没看懂是什么
+                    ImGui.Text(node.DataId.ToString());
                     ImGui.TableSetColumnIndex(3);
                     ImGui.Text(node.Position.ToString());
                     ImGui.TableSetColumnIndex(4);

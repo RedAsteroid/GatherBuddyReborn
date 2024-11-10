@@ -70,19 +70,14 @@ public partial class Interface
                 : $"添加 {item.Name[GatherBuddy.Language]} 至 {current.Name}");
     }
 
-    private void DrawAddGatherWindow(IGatherable item)
+    private void DrawAddGatherWindow(Gatherable item)
     {
         var current = _gatherWindowCache.Selector.EnsureCurrent();
 
-        if (ImGui.Selectable("添加至采集窗口预设"))
+        if (ImGui.Selectable("添加至当前自动采集预设"))
         {
             if (current == null)
-                _plugin.GatherWindowManager.AddPreset(new GatherWindowPreset
-                {
-                    Enabled     = true,
-                    Items       = new List<IGatherable> { item },
-                    Description = AutomaticallyGenerated,
-                });
+                CreateAndAddPreset(item);
             else
                 _plugin.GatherWindowManager.AddItem(current, item);
         }
@@ -203,9 +198,12 @@ public partial class Interface
 
         DrawAddAlarm(item);
         DrawAddToGatherGroup(item);
-        DrawAddToAutoGather(item);
-        DrawAddGatherWindow(item);
-        if (ImGui.Selectable("创建列表"))
+        if (item is Gatherable gatherable)
+        {
+            DrawAddGatherWindow(gatherable);
+            DrawAddToAutoGather(gatherable);
+        }
+        if (ImGui.Selectable("创建列"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -213,32 +211,35 @@ public partial class Interface
 
     private const string PresetName = "来自可采集物品列表";
 
-    private static void DrawAddToAutoGather(IGatherable item)
+    private static void DrawAddToAutoGather(Gatherable item)
     {
-        if (ImGui.Selectable($"添加至自动采集列表"))
+        if (ImGui.Selectable($"添加至自动采集预设"))
         {
             // Fetch preset if exists.
             var preset = _plugin.GatherWindowManager.Presets.FirstOrDefault(p => p.Name == PresetName);
 
-            // Create and add preset if it doesn't exist.
-            preset = preset ?? CreateAndAddPreset(item);
-
-            // Add item to existing preset.
-            _plugin.GatherWindowManager.AddItem(preset, item);
+            if (preset == null)
+                // Create and add preset if it doesn't exist.
+                CreateAndAddPreset(item);
+            else
+                // Add item to existing preset.
+                _plugin.GatherWindowManager.AddItem(preset, item);
         }
+
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(
+                $"Add {item.Name[GatherBuddy.Language]} to {PresetName}");
     }
 
-    private static GatherWindowPreset CreateAndAddPreset(IGatherable item)
+    private static GatherWindowPreset CreateAndAddPreset(Gatherable item)
     {
         var preset = new GatherWindowPreset
         {
             Enabled     = true,
-            Items       = new List<IGatherable> { item },
             Description = AutomaticallyGenerated,
-            Name        = PresetName,
-            Quantities = new Dictionary<uint, uint>(),
+            Name        = PresetName
         };
-        preset.Quantities.TryAdd(item.ItemId, 1);
+        preset.Add(item);
         _plugin.GatherWindowManager.AddPreset(preset);
 
         return preset;

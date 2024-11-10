@@ -1,26 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.NetworkInformation;
 using System.Numerics;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Text;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using ECommons.GameHelpers;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using ECommons.ImGuiMethods;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
 using GatherBuddy.Config;
-using GatherBuddy.Enums;
-using GatherBuddy.FishTimer;
-using GatherBuddy.Plugin;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets2;
 using OtterGui;
-using OtterGui.Table;
 using OtterGui.Widgets;
-using Action = System.Action;
 using FishRecord = GatherBuddy.FishTimer.FishRecord;
 using GatheringType = GatherBuddy.Enums.GatheringType;
 using ImRaii = OtterGui.Raii.ImRaii;
@@ -66,8 +54,24 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.DoGathering, b => GatherBuddy.Config.AutoGatherConfig.DoGathering = b);
 
         public static void DrawGoHomeBox()
-            => DrawCheckbox("空闲时回家", "当采集完成或等待限时点时使用 '/li auto' 命令带你回家",
-                GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle = b);
+        {
+            DrawCheckbox("采集完成时回家", "当采集完成时, 自动使用 '/li auto' 指令回家",
+                        GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new("Lifestream")]);
+            DrawCheckbox("空闲时回家", "当等待下一限时采集点出现时, 自动使用 '/li auto' 指令回家",
+                        GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new("Lifestream")]);
+        }
+
+        public static void DrawUseSkillsForFallabckBox()
+            => DrawCheckbox("Use skills for fallback items", "Use skills when gathering items from fallback presets",
+                GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems, b => GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems = b);
+
+        public static void DrawAbandonNodesBox()
+            => DrawCheckbox("当采集点没有目标物品或你已经采集了足够的目标物品, 且采集点已经无其他需要采集的物品时, 自动取消采集该采集点",
+                GatherBuddy.Config.AutoGatherConfig.AbandonNodes, b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
 
         public static void DrawAdvancedUnstuckBox()
             => DrawCheckbox("启用避免卡死测试功能",
@@ -173,6 +177,18 @@ public partial class Interface
             }
 
             ImGuiUtil.HoverTooltip("在限时采集点出现前，GBR应该提前多久认为限时采集点出现");
+        }
+
+        public static void DrawExecutionDelay()
+        {
+            var tmp = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
+            if (ImGui.DragInt("Execution delay (Milliseconds)", ref tmp, 1, 0, 1500))
+            {
+                GatherBuddy.Config.AutoGatherConfig.ExecutionDelay = (uint)Math.Min(Math.Max(0, tmp), 10000);
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip("Delay executing each action by the specified amount.");
         }
 
         public static void DrawBYIIBox()
@@ -1182,6 +1198,8 @@ public partial class Interface
                 ConfigFunctions.DrawSortingMethodCombo();
                 ConfigFunctions.DrawUseGivingLandOnCooldown();
                 ConfigFunctions.DrawGoHomeBox();
+                ConfigFunctions.DrawUseSkillsForFallabckBox();
+                ConfigFunctions.DrawAbandonNodesBox();
                 ImGui.TreePop();
             }
 
@@ -1375,6 +1393,7 @@ public partial class Interface
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
                 ConfigFunctions.DrawTimedNodePrecog();
+                ConfigFunctions.DrawExecutionDelay();
                 ImGui.TreePop();
             }
         }

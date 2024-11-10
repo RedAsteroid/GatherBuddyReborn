@@ -19,6 +19,10 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Game.Text;
 using Dalamud.Utility;
 using ECommons.ExcelServices;
+using ECommons.Automation;
+using GatherBuddy.Data;
+using NodeType = GatherBuddy.Enums.NodeType;
+using ECommons.UIHelpers.AddonMasterImplementations;
 
 namespace GatherBuddy.AutoGather
 {
@@ -30,14 +34,13 @@ namespace GatherBuddy.AutoGather
             TaskManager                            =  new();
             TaskManager.ShowDebug                  =  false;
             _plugin                                =  plugin;
-            _movementController                    =  new OverrideMovement();
             _soundHelper                           =  new SoundHelper();
+            _advancedUnstuck                       =  new();
         }
-
-        private readonly OverrideMovement _movementController;
 
         private readonly GatherBuddy _plugin;
         private readonly SoundHelper _soundHelper;
+        private readonly AdvancedUnstuck _advancedUnstuck;
         
         public           TaskManager TaskManager { get; }
 
@@ -60,8 +63,6 @@ namespace GatherBuddy.AutoGather
 
                     TaskManager.Abort();
                     targetInfo                          = null;
-                    _movementController.Enabled         = false;
-                    _movementController.DesiredPosition = Vector3.Zero;
                     StopNavigation();
                     AutoStatus = "空闲中...";
                 }
@@ -82,7 +83,7 @@ namespace GatherBuddy.AutoGather
             if (WentHome) return;
             WentHome = true;
 
-            if (!GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle)
+            if (Dalamud.Conditions[ConditionFlag.BoundByDuty])
                 return;
 
             if (Lifestream_IPCSubscriber.IsEnabled && !Lifestream_IPCSubscriber.IsBusy())
@@ -126,7 +127,7 @@ namespace GatherBuddy.AutoGather
 
             if (!CanAct)
             {
-                AutoStatus = "玩家当前无法行动";
+                AutoStatus = Dalamud.Conditions[ConditionFlag.Gathering] ? AutoStatus = "采集中..." : "当前无法行动...";
                 return;
             }
 
@@ -146,13 +147,13 @@ namespace GatherBuddy.AutoGather
                     var target = Svc.Targets.Target;
                     if (target != null
                         && target.ObjectKind is ObjectKind.GatheringPoint
-                        && targetInfo.Item.NodeType is NodeType.常规 or NodeType.限时
-                        && VisitedNodes.Last?.Value != target.Position
-                        && targetInfo.Location?.Territory.Id >= 397)
+                        && targetInfo.Item.NodeType is NodeType.Regular or NodeType.Ephemeral
+                        && VisitedNodes.Last?.Value != target.DataId
+                        && targetInfo.Location?.WorldPositions.ContainsKey(target.DataId) == true)
                     {
                         FarNodesSeenSoFar.Clear();
-                        VisitedNodes.AddLast(target.Position);
-                        while (VisitedNodes.Count > (targetInfo.Location.WorldPositions.Count == 3 ? 2 : 4))
+                        VisitedNodes.AddLast(target.DataId);
+                        while (VisitedNodes.Count > (targetInfo.Location.WorldPositions.Count <= 4 ? 2 : 4))
                             VisitedNodes.RemoveFirst();
                     }
                 }
@@ -167,17 +168,7 @@ namespace GatherBuddy.AutoGather
                     }
                     catch (NoGatherableItemsInNodeExceptions)
                     {
-                        UpdateItemsToGather();
-
-                        //We may stuck in infinite loop attempt to gather the same item, therefore disable auto-gather
-                        if (ItemsToGather.Count > 0 && targetInfo?.Item == ItemsToGather[0].Item)
-                        {
-                            AbortAutoGather("未能从上一节点中采集到任何物品, 已放弃");
-                        }
-                        else
-                        {
-                            CloseGatheringAddons();
-                        }
+                        CloseGatheringAddons();
                     }
                     catch (NoColectableActionsExceptions)
                     {
@@ -194,8 +185,9 @@ namespace GatherBuddy.AutoGather
             var isPathGenerating = IsPathGenerating;
             var isPathing = IsPathing;
 
-            if (AdvancedUnstuckCheck(isPathGenerating, isPathing))
+            if (_advancedUnstuck.IsRunning || CurrentDestination != default && CurrentDestination.DistanceToPlayer() > 3 && _advancedUnstuck.Check(isPathGenerating, isPathing))
             {
+                StopNavigation();
                 AutoStatus = $"Advanced unstuck in progress!";
                 return;
             }
@@ -203,7 +195,6 @@ namespace GatherBuddy.AutoGather
             if (isPathGenerating)
             {
                 AutoStatus = "正在生成路径...";
-                advandedLastPosition = null;
                 lastMovementTime = DateTime.Now;
                 return;
             }
@@ -235,8 +226,10 @@ namespace GatherBuddy.AutoGather
                         return;
                     }
 
-                    GoHome();
-                    AutoStatus = "无可用的待采集物品";
+                    if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle)
+                        GoHome();
+
+                    AutoStatus = "无待采集物品";
                     return;
                 }
 
@@ -271,32 +264,84 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            //At this point, we are definitely going to gather something, so we may go home after that.
-            if (Lifestream_IPCSubscriber.IsEnabled) Lifestream_IPCSubscriber.Abort();
-            WentHome = false;
-
-            if (targetInfo.Location.Territory.Id != Svc.ClientState.TerritoryType || !LocationMatchesJob(targetInfo.Location))
+            if (!LocationMatchesJob(targetInfo.Location))
             {
-                StopNavigation();
-                MoveToTerritory(targetInfo.Location);
-                AutoStatus = "传送中...";
+                if (!ChangeGearSet(targetInfo.Location.GatheringType.ToGroup()))
+                    AbortAutoGather();
                 return;
             }
 
-            //This check must be done after changing jobs. TODO: check before teleporting
+            //This check must be done after changing jobs.
             if (targetInfo.Item.ItemData.IsCollectable && !CheckCollectablesUnlocked())
             {
                 AbortAutoGather();
                 return;
             }
 
-            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.未知 or NodeType.传说))
+            var territoryId = Svc.ClientState.TerritoryType;
+            //Idyllshire to The Dravanian Hinterlands
+            if (territoryId == 478 && targetInfo.Location.Territory.Id == 399 && Lifestream_IPCSubscriber.IsEnabled)
+            {
+                var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable).OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
+                if (aetheryte != null)
+                {
+                    if (aetheryte.Position.DistanceToPlayer() > 10)
+                    {
+                        AutoStatus = "向以太之光移动中...";
+                        if (!isPathing && !isPathGenerating) Navigate(aetheryte.Position, false);
+                    }
+                    else if (!Lifestream_IPCSubscriber.IsBusy())
+                    {
+                        AutoStatus = "传送中...";
+                        StopNavigation();
+                        var exit = targetInfo.Location.DefaultXCoord < 2000 ? 91u : 92u;
+                        var name = Dalamud.GameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()!.GetRow(exit)!.AethernetName.Value!.Name;
+                        Lifestream_IPCSubscriber.AethernetTeleport(name);
+                    }
+                    return;
+                }
+            }
+
+            var forcedAetheryte = ForcedAetherytes.ZonesWithoutAetherytes.Where(z => z.ZoneId == targetInfo.Location.Territory.Id).FirstOrDefault();
+            if (forcedAetheryte.ZoneId != 0 
+                && (GatherBuddy.GameData.Aetherytes[forcedAetheryte.AetheryteId].Territory.Id == territoryId
+                    || forcedAetheryte.AetheryteId == 70 && territoryId == 886)) //The Firmament
+                {
+                if (territoryId == 478 && !Lifestream_IPCSubscriber.IsEnabled)
+                    AutoStatus = $"请安装 Lifestraem 或手动传送至 {targetInfo.Location.Territory.Name}";
+                else
+                    AutoStatus = "需要手动传送";
+                return;
+            }
+
+            //At this point, we are definitely going to gather something, so we may go home after that.
+            if (Lifestream_IPCSubscriber.IsEnabled) Lifestream_IPCSubscriber.Abort();
+            WentHome = false;
+
+            if (targetInfo.Location.Territory.Id != territoryId)
+            {
+                if (Dalamud.Conditions[ConditionFlag.BoundByDuty])
+                {
+                    AutoStatus = "无法在副本任务中传送";
+                    return;
+                }
+                AutoStatus = "传送中...";
+                StopNavigation();
+
+                if (!MoveToTerritory(targetInfo.Location))
+                    AbortAutoGather();
+
+                return;
+            }
+
+            if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.Unspoiled or NodeType.Legendary))
                 return;
 
             if (DoUseConsumablesWithoutCastTime())
                 return;
 
             var allPositions = targetInfo.Location.WorldPositions
+                .ExceptBy(VisitedNodes, n => n.Key)
                 .SelectMany(w => w.Value)
                 .Where(v => !IsBlacklisted(v))
                 .ToHashSet();
@@ -318,13 +363,15 @@ namespace GatherBuddy.AutoGather
 
             AutoStatus = "正在移动至较远节点...";
 
-            if (CurrentDestination != default && !allPositions.Contains(CurrentDestination))
+            if (CurrentDestination != default && CurrentFarNodeLocation != targetInfo.Location)
             {
                 GatherBuddy.Log.Debug("当前目的地与待采集物品地点不符, 已重置导航");
                 StopNavigation();
                 FarNodesSeenSoFar.Clear();
                 VisitedNodes.Clear();
             }
+
+            CurrentFarNodeLocation = targetInfo.Location;
 
             if (CurrentDestination != default)
             {
@@ -349,7 +396,7 @@ namespace GatherBuddy.AutoGather
             }
 
             Vector3 selectedFarNode;
-
+            
             // only Legendary and Unspoiled show marker
             if (ShouldUseFlag && targetInfo.Item.NodeType is NodeType.传说 or NodeType.未知)
             {
@@ -365,13 +412,14 @@ namespace GatherBuddy.AutoGather
                     .Where(o => Vector2.Distance(pos.Value, new Vector2(o.X, o.Z)) < 10)
                     .OrderBy(o => Vector2.Distance(pos.Value, new Vector2(o.X, o.Z)))
                     .FirstOrDefault();
+                if (selectedFarNode == default)
+                    selectedFarNode = VNavmesh_IPCSubscriber.Query_Mesh_NearestPoint(new Vector3(pos.Value.X, 0, pos.Value.Y), 10, 10000);
             }
             else
             {
-                //Select the furthermost node from the last 4 visited ones (2 for ephemeral), ARR excluded.
+                //Select the closest node
                 selectedFarNode = allPositions
-                    .OrderByDescending(n => VisitedNodes.Select(v => Vector3.Distance(n, v)).Sum())
-                    .ThenBy(v => Vector3.Distance(Player.Position, v))
+                    .OrderBy(v => Vector3.Distance(Player.Position, v))
                     .FirstOrDefault(n => !FarNodesSeenSoFar.Contains(n));
 
                 if (selectedFarNode == default)
@@ -394,18 +442,44 @@ namespace GatherBuddy.AutoGather
             if (GatherBuddy.Config.AutoGatherConfig.HonkMode)
                 _soundHelper.PlayHonkSound(3);
             CloseGatheringAddons();
-            TaskManager.Enqueue(GoHome);
+            if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone)
+                EnqueueActionWithDelay(GoHome);
         }
 
         private unsafe void CloseGatheringAddons()
         {
-            if (MasterpieceAddon != null)
-                TaskManager.Enqueue(() => MasterpieceAddon->Close(true));
-
-            if (GatheringAddon != null)
-                TaskManager.Enqueue(() => GatheringAddon->Close(true));
-
-            TaskManager.Enqueue(() => !IsGathering);
+            var masterpieceOpen = MasterpieceAddon != null;
+            var gatheringOpen = GatheringAddon != null;
+            if (masterpieceOpen)
+            {
+                EnqueueActionWithDelay(() => { if (MasterpieceAddon is var addon and not null) { Callback.Fire(&addon->AtkUnitBase, true, -1); } });
+                TaskManager.Enqueue(() => MasterpieceAddon == null);
+                TaskManager.Enqueue(() => GatheringAddon != null);
+            }
+            if (gatheringOpen || masterpieceOpen)
+            {
+                EnqueueActionWithDelay(() => { if (GatheringAddon is var addon and not null) { Callback.Fire(&addon->AtkUnitBase, true, -1); } });
+                TaskManager.Enqueue(() => {
+                    var addon = (AddonSelectYesno*)Dalamud.GameGui.GetAddonByName("SelectYesno");
+                    if (addon != null)
+                    {
+                        EnqueueActionWithDelay(() =>
+                        {
+                            if ((AddonSelectYesno*)Dalamud.GameGui.GetAddonByName("SelectYesno") is var addon and not null)
+                            {
+                                var master = new AddonMaster.SelectYesno(addon);
+                                master.Yes();
+                            }
+                        });
+                        TaskManager.Enqueue(() => !IsGathering);
+                        return true;
+                    }
+                    else
+                    {
+                        return IsGathering;
+                    }    
+                });
+            }
         }
 
         private static unsafe void RefreshNextTresureMapAllowance()
@@ -420,12 +494,12 @@ namespace GatherBuddy.AutoGather
         {
             if (Player.Level < Actions.Collect.MinLevel)
             {
-                Communicator.PrintError("You've put a collectable on the gathering list, but your level is not high enough to gather it.");
+                Communicator.PrintError("列表内存在当前无法采集的收藏品, 原因: 等级不足");
                 return false;
             }
             if (Actions.Collect.QuestID != 0 && !QuestManager.IsQuestComplete(Actions.Collect.QuestID))
             {
-                Communicator.PrintError("You've put a collectable on the gathering list, but you haven't unlocked the collectables.");
+                Communicator.PrintError("列表内存在当前无法采集的收藏品, 原因: 尚未解锁");
                 var sheet = Dalamud.GameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Quest>()!;
                 var row = sheet.GetRow(Actions.Collect.QuestID)!;
                 var loc = row.IssuerLocation.Value!;
@@ -433,7 +507,7 @@ namespace GatherBuddy.AutoGather
                 var pos = MapUtil.WorldToMap(new Vector2(loc.X, loc.Z), map);
                 var mapPayload = new MapLinkPayload(loc.Territory.Row, loc.Map.Row, pos.X, pos.Y);
                 var text = new SeStringBuilder();
-                text.AddText("Collectables are unlocked by ")
+                text.AddText("收藏品可以由 ")
                     .AddUiForeground(0x0225)
                     .AddUiGlow(0x0226)
                     .AddQuestLink(Actions.Collect.QuestID)
@@ -446,7 +520,7 @@ namespace GatherBuddy.AutoGather
                     .Add(RawPayload.LinkTerminator)
                     .AddUiGlowOff()
                     .AddUiForegroundOff()
-                    .AddText(" quest, which can be started in ")
+                    .AddText(" 任务解锁, 开始地点: ")
                     .AddUiForeground(0x0225)
                     .AddUiGlow(0x0226)
                     .Add(mapPayload)
@@ -466,9 +540,28 @@ namespace GatherBuddy.AutoGather
             return true;
         }
 
+        private bool ChangeGearSet(GatheringType job)
+        {
+            var set = job switch
+            {
+                GatheringType.Miner => GatherBuddy.Config.MinerSetName,
+                GatheringType.Botanist => GatherBuddy.Config.BotanistSetName,
+                _ => null,
+            };
+            if (set == null || set.Length == 0)
+            {
+                Communicator.PrintError($"未对 {job} 配置任何职业套装");
+                return false;
+            }
+
+            Chat.Instance.ExecuteCommand($"/gearset change \"{set}\"");
+            TaskManager.DelayNext(Random.Shared.Next(500, 1500));  //Add a random delay to be less suspicious 
+            return true;
+        }
+
         public void Dispose()
         {
-            _movementController.Dispose();
+            _advancedUnstuck.Dispose();
             NodeTarcker.Dispose();
         }
     }
