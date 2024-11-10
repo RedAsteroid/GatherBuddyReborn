@@ -179,7 +179,7 @@ public partial class Interface
 
     private void DrawGatherWindowPresetHeaderLine()
     {
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "Copy current gather window preset to clipboard.",
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "复制当前采集窗口预设至剪贴板",
                 _gatherWindowCache.Selector.Current == null, true))
         {
             var preset = _gatherWindowCache.Selector.Current!;
@@ -187,21 +187,21 @@ public partial class Interface
             {
                 var s = new GatherWindowPreset.Config(preset).ToBase64();
                 ImGui.SetClipboardText(s);
-                Communicator.PrintClipboardMessage("Gather window preset ", preset.Name);
+                Communicator.PrintClipboardMessage("采集窗口预设 ", preset.Name);
             }
             catch (Exception e)
             {
-                Communicator.PrintClipboardMessage("Gather window preset ", preset.Name, e);
+                Communicator.PrintClipboardMessage("采集窗口预设 ", preset.Name, e);
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Create Alarms", Vector2.Zero, "Create a new Alarm Group from this gather window preset.", _gatherWindowCache.Selector.Current == null))
+        if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "为当前采集窗口预设创建一个新的闹钟", _gatherWindowCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherWindowCache.Selector.Current!);
             _plugin.AlarmManager.AddGroup(preset);
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Import from TeamCraft", Vector2.Zero, "Populate list from clipboard contents (TeamCraft format)",
+        if (ImGuiUtil.DrawDisabledButton("从 TeamCraft 导入", Vector2.Zero, "从剪贴板导入 TeamCraft 格式的采集清单",
                 _gatherWindowCache.Selector.Current == null))
         {
             var clipboardText = ImGuiUtil.GetClipboardText();
@@ -240,17 +240,17 @@ public partial class Interface
                 }
                 catch (Exception e)
                 {
-                    Communicator.PrintClipboardMessage("Error importing gather window preset", e.ToString());
+                    Communicator.PrintClipboardMessage("导入采集窗口时出错", e.ToString());
                 }
             }
         }
 
         ImGuiComponents.HelpMarker(
-            "If the config option to sort by location is not selected, items are gathered in order of enabled preset, then order of item in preset.\n"
-          + "You can drag and draw presets in the list to move them.\n"
-          + "You can drag and draw items in a specific preset to move them.\n"
-          + "You can drag and draw an item onto a different preset from the selector to add it to that preset and remove it from the current.\n"
-          + "In the Gather Window, you can hold Control and Right-Click an item to delete it from the preset it comes from.");
+            "如果没有按照刷新时间对采集窗口进行排序，物品会按照启用的预设顺序，然后按照预设中的物品顺序唯一地添加。\n"
+          + "可以在列表中拖动预设来移动它们。\n"
+          + "可以在特定预设中拖动物品来调整顺序。\n"
+          + "可以从选择器中将物品拖到不同的预设上，以将其添加到该预设并从当前预设中移除。\n"
+          + "在采集窗口中，可以按住 Ctrl 并右键单击物品，将其从所属的预设中删除。如果这会移除预设中的最后一个物品，则该预设也会被移除。");
     }
 
     private void DrawGatherWindowPreset(GatherWindowPreset preset)
@@ -263,14 +263,12 @@ public partial class Interface
             _plugin.GatherWindowManager.ChangeDescription(preset, newDesc);
 
         var tmp = preset.Enabled;
-        if (ImGui.Checkbox("Enabled##preset", ref tmp) && tmp != preset.Enabled)
+        if (ImGui.Checkbox("启用##preset", ref tmp) && tmp != preset.Enabled)
             _plugin.GatherWindowManager.TogglePreset(preset);
 
         ImGui.SameLine();
-        ImGuiUtil.Checkbox("Fallback##preset",
-            "Items from fallback presets won't be auto-gathered.\n"
-          + "But if a node doesn't contain any items from regular presets or if you gathered enough of them,\n"
-          + "items from fallback presets would be gathered instead if they could be found in that node.", 
+        ImGuiUtil.Checkbox("备用采集列表##preset",
+            "正常情况下, 插件不会自动采集备用采集列表内的物品,\n但当采集点不包含待采集物品或待采集物品已经采集完毕时,\n则会尝试采集备用采集列表中的物品", 
             preset.Fallback, (v) => _plugin.GatherWindowManager.SetFallback(preset, v));
 
         ImGui.NewLine();
@@ -289,7 +287,7 @@ public partial class Interface
             var       item  = preset.Items[i];
             using var id    = ImRaii.PushId((int)item.ItemId);
             using var group = ImRaii.Group();
-            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "Delete this item from the preset", false, true))
+            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "从预设中删除此物品", false, true))
                 deleteIndex = i;
 
             ImGui.SameLine();
@@ -299,7 +297,7 @@ public partial class Interface
                 changeItemIndex = newIdx;
             }
             ImGui.SameLine();
-            ImGui.Text("Inventory: ");
+            ImGui.Text("数量: ");
             var invTotal = _plugin.GatherWindowManager.GetInventoryCountForItem(item);
             ImGui.SameLine(0f, ImGui.CalcTextSize($"0000 / ").X - ImGui.CalcTextSize($"{invTotal} / ").X);
             ImGui.Text($"{invTotal} / ");
@@ -326,7 +324,7 @@ public partial class Interface
         if (changeIndex >= 0)
             _plugin.GatherWindowManager.ChangeItem(preset, gatherables[changeItemIndex], changeIndex);
 
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "Add this item at the end of the preset", false, true))
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "追加该物品至预设末端", false, true))
             _plugin.GatherWindowManager.AddItem(preset, gatherables[_gatherWindowCache.NewGatherableIdx]);
 
         ImGui.SameLine();
@@ -340,10 +338,7 @@ public partial class Interface
     private void DrawGatherWindowTab()
     {
         using var id  = ImRaii.PushId("GatherWindow");
-        using var tab = ImRaii.TabItem("Auto-Gather");
-
-        ImGuiUtil.HoverTooltip(
-            "You read that right! Auto-gather!");
+        using var tab = ImRaii.TabItem("自动采集");
 
         if (!tab)
             return;
@@ -353,7 +348,7 @@ public partial class Interface
         _gatherWindowCache.Selector.Draw(SelectorWidth);
         ImGui.SameLine();
 
-        ItemDetailsWindow.Draw("Preset Details", DrawGatherWindowPresetHeaderLine, () =>
+        ItemDetailsWindow.Draw("预设详情", DrawGatherWindowPresetHeaderLine, () =>
         {
             if (_gatherWindowCache.Selector.Current != null)
                 DrawGatherWindowPreset(_gatherWindowCache.Selector.Current);

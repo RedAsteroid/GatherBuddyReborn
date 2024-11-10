@@ -17,9 +17,9 @@ public partial class Configuration : IPluginConfiguration
     public int Version { get; set; } = 6;
 
     // Set Names
-    public string BotanistSetName { get; set; } = "Botanist";
-    public string MinerSetName    { get; set; } = "Miner";
-    public string FisherSetName   { get; set; } = "Fisher";
+    public string BotanistSetName { get; set; } = "园艺工";
+    public string MinerSetName    { get; set; } = "采矿工";
+    public string FisherSetName   { get; set; } = "捕鱼人";
 
     // formats
     public string IdentifiedGatherableFormat { get; set; } = DefaultIdentifiedGatherableFormat;
@@ -28,7 +28,7 @@ public partial class Configuration : IPluginConfiguration
 
     // Interface
     public AetherytePreference AetherytePreference { get; set; } = AetherytePreference.Distance;
-    public ItemFilter          ShowItems           { get; set; } = ItemFilter.All;
+    public ItemFilter          ShowItems           { get; set; } = ItemFilter.全部;
     public FishFilter          ShowFish            { get; set; } = FishFilter.All;
     public PatchFlag           HideFishPatch       { get; set; } = 0;
     public JobFlags            LocationFilter      { get; set; } = (JobFlags)0x3F;
@@ -55,7 +55,7 @@ public partial class Configuration : IPluginConfiguration
     public bool             ShowStatusLine         { get; set; } = true;
     public ModifiableHotkey MainInterfaceHotkey    { get; set; } = new();
     public bool             PlaceCustomWaymarks    { get; set; } = true;
-    public GatheringType    PreferredGatheringType { get; set; } = GatheringType.Multiple;
+    public GatheringType    PreferredGatheringType { get; set; } = GatheringType.多职业;
 
     // AutoGather Config
     public AutoGatherConfig AutoGatherConfig { get; set; } = new();

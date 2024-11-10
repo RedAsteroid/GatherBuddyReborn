@@ -24,12 +24,15 @@ namespace GatherBuddy.AutoGather
             TaskManager.Enqueue(StopNavigation);
 
             var am = ActionManager.Instance();
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "下坐骑");
 
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "Wait for not in flight");
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount 2");
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "Wait for dismount");
-            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(500); } );//Prevent "Unable to execute command while jumping."
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "等待飞行状态取消");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "下坐骑 2");
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "等待坐骑状态取消");
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.Instance.ExecuteCommand($"/automove on"); }, "下坐骑补偿 3"); // 添加移动补偿防止其他玩家看到你浮空
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(100); });
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.Instance.ExecuteCommand($"/automove off"); }, "下坐骑补偿 4"); // 停止移动
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(400); });
         }
 
         private unsafe void EnqueueMountUp()
@@ -95,7 +98,7 @@ namespace GatherBuddy.AutoGather
                 else if (waitGP)
                 {
                     StopNavigation();
-                    AutoStatus = "Waiting for GP to regenerate...";
+                    AutoStatus = "等待采集力恢复中...";
                 } 
                 else
                 {
@@ -157,7 +160,7 @@ namespace GatherBuddy.AutoGather
                         // Check if enough time has passed since the last reset
                         if ((DateTime.Now - lastResetTime).TotalSeconds > GatherBuddy.Config.AutoGatherConfig.NavResetCooldown)
                         {
-                            GatherBuddy.Log.Warning("Character is stuck, resetting navigation...");
+                            GatherBuddy.Log.Warning("角色被卡住, 正在重置导航...");
                             StopNavigation();
                             return;
                         }
@@ -200,12 +203,12 @@ namespace GatherBuddy.AutoGather
 
             StopNavigation();
             CurrentDestination = destination;
-            GatherBuddy.Log.Debug($"Navigating to {CurrentDestination}");
+            GatherBuddy.Log.Debug($"正在导航至 {CurrentDestination}");
             var loop = 1;
             Vector3 correctedDestination = GetCorrectedDestination(shouldFly);
             while (Vector3.Distance(correctedDestination, CurrentDestination) > 15 && loop < 8)
             {
-                GatherBuddy.Log.Information("Distance last node and gatherpoint is too big : "
+                GatherBuddy.Log.Information("上一节点与下一采集点间距离过远 : "
                     + Vector3.Distance(correctedDestination, CurrentDestination));
                 correctedDestination = shouldFly ? CurrentDestination.CorrectForMesh(loop * 0.5f) : CurrentDestination;
                 loop++;
@@ -213,14 +216,14 @@ namespace GatherBuddy.AutoGather
 
             if (Vector3.Distance(correctedDestination, CurrentDestination) > 10)
             {
-                GatherBuddy.Log.Warning($"Invalid destination: {correctedDestination}");
+                GatherBuddy.Log.Warning($"无效的目的地: {correctedDestination}");
                 StopNavigation();
                 return;
             }
 
             if (!correctedDestination.SanityCheck())
             {
-                GatherBuddy.Log.Warning($"Invalid destination: {correctedDestination}");
+                GatherBuddy.Log.Warning($"无效的目的地: {correctedDestination}");
                 StopNavigation();
                 return;
             }

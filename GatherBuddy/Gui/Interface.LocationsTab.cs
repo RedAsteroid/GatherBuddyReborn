@@ -41,12 +41,12 @@ public partial class Interface
             _typeColumnWidth      = Enum.GetValues<GatheringType>().Max(t => TextWidth(t.ToString())) / ImGuiHelpers.GlobalScale;
         }
 
-        private static readonly NameColumn      _nameColumn      = new() { Label = "Name" };
-        private static readonly TypeColumn      _typeColumn      = new() { Label = "Type" };
-        private static readonly TerritoryColumn _territoryColumn = new() { Label = "Territory" };
-        private static readonly AetheryteColumn _aetheryteColumn = new() { Label = "Aetheryte" };
-        private static readonly XCoordColumn    _xCoordColumn    = new() { Label = "X-Coord" };
-        private static readonly YCoordColumn    _yCoordColumn    = new() { Label = "Y-Coord" };
+        private static readonly NameColumn      _nameColumn      = new() { Label = "名称" };
+        private static readonly TypeColumn      _typeColumn      = new() { Label = "类型" };
+        private static readonly TerritoryColumn _territoryColumn = new() { Label = "地图" };
+        private static readonly AetheryteColumn _aetheryteColumn = new() { Label = "传送点" };
+        private static readonly XCoordColumn    _xCoordColumn    = new() { Label = "X-坐标" };
+        private static readonly YCoordColumn    _yCoordColumn    = new() { Label = "Y-坐标" };
         private static readonly RadiusColumn    _radiusColumn    = new() { Label = "Radius" };
         private static readonly MarkerColumn    _markerColumn    = new() { Label = "Markers" };
         private static readonly ItemColumn      _itemColumn      = new() { Label = "Items" };
@@ -104,12 +104,12 @@ public partial class Interface
             {
                 return location.GatheringType switch
                 {
-                    GatheringType.Mining       => FilterValue.HasFlag(JobFlags.Mining),
-                    GatheringType.Quarrying    => FilterValue.HasFlag(JobFlags.Quarrying),
-                    GatheringType.Logging      => FilterValue.HasFlag(JobFlags.Logging),
-                    GatheringType.Harvesting   => FilterValue.HasFlag(JobFlags.Harvesting),
-                    GatheringType.Spearfishing => FilterValue.HasFlag(JobFlags.Spearfishing),
-                    GatheringType.Fisher       => FilterValue.HasFlag(JobFlags.Fishing),
+                    GatheringType.采矿       => FilterValue.HasFlag(JobFlags.Mining),
+                    GatheringType.碎石    => FilterValue.HasFlag(JobFlags.Quarrying),
+                    GatheringType.伐木      => FilterValue.HasFlag(JobFlags.Logging),
+                    GatheringType.割草   => FilterValue.HasFlag(JobFlags.Harvesting),
+                    GatheringType.刺鱼 => FilterValue.HasFlag(JobFlags.Spearfishing),
+                    GatheringType.捕鱼人       => FilterValue.HasFlag(JobFlags.Fishing),
                     _                          => false,
                 };
             }
@@ -177,7 +177,7 @@ public partial class Interface
                     _plugin.LocationManager.SetAetheryte(location, _aetherytes[newIdx]);
                 if (overwritten)
                 {
-                    ImGuiUtil.HoverTooltip($"Right-click to restore default. ({location.DefaultAetheryte?.Name ?? "None"})");
+                    ImGuiUtil.HoverTooltip($"单击鼠标右键以重载默认设置 ({location.DefaultAetheryte?.Name ?? "None"})");
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         _plugin.LocationManager.SetAetheryte(location, location.DefaultAetheryte);
                 }
@@ -202,7 +202,7 @@ public partial class Interface
                     _plugin.LocationManager.SetXCoord(location, (int)(x * 100f + 0.5f));
                 if (overwritten)
                 {
-                    ImGuiUtil.HoverTooltip($"Right-click to restore default. ({location.DefaultXCoord / 100f:0.00})");
+                    ImGuiUtil.HoverTooltip($"单击鼠标右键以重载默认设置 ({location.DefaultXCoord / 100f:0.00})");
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         _plugin.LocationManager.SetXCoord(location, location.DefaultXCoord);
                 }
@@ -230,7 +230,7 @@ public partial class Interface
                     _plugin.LocationManager.SetYCoord(location, (int)(y * 100f + 0.5f));
                 if (overwritten)
                 {
-                    ImGuiUtil.HoverTooltip($"Right-click to restore default. ({location.DefaultYCoord / 100f:0.00})");
+                    ImGuiUtil.HoverTooltip($"单击鼠标右键以重载默认设置 ({location.DefaultYCoord / 100f:0.00})");
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         _plugin.LocationManager.SetYCoord(location, location.DefaultYCoord);
                 }
@@ -258,7 +258,7 @@ public partial class Interface
                     _plugin.LocationManager.SetRadius(location, Math.Clamp((ushort)radius, (ushort)0, IMarkable.RadiusMax));
                 if (overwritten)
                 {
-                    ImGuiUtil.HoverTooltip($"Right-click to restore default. ({location.DefaultRadius})");
+                    ImGuiUtil.HoverTooltip($"单击鼠标右键以重载默认设置 ({location.DefaultRadius})");
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         _plugin.LocationManager.SetRadius(location, location.DefaultRadius);
                 }
@@ -326,7 +326,8 @@ public partial class Interface
                 using var _ = ImRaii.PushId(id);
                 var markers = GatherBuddy.WaymarkManager.GetWaymarks();
                 var invalid = Dalamud.ClientState.TerritoryType != location.Territory.Id;
-                var tt = invalid ? "Not in the correct zone for this location." :
+                var tt = invalid ? "不在此区域的正确位置" :
+                    //TODO
                     markers.Count == 0 ? "No markers set that could be stored for this location." :
                                          $"Store the currently placed markers for this location:\n\n{string.Join("\n", markers.Select(m => $"{m.X:F2} - {m.Y:F2} - {m.Z:F2}"))}";
 
@@ -359,7 +360,7 @@ public partial class Interface
     private void DrawLocationsTab()
     {
         using var id  = ImRaii.PushId("Locations");
-        using var tab = ImRaii.TabItem("Locations");
+        using var tab = ImRaii.TabItem("地点");
         ImGuiUtil.HoverTooltip("Default locations getting you down?\n"
           + "Set up custom aetherytes or map marker locations for specific nodes.");
 

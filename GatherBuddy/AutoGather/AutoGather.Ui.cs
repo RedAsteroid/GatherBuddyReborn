@@ -29,24 +29,24 @@ namespace GatherBuddy.AutoGather
         public static void DrawAutoGatherStatus()
         {
             var enabled = GatherBuddy.AutoGather.Enabled;
-            if (ImGui.Checkbox("Enabled", ref enabled))
+            if (ImGui.Checkbox("启用", ref enabled))
             {
                 GatherBuddy.AutoGather.Enabled = enabled;
             }
 
-            ImGui.Text($"Status: {GatherBuddy.AutoGather.AutoStatus}");
+            ImGui.Text($"状态: {GatherBuddy.AutoGather.AutoStatus}");
             var lastNavString = GatherBuddy.AutoGather.LastNavigationResult.HasValue
                 ? GatherBuddy.AutoGather.LastNavigationResult.Value
-                    ? "Successful"
-                    : "Failed (If you're seeing this you probably need to restart your game)"
-                : "None";
-            ImGui.Text($"Navigation: {lastNavString}");
+                    ? "成功"
+                    : "失败 (请尝试重启游戏)"
+                : "无";
+            ImGui.Text($"导航状态: {lastNavString}");
         }
 
 
         public static void DrawDebugTables()
         {
-            if (ImGui.Button("Import Node Offsets from Clipboard"))
+            if (ImGui.Button("从剪贴板导入节点偏移设置"))
             {
                 var settings = new JsonSerializerSettings();
                 var                          text    = ImGuiUtil.GetClipboardText();
@@ -54,28 +54,28 @@ namespace GatherBuddy.AutoGather
                 foreach (var offset in vectors)
                 {
                     WorldData.NodeOffsets.Add(offset);
-                    GatherBuddy.Log.Information($"Added offset {offset} to dictionary");
+                    GatherBuddy.Log.Information($"已添加偏移 {offset} 至字典");
                 }
                 WorldData.SaveOffsetsToFile();
-                GatherBuddy.Log.Information("Import complete");
+                GatherBuddy.Log.Information("导入完成");
             }
             ImGui.SameLine();
-            if (ImGui.Button("Export Node Offsets to Clipboard"))
+            if (ImGui.Button("导出节点偏移设置至剪贴板"))
             {
                 var settings = new JsonSerializerSettings();
                 var offsetString = JsonConvert.SerializeObject(WorldData.NodeOffsets, Formatting.Indented, settings);
                 ImGui.SetClipboardText(offsetString);
-                GatherBuddy.Log.Information("Node offsets exported to clipboard");
+                GatherBuddy.Log.Information("节点偏移设置已导出至剪贴板");
             }
             // First column: Nearby nodes table
             if (ImGui.BeginTable("##nearbyNodesTable", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
             {
-                ImGui.TableSetupColumn("Name");
-                ImGui.TableSetupColumn("Targetable");
-                ImGui.TableSetupColumn("NodeId");
-                ImGui.TableSetupColumn("Position");
-                ImGui.TableSetupColumn("Distance");
-                ImGui.TableSetupColumn("Action");
+                ImGui.TableSetupColumn("名称");
+                ImGui.TableSetupColumn("可选中");
+                ImGui.TableSetupColumn("节点 ID");
+                ImGui.TableSetupColumn("位置");
+                ImGui.TableSetupColumn("距离");
+                ImGui.TableSetupColumn("操作");
 
                 ImGui.TableHeadersRow();
 
@@ -87,7 +87,7 @@ namespace GatherBuddy.AutoGather
                     ImGui.TableSetColumnIndex(0);
                     ImGui.Text(node.Name.ToString());
                     ImGui.TableSetColumnIndex(1);
-                    ImGui.Text(node.IsTargetable ? "Y" : "N");
+                    ImGui.Text(node.IsTargetable ? "是" : "否");
                     ImGui.TableSetColumnIndex(2);
                     ImGui.Text(node.DataId.ToString());
                     ImGui.TableSetColumnIndex(3);
@@ -103,7 +103,7 @@ namespace GatherBuddy.AutoGather
 
                     if (isBlacklisted)
                     {
-                        if (ImGui.Button($"Unblacklist##{node.Position}"))
+                        if (ImGui.Button($"移除黑名单##{node.Position}"))
                         {
                             list.Remove(node.Position);
                             if (list.Count == 0)
@@ -116,7 +116,7 @@ namespace GatherBuddy.AutoGather
                     }
                     else
                     {
-                        if (ImGui.Button($"Blacklist##{node.Position}"))
+                        if (ImGui.Button($"添加黑名单##{node.Position}"))
                         {
                             if (list == null)
                             {
@@ -129,11 +129,11 @@ namespace GatherBuddy.AutoGather
                         }
                     }
 
-                    if (ImGui.Button($"Navigate##{node.Position}"))
+                    if (ImGui.Button($"导航至##{node.Position}"))
                     {
                         if (GatherBuddy.AutoGather.Enabled)
                         {
-                            Communicator.PrintError("[GatherBuddyReborn] Auto-Gather is enabled! Unable to navigate.");
+                            Communicator.PrintError("[GatherBuddyReborn] 已启用自动采集, 无法使用手动导航");
                             return;
                         }
                         VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
@@ -144,17 +144,17 @@ namespace GatherBuddy.AutoGather
                     var offset = WorldData.NodeOffsets.FirstOrDefault(o => o.Original == node.Position);
                     if (offset != null)
                     {
-                        if (ImGui.Button($"Remove Offset##{node.Position}"))
+                        if (ImGui.Button($"移除该偏移##{node.Position}"))
                         {
                             WorldData.NodeOffsets.Remove(offset);
                             WorldData.SaveOffsetsToFile();
                         }
                         ImGui.Text(offset.Offset.ToString());
-                        if (ImGui.Button($"Navigate to Offset##{node.Position}"))
+                        if (ImGui.Button($"导航至偏移##{node.Position}"))
                         {
                             if (GatherBuddy.AutoGather.Enabled)
                             {
-                                Communicator.PrintError("[GatherBuddyReborn] Auto-Gather is enabled! Unable to navigate.");
+                                Communicator.PrintError("[GatherBuddyReborn] 已启用自动采集, 无法使用手动导航");
                                 return;
                             }
                             VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
@@ -164,7 +164,7 @@ namespace GatherBuddy.AutoGather
                     }
                     else
                     {
-                        if (ImGui.Button($"Add Offset##{node.Position}"))
+                        if (ImGui.Button($"添加此偏移##{node.Position}"))
                         {
                             WorldData.AddOffset(node.Position, playerPosition);
                         }
@@ -184,10 +184,10 @@ namespace GatherBuddy.AutoGather
             var preview = Dalamud.GameData.GetExcelSheet<Mount>().First(x => x.RowId == GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId)
                 .Singular.ToString().ToProperCase();
             if (string.IsNullOrEmpty(preview))
-                preview = "Mount Roulette";
-            if (ImGui.BeginCombo("Select Mount", preview))
+                preview = "随机坐骑";
+            if (ImGui.BeginCombo("选择坐骑", preview))
             {
-                if (ImGui.Selectable("Mount Roulette", GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId == 0))
+                if (ImGui.Selectable("随机坐骑", GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId == 0))
                 {
                     GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId = 0;
                     GatherBuddy.Config.Save();
@@ -227,7 +227,7 @@ namespace GatherBuddy.AutoGather
             // HQ items have IDs 100000 more than their NQ counterparts
             var previewItem = AutoGather.PossibleCordials.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId));
             // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("Select Cordial", previewItem is null
+            if (ImGui.BeginCombo("选择强心剂", previewItem is null
                 ? ""
                 : $"{(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId)})"))
             {
@@ -260,7 +260,7 @@ namespace GatherBuddy.AutoGather
             // HQ items have IDs 100000 more than their NQ counterparts
             var previewItem = AutoGather.PossibleFoods.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId));
             // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("Select Food", previewItem is null
+            if (ImGui.BeginCombo("选择食物", previewItem is null
                 ? ""
                 : $"{(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId)})"))
             {
@@ -293,7 +293,7 @@ namespace GatherBuddy.AutoGather
             // HQ items have IDs 100000 more than their NQ counterparts
             var previewItem = AutoGather.PossiblePotions.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId));
             // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("Select Potion", previewItem is null
+            if (ImGui.BeginCombo("选择药剂", previewItem is null
                 ? ""
                 : $"{(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId)})"))
             {
@@ -324,7 +324,7 @@ namespace GatherBuddy.AutoGather
         public static unsafe void DrawManualSelector()
         {
             var previewItem = AutoGather.PossibleManuals.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId);
-            if (ImGui.BeginCombo("Select Manual", previewItem is null
+            if (ImGui.BeginCombo("选择指南", previewItem is null
                 ? ""
                 : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId)})"))
             {
@@ -355,7 +355,7 @@ namespace GatherBuddy.AutoGather
         public static unsafe void DrawSquadronManualSelector()
         {
             var previewItem = AutoGather.PossibleSquadronManuals.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId);
-            if (ImGui.BeginCombo("Select Squadron Manual", previewItem is null
+            if (ImGui.BeginCombo("选择军用指南", previewItem is null
                 ? ""
                 : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId)})"))
             {
@@ -386,7 +386,7 @@ namespace GatherBuddy.AutoGather
         public static unsafe void DrawSquadronPassSelector()
         {
             var previewItem = AutoGather.PossibleSquadronPasses.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId);
-            if (ImGui.BeginCombo("Select Squadron Pass", previewItem is null
+            if (ImGui.BeginCombo("选择传送网使用优惠券", previewItem is null
                 ? ""
                 : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId)})"))
             {

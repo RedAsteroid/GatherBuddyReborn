@@ -26,7 +26,7 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
     public Fish[]    Items     { get; init; }
 
     public GatheringType GatheringType
-        => Spearfishing ? GatheringType.Spearfishing : GatheringType.Fisher;
+        => Spearfishing ? GatheringType.¥Ã”„ : GatheringType.≤∂”„»À;
 
     public IEnumerable<IGatherable> Gatherables
         => Items;

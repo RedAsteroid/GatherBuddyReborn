@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game;
@@ -11,7 +11,7 @@ public partial class GatheringNode
     public List<Gatherable> Items { get; init; }
 
     // Print all items separated by '|' or the given separator.
-    public string PrintItems(string separator = "|", ClientLanguage lang = ClientLanguage.English)
+    public string PrintItems(string separator = "|", ClientLanguage lang = (ClientLanguage)4)
         => string.Join(separator, Items.Select(it => it.Name[lang]));
 
     // Node contains any of the given items (in english names).
@@ -21,10 +21,10 @@ public partial class GatheringNode
     private void AddNodeToItem(Gatherable item)
     {
         item.NodeList.Add(this);
-        if (item.NodeType == NodeType.Unknown)
+        if (item.NodeType == NodeType.无)
             item.NodeType = NodeType;
-        else if (item.NodeType != NodeType.Regular && NodeType == NodeType.Regular)
-            item.NodeType = NodeType.Regular;
+        else if (item.NodeType != NodeType.常规 && NodeType == NodeType.常规)
+            item.NodeType = NodeType.常规;
         item.GatheringType = item.GatheringType.Add(GatheringType);
         item.ExpansionIdx  = Math.Min(item.ExpansionIdx, Territory.Data.ExVersion.Row);
     }

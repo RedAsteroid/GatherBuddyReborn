@@ -5,26 +5,26 @@ namespace GatherBuddy.Config;
 [Flags]
 public enum ItemFilter
 {
-    NoItems    = 0,
-    Logging    = 0x000001,
-    Harvesting = 0x000002,
-    Mining     = 0x000004,
-    Quarrying  = 0x000008,
+    无   = 0,
+    伐木 = 0x000001,
+    割草 = 0x000002,
+    采掘 = 0x000004,
+    碎石 = 0x000008,
 
-    Regular   = 0x000010,
-    Ephemeral = 0x000020,
-    Unspoiled = 0x000040,
-    Legendary = 0x000080,
+    常规 = 0x000010,
+    限时 = 0x000020,
+    未知 = 0x000040,
+    传说 = 0x000080,
 
-    ARealmReborn   = 0x000100,
-    Heavensward    = 0x000200,
-    Stormblood     = 0x000400,
-    Shadowbringers = 0x000800,
-    Endwalker      = 0x001000,
-    Dawntrail      = 0x002000,
+    重生之境   = 0x000100,
+    苍穹之禁城 = 0x000200,
+    红莲之狂潮 = 0x000400,
+    暗影之逆焰 = 0x000800,
+    晓月之终途 = 0x001000,
+    金曦之遗辉 = 0x002000,
 
-    Available    = 0x010000,
-    Unavailable  = 0x020000,
+    可用   = 0x010000,
+    不可用 = 0x020000,
 
-    All = 0x073FFF,
+    全部 = 0x073FFF,
 }

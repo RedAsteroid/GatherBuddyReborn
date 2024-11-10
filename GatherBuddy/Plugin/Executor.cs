@@ -155,9 +155,9 @@ public class Executor
         }
 
         _location = null;
-        if (GatherBuddy.Config.PreferredGatheringType != GatheringType.Multiple
+        if (GatherBuddy.Config.PreferredGatheringType != GatheringType.多职业
          && _gatheringType == null
-         && item is Gatherable { GatheringType: GatheringType.Multiple })
+         && item is Gatherable { GatheringType: GatheringType.多职业 })
             _gatheringType = GatherBuddy.Config.PreferredGatheringType;
 
         (_location, _uptime) = (_keepVisitedLocations, _gatheringType) switch
@@ -209,11 +209,12 @@ public class Executor
 
         var set = _location.GatheringType.ToGroup() switch
         {
-            GatheringType.Fisher => GatherBuddy.Config.FisherSetName,
-            GatheringType.Botanist => GatherBuddy.Config.BotanistSetName,
-            GatheringType.Miner => GatherBuddy.Config.MinerSetName,
+            GatheringType.捕鱼人 => GatherBuddy.Config.FisherSetName,
+            GatheringType.园艺工 => GatherBuddy.Config.BotanistSetName,
+            GatheringType.采矿工 => GatherBuddy.Config.MinerSetName,
             _ => null,
         };
+
         if (set == null)
         {
             Communicator.PrintError("No job type associated with location ", _location.Name, GatherBuddy.Config.SeColorArguments, ".");
@@ -348,15 +349,15 @@ public class Executor
                 return true;
             case GatherBuddy.AutoCommand:
                 GatherBuddy.AutoGather.Enabled = !GatherBuddy.AutoGather.Enabled;
-                Communicator.Print(GatherBuddy.AutoGather.Enabled ? "Auto-gathering enabled." : "Auto-gathering disabled.");
+                Communicator.Print(GatherBuddy.AutoGather.Enabled ? "自动采集已启用。" : "自动采集已禁用。");
                 return true;
             case GatherBuddy.AutoOnCommand:
                 GatherBuddy.AutoGather.Enabled = true;
-                Communicator.Print("Auto-gathering enabled.");
+                Communicator.Print("自动采集已启用。");
                 return true;
             case GatherBuddy.AutoOffCommand:
                 GatherBuddy.AutoGather.Enabled = false;
-                Communicator.Print("Auto-gathering disabled.");
+                Communicator.Print("自动采集已禁用。");
                 return true;
             default: return false;
         }

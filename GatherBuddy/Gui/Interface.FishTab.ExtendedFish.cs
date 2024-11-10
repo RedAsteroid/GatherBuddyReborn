@@ -294,12 +294,12 @@ public partial class Interface
         {
             return time switch
             {
-                OceanTime.Sunset                   => "Sunset",
-                OceanTime.Sunset | OceanTime.Night => "Sunset or Night",
-                OceanTime.Sunset | OceanTime.Day   => "Sunset or Day",
-                OceanTime.Night                    => "Night",
-                OceanTime.Night | OceanTime.Day    => "Day or Night",
-                OceanTime.Day                      => "Day",
+                OceanTime.日落                   => "Sunset",
+                OceanTime.日落 | OceanTime.夜晚 => "Sunset or Night",
+                OceanTime.日落 | OceanTime.白昼   => "Sunset or Day",
+                OceanTime.夜晚                    => "Night",
+                OceanTime.夜晚 | OceanTime.白昼    => "Day or Night",
+                OceanTime.白昼                      => "Day",
                 _                                  => "Unknown Uptime",
             };
         }

@@ -22,7 +22,7 @@ namespace GatherBuddy.Gui;
 
 public partial class Interface
 {
-    private const string AutomaticallyGenerated = "Automatically generated from context menu.";
+    private const string AutomaticallyGenerated = "从右键菜单中自动生成";
 
     private void DrawAddAlarm(IGatherable item)
     {
@@ -31,7 +31,7 @@ public partial class Interface
             return;
 
         var current = _alarmCache.Selector.EnsureCurrent();
-        if (ImGui.Selectable("Add to Alarm Preset"))
+        if (ImGui.Selectable("添加至闹钟预设"))
         {
             if (current == null)
             {
@@ -51,14 +51,14 @@ public partial class Interface
 
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(
-                $"Add {item.Name[GatherBuddy.Language]} to {(current == null ? "a new alarm preset." : CheckUnnamed(current.Name))}");
+                $"添加 {item.Name[GatherBuddy.Language]} 至 {(current == null ? "一个新的闹钟预设" : CheckUnnamed(current.Name))}");
     }
 
     private void DrawAddToGatherGroup(IGatherable item)
     {
         var       current = _gatherGroupCache.Selector.EnsureCurrent();
         using var color   = ImRaii.PushColor(ImGuiCol.Text, ColorId.DisabledText.Value(), current == null);
-        if (ImGui.Selectable("Add to Gather Group") && current != null)
+        if (ImGui.Selectable("添加至采集列表") && current != null)
             if (_plugin.GatherGroupManager.ChangeGroupNode(current, current.Nodes.Count, item, null, null, null, false))
                 _plugin.GatherGroupManager.Save();
 
@@ -66,15 +66,15 @@ public partial class Interface
 
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(current == null
-                ? "Requires a Gather Group to be setup and selected."
-                : $"Add {item.Name[GatherBuddy.Language]} to {current.Name}");
+                ? "需要任一采集列表被选中"
+                : $"添加 {item.Name[GatherBuddy.Language]} 至 {current.Name}");
     }
 
     private void DrawAddGatherWindow(Gatherable item)
     {
         var current = _gatherWindowCache.Selector.EnsureCurrent();
 
-        if (ImGui.Selectable("Add to Current Auto-Gather Preset"))
+        if (ImGui.Selectable("添加至当前自动采集预设"))
         {
             if (current == null)
                 CreateAndAddPreset(item);
@@ -84,7 +84,7 @@ public partial class Interface
 
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(
-                $"Add {item.Name[GatherBuddy.Language]} to {(current == null ? "a new gather window preset." : CheckUnnamed(current.Name))}");
+                $"添加 {item.Name[GatherBuddy.Language]} 至 {(current == null ? "一个新的采集窗口预设" : CheckUnnamed(current.Name))}");
     }
 
     private static string TeamCraftAddressEnd(string type, uint id)
@@ -95,6 +95,7 @@ public partial class Interface
             ClientLanguage.German   => "de",
             ClientLanguage.French   => "fr",
             ClientLanguage.Japanese => "ja",
+            (ClientLanguage)4       => "chs",
             _                       => "en",
         };
 
@@ -107,14 +108,14 @@ public partial class Interface
             : TeamCraftAddressEnd("fishing-spot",      s.Id);
 
     private static string GarlandToolsItemAddress(uint itemId)
-        => $"https://www.garlandtools.org/db/#item/{itemId}";
+        => $"https://www.garlandtools.cn/db/#item/{itemId}";
 
     private static void DrawOpenInGarlandTools(uint itemId)
     {
         if (itemId == 0)
             return;
 
-        if (!ImGui.Selectable("Open in GarlandTools"))
+        if (!ImGui.Selectable("查询 GarlandTools"))
             return;
 
         try
@@ -123,7 +124,7 @@ public partial class Interface
         }
         catch (Exception e)
         {
-            GatherBuddy.Log.Error($"Could not open GarlandTools:\n{e.Message}");
+            GatherBuddy.Log.Error($"无法打开 GarlandTools:\n{e.Message}");
         }
     }
 
@@ -132,10 +133,10 @@ public partial class Interface
         if (itemId == 0)
             return;
 
-        if (ImGui.Selectable("Open in TeamCraft (Browser)"))
+        if (ImGui.Selectable("在 TeamCraft 中打开 (浏览器)"))
             OpenInTeamCraftWeb(TeamCraftAddressEnd("item", itemId));
 
-        if (ImGui.Selectable("Open in TeamCraft (App)"))
+        if (ImGui.Selectable("在 TeamCraft 中打开 (App)"))
             OpenInTeamCraftLocal(TeamCraftAddressEnd("item", itemId));
     }
 
@@ -168,7 +169,7 @@ public partial class Interface
                 }
                 catch
                 {
-                    GatherBuddy.Log.Error("Could not open local teamcraft.");
+                    GatherBuddy.Log.Error("无法打开本地 teamcraft 程序");
                 }
             }
         });
@@ -179,10 +180,10 @@ public partial class Interface
         if (fs.Id == 0)
             return;
 
-        if (ImGui.Selectable("Open in TeamCraft (Browser)"))
+        if (ImGui.Selectable("在 TeamCraft 中打开 (浏览器)"))
             OpenInTeamCraftWeb(TeamCraftAddressEnd(fs));
 
-        if (ImGui.Selectable("Open in TeamCraft (App)"))
+        if (ImGui.Selectable("在 TeamCraft 中打开 (App)"))
             OpenInTeamCraftLocal(TeamCraftAddressEnd(fs));
     }
 
@@ -202,17 +203,17 @@ public partial class Interface
             DrawAddGatherWindow(gatherable);
             DrawAddToAutoGather(gatherable);
         }
-        if (ImGui.Selectable("Create Link"))
+        if (ImGui.Selectable("创建列"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
     }
 
-    private const string PresetName = "From Gatherables List";
+    private const string PresetName = "来自可采集物品列表";
 
     private static void DrawAddToAutoGather(Gatherable item)
     {
-        if (ImGui.Selectable($"Add to Separate Auto-Gather Preset"))
+        if (ImGui.Selectable($"添加至自动采集预设"))
         {
             // Fetch preset if exists.
             var preset = _plugin.GatherWindowManager.Presets.FirstOrDefault(p => p.Name == PresetName);
@@ -253,7 +254,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("Create Link"))
+        if (ImGui.Selectable("创建链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -271,7 +272,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("Create Link"))
+        if (ImGui.Selectable("创建链接"))
             Communicator.Print(SeString.CreateItemLink(bait.Id));
         DrawOpenInGarlandTools(bait.Id);
         DrawOpenInTeamCraft(bait.Id);

@@ -51,18 +51,18 @@ public partial class Interface
             }
         }
 
-        private static readonly ContentIdHeader  _contentIdHeader  = new() { Label = "Content ID" };
-        private static readonly BaitHeader       _baitHeader       = new() { Label = "Bait" };
-        private static readonly SpotHeader       _spotHeader       = new() { Label = "Fishing Spot" };
-        private static readonly CatchHeader      _catchHeader      = new() { Label = "Caught Fish" };
-        private static readonly CastStartHeader  _castStartHeader  = new() { Label = "TimeStamp" };
-        private static readonly BiteTypeHeader   _biteTypeHeader   = new() { Label = "Tug" };
-        private static readonly HookHeader       _hookHeader       = new() { Label = "Hookset" };
+        private static readonly ContentIdHeader  _contentIdHeader  = new() { Label = "ID" };
+        private static readonly BaitHeader       _baitHeader       = new() { Label = "鱼饵" };
+        private static readonly SpotHeader       _spotHeader       = new() { Label = "渔场" };
+        private static readonly CatchHeader      _catchHeader      = new() { Label = "已捕获" };
+        private static readonly CastStartHeader  _castStartHeader  = new() { Label = "时间戳" };
+        private static readonly BiteTypeHeader   _biteTypeHeader   = new() { Label = "咬钩强度" };
+        private static readonly HookHeader       _hookHeader       = new() { Label = "钓组" };
         private static readonly DurationHeader   _durationHeader   = new() { Label = "Bite" };
         private static readonly GatheringHeader  _gatheringHeader  = new() { Label = "Gath." };
         private static readonly PerceptionHeader _perceptionHeader = new() { Label = "Perc." };
-        private static readonly AmountHeader     _amountHeader     = new() { Label = "Amt" };
-        private static readonly SizeHeader       _sizeHeader       = new() { Label = "Ilm" };
+        private static readonly AmountHeader     _amountHeader     = new() { Label = "数量" };
+        private static readonly SizeHeader       _sizeHeader       = new() { Label = "尺寸" };
         private static readonly FlagHeader       _flagHeader       = new() { Label = "Flags" };
 
         private sealed class GatheringHeader : ColumnString<FishRecord>
@@ -186,7 +186,7 @@ public partial class Interface
                 base.DrawColumn(record, idx);
                 if (ImGui.GetIO().KeyCtrl && ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     _deleteIdx = idx;
-                ImGuiUtil.HoverTooltip("Hold Control and right-click to delete...");
+                ImGuiUtil.HoverTooltip("按住Ctrl和鼠标右键以删除...");
             }
         }
 
@@ -564,10 +564,10 @@ public partial class Interface
                 DrawIcon(Icons.DefaultStorage.TextureProvider.GetFromGameIcon(18909), false, "Modest Lure");
             }
         }
-
         public string CreateTsv()
         {
             var sb = new StringBuilder(Items.Count * 128);
+            //TODO
             sb.Append(
                 "Fish\tFishId\tBite\tBait\tBaitId\tSpot\tSpotId\tTug\tHookset\tTimestamp\tEorzea Time\tTransition\tWeather\tAmount\tIlm\tGathering\tPerception\tPatience\tPatience2\tIntuition\tSnagging\tFish Eyes\tChum\tPrize Catch\tIdentical Cast\tSurface Slap\tCollectible\tBig Game Fishing\tAmbitious Lure\tModest Lure\n");
             foreach (var record in Items.OrderBy(r => r.TimeStamp))
@@ -626,8 +626,10 @@ public partial class Interface
 
     private void DrawRecordTab()
     {
+        
         using var id  = ImRaii.PushId("Fish Records");
-        using var tab = ImRaii.TabItem("Fish Records");
+        using var tab = ImRaii.TabItem("钓鱼记录");
+        //TODO
         ImGuiUtil.HoverTooltip("The records of my fishing prowess have been greatly exaggerated.\n"
           + "Find, cleanup and share all data you have collected while fishing.");
         if (!tab)
@@ -647,7 +649,7 @@ public partial class Interface
             _plugin.FishRecorder.RemoveDuplicates();
             _plugin.FishRecorder.RemoveInvalid();
         }
-
+        //TODO
         ImGuiUtil.HoverTooltip("Delete all entries that were marked as invalid for some reason,\n"
           + "as well as all entries that have a duplicate (with the same content id and timestamp).\n"
           + "Usually, there should be none such entries.\n"
@@ -656,9 +658,10 @@ public partial class Interface
         ImGui.SameLine();
         try
         {
-            if (ImGui.Button("Copy to Clipboard"))
+            if (ImGui.Button("复制到剪贴板"))
                 ImGui.SetClipboardText(_plugin.FishRecorder.ExportBase64());
-            ImGuiUtil.HoverTooltip("Export all fish records to your clipboard, to share them with other people. This may be a lot");
+            //TODO
+            ImGuiUtil.HoverTooltip("输出所有钓鱼记录到剪贴板以便于分享。（非常多）");
         }
         catch
         {
@@ -668,9 +671,10 @@ public partial class Interface
         ImGui.SameLine();
         try
         {
-            if (ImGui.Button("Import from Clipboard"))
+            if (ImGui.Button("从剪贴板导入"))
                 _plugin.FishRecorder.ImportBase64(ImGui.GetClipboardText());
-            ImGuiUtil.HoverTooltip("Import a set of fish records shared with you from your clipboard. Should automatically skip duplicates.");
+            //TODO
+            ImGuiUtil.HoverTooltip("从剪贴板导入所有钓鱼记录，自动跳过重复项目。");
         }
         catch
         {
@@ -680,13 +684,13 @@ public partial class Interface
         ImGui.SameLine();
         try
         {
-            if (ImGui.Button("Export JSON"))
+            if (ImGui.Button("导出 JSON"))
             {
                 ImGui.OpenPopup(RecordTable.FileNamePopup);
                 WriteJson = true;
             }
-
-            ImGuiUtil.HoverTooltip("Given a path, export all records as a single JSON file.");
+            //TODO
+            ImGuiUtil.HoverTooltip("将所有钓鱼记录输出到指定目录的单个 JSON 文件。");
         }
         catch
         {
@@ -696,13 +700,13 @@ public partial class Interface
         ImGui.SameLine();
         try
         {
-            if (ImGui.Button("Export TSV"))
+            if (ImGui.Button("导出 TSV"))
             {
                 ImGui.OpenPopup(RecordTable.FileNamePopup);
                 WriteTsv = true;
             }
-
-            ImGuiUtil.HoverTooltip("Given a path, export all records as a single TSV file.");
+            //TODO
+            ImGuiUtil.HoverTooltip("将所有钓鱼记录输出到指定目录的单个 TSV 文件。");
         }
         catch
         {
@@ -712,7 +716,7 @@ public partial class Interface
         ImGui.SameLine();
         try
         {
-            if (ImGui.Button("Copy Caught Fish JSON"))
+            if (ImGui.Button("复制钓鱼记录 JSON"))
             {
                 var logFish = GatherBuddy.GameData.Fishes.Values.Where(f => f.InLog && f.FishingSpots.Count > 0).ToArray();
                 var ids     = logFish.Where(f => GatherBuddy.FishLog.IsUnlocked(f)).Select(f => f.ItemId).ToArray();
@@ -750,11 +754,11 @@ public partial class Interface
             {
                 var data = _recordTable.CreateTsv();
                 File.WriteAllText(name, data);
-                GatherBuddy.Log.Information($"Exported {_recordTable.TotalItems} fish records to {name}.");
+                GatherBuddy.Log.Information($"将 {_recordTable.TotalItems} 中的钓鱼记录输出至 {name}.");
             }
             catch (Exception e)
             {
-                GatherBuddy.Log.Warning($"Could not export tsv file to {name}:\n{e}");
+                GatherBuddy.Log.Warning($"无法输出tsv文件 {name}:\n{e}");
             }
 
             WriteTsv = false;

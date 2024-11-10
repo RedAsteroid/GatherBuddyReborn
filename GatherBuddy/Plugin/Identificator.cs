@@ -1,5 +1,7 @@
-﻿using System.Collections.Frozen;
+using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Dalamud.Game;
 using GatherBuddy.Classes;
@@ -17,13 +19,32 @@ public class Identificator
     public Identificator()
     {
         _data = GatherBuddy.GameData;
-        var languages = new[]
+        var languagesAmount = Enum.GetValues<ClientLanguage>().Length;
+        var languages       = Array.Empty<ClientLanguage>();
+
+        if (languagesAmount == 5)
         {
-            GatherBuddy.Language,
-            (ClientLanguage)(((int)GatherBuddy.Language + 1) % 4),
-            (ClientLanguage)(((int)GatherBuddy.Language + 2) % 4),
-            (ClientLanguage)(((int)GatherBuddy.Language + 3) % 4),
-        };
+            languages =
+            [
+                GatherBuddy.Language,
+                (ClientLanguage)(((int)GatherBuddy.Language + 1) % 5),
+                (ClientLanguage)(((int)GatherBuddy.Language + 2) % 5),
+                (ClientLanguage)(((int)GatherBuddy.Language + 3) % 5),
+                (ClientLanguage)(((int)GatherBuddy.Language + 4) % 5),
+            ];
+        }
+        else
+        {
+            languages =
+            [
+                GatherBuddy.Language,
+                (ClientLanguage)(((int)GatherBuddy.Language + 1) % 4),
+                (ClientLanguage)(((int)GatherBuddy.Language + 2) % 4),
+                (ClientLanguage)(((int)GatherBuddy.Language + 3) % 4),
+            ];
+        }
+
+        if (languages.Length == 0) throw new InvalidEnumArgumentException();
 
         _gatherableFromLanguage = languages.Select(CreateGatherableDictionary).ToArray();
         _fishFromLanguage       = languages.Select(CreateFishDictionary).ToArray();
