@@ -78,7 +78,7 @@ namespace GatherBuddy.AutoGather
             var distance2 = gameObject.Position.DistanceToPlayer2(); // Vector2
             var x = Math.Abs(gameObject.Position.Y - Player.Position.Y); // 高度差，绝对值小于 3 为可交互范围
             
-            if (distance2 < 3.5 & x < 3)
+            if (distance2 < 3.5 && x < 3)
             {
                 var waitGP = targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable;
                 waitGP |= !targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering;
@@ -128,7 +128,7 @@ namespace GatherBuddy.AutoGather
                     }
                 }
             }
-            else if (distance2 < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving])
+            else if (distance2 < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving]) // 使用 Vector2
             {
                 Navigate(gameObject.Position, false);
             }

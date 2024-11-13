@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using ECommons.GameHelpers;
-using static FFXIVClientStructs.FFXIV.Client.Game.Character.VfxContainer;
 using ECommons.MathHelpers;
 
 namespace GatherBuddy.CustomInfo
