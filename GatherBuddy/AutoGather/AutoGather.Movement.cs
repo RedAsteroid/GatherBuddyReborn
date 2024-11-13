@@ -75,8 +75,8 @@ namespace GatherBuddy.AutoGather
         private void MoveToCloseNode(IGameObject gameObject, Gatherable targetItem)
         {
             var distance = gameObject.Position.DistanceToPlayer(); // Vector3
-            var distance2 = gameObject.Position.DistanceToPlayer2(); // Vector2
-            var x = Math.Abs(gameObject.Position.Y - Player.Position.Y); // 高度差，绝对值小于 3 为可交互范围
+            var distance2 = gameObject.Position.DistanceToPlayer2(); // Vector2，小于 3.5 时为可交互范围
+            var x = Math.Abs(gameObject.Position.Y - Player.Position.Y); // 高度差，绝对值小于 3 时为可交互范围
             
             if (distance2 < 3.5 && x < 3)
             {
@@ -117,7 +117,6 @@ namespace GatherBuddy.AutoGather
                     }
                     else
                     {
-                        //GatherBuddy.Log.Debug($"高度差为: {x}");
                         EnqueueNodeInteraction(gameObject, targetItem);
                             //The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
                             //Enqueue navigation anyway, just in case.
@@ -128,7 +127,7 @@ namespace GatherBuddy.AutoGather
                     }
                 }
             }
-            else if (distance2 < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving]) // 使用 Vector2
+            else if (distance < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving])
             {
                 Navigate(gameObject.Position, false);
             }
