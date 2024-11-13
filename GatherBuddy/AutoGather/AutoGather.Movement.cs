@@ -74,9 +74,11 @@ namespace GatherBuddy.AutoGather
 
         private void MoveToCloseNode(IGameObject gameObject, Gatherable targetItem)
         {
-            var distance = gameObject.Position.DistanceToPlayer();
+            var distance = gameObject.Position.DistanceToPlayer(); // Vector3
+            var distance2 = gameObject.Position.DistanceToPlayer2(); // Vector2
+            var x = Math.Abs(gameObject.Position.Y - Player.Position.Y); // 高度差，绝对值小于 3 为可交互范围
             
-            if (distance < 3)
+            if (distance2 < 3.5 && x < 3)
             {
                 var waitGP = targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable;
                 waitGP |= !targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering;
@@ -115,17 +117,18 @@ namespace GatherBuddy.AutoGather
                     }
                     else
                     {
+                        //GatherBuddy.Log.Debug($"高度差为: {x}");
                         EnqueueNodeInteraction(gameObject, targetItem);
-                        //The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
-                        //Enqueue navigation anyway, just in case.
-                        if (!Dalamud.Conditions[ConditionFlag.Diving])
-                        {
-                            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
-                        }
+                            //The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
+                            //Enqueue navigation anyway, just in case.
+                            if (!Dalamud.Conditions[ConditionFlag.Diving])
+                            {
+                                TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
+                            }
                     }
                 }
             }
-            else if (distance < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving])
+            else if (distance2 < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5) && !Dalamud.Conditions[ConditionFlag.Diving]) // 使用 Vector2
             {
                 Navigate(gameObject.Position, false);
             }
