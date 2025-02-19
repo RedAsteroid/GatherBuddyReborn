@@ -41,14 +41,14 @@ namespace GatherBuddy.AutoGather
             {
                 TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering42], 1000);
                 TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Gathering42]);
-                TaskManager.Enqueue(RefreshNextTresureMapAllowance);
+                TaskManager.Enqueue(RefreshNextTreasureMapAllowance);
             }
         }
 
         /// <summary>
         /// Checks if desired item could or should be gathered and may change it to something more suitable
         /// </summary>
-        /// <returns>UseSkills: True if the selected item is in the gathering list; false if we gather collectable or some unneeded junk
+        /// <returns>UseSkills: True if the selected item is in the gathering list; false if we gather a collectable or some unneeded junk
         /// Slot: ItemSlot of item to gather</returns>
         private (bool UseSkills, ItemSlot Slot) GetItemSlotToGather(Gatherable? targetItem)
         {
@@ -60,11 +60,11 @@ namespace GatherBuddy.AutoGather
                     return (true, crystal);
             }
 
-            var aviable = NodeTarcker.Aviable
+            var available = NodeTracker.Available
                 .Where(CheckItemOvercap)
                 .ToList();
 
-            var target = targetItem != null ? aviable.Where(s => s.Item == targetItem).FirstOrDefault() : null;
+            var target = targetItem != null ? available.Where(s => s.Item == targetItem).FirstOrDefault() : null;
 
             if (target != null && InventoryCount(targetItem!) < QuantityTotal(targetItem!))
             {
@@ -74,17 +74,18 @@ namespace GatherBuddy.AutoGather
 
             //Items in the gathering list
             var gatherList = ItemsToGather
-                //Join node slots, retaing list order
-                .Join(aviable, i => i.Item, s => s.Item, (i, s) => s)
+                //Join node slots, retaining list order
+                .Join(available, i => i.Item, s => s.Item, (i, s) => s)
                 //And we need more of them
                 .Where(s => InventoryCount(s.Item) < QuantityTotal(s.Item));
 
             //Items in the fallback list
-            var fallbackList = _plugin.GatherWindowManager.FallbackItems
-                //Join node slots, retaing list order
-                .Join(aviable, i => i, s => s.Item, (i, s) => s)
+            var fallbackList = _plugin.AutoGatherListsManager.FallbackItems
+                //Join node slots, retaining list order
+                .Join(available, i => i.Item, s => s.Item, (i, s) => (Slot: s, i.Quantity))
                 //And we need more of them
-                .Where(s => InventoryCount(s.Item) < QuantityTotal(s.Item));
+                .Where(x => InventoryCount(x.Slot.Item) < x.Quantity)
+                .Select(x => x.Slot);
 
             var fallbackSkills = GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems;
 
@@ -104,7 +105,7 @@ namespace GatherBuddy.AutoGather
 
             //Check if we should and can abandon the node
             if (GatherBuddy.Config.AutoGatherConfig.AbandonNodes)
-                throw new NoGatherableItemsInNodeExceptions();
+                throw new NoGatherableItemsInNodeException();
 
             if (target != null)
             {
@@ -119,13 +120,13 @@ namespace GatherBuddy.AutoGather
                 return (false, slot);
             }
             //If there are no crystals, gather anything which is not treasure map nor collectable
-            slot = aviable.Where(s => !s.Item.IsTreasureMap && !s.Collectable).FirstOrDefault();
+            slot = available.Where(s => !s.Item.IsTreasureMap && !s.Collectable).FirstOrDefault();
             if (slot != null)
             {
                 return (false, slot);
             }
             //Abort if there are no items we can gather
-            throw new NoGatherableItemsInNodeExceptions();
+            throw new NoGatherableItemsInNodeException();
         }
 
         private bool CheckItemOvercap(ItemSlot s)
@@ -141,7 +142,7 @@ namespace GatherBuddy.AutoGather
         
         private ItemSlot? GetAnyCrystalInNode()
         {
-            return NodeTarcker.Aviable
+            return NodeTracker.Available
                 .Where(s => s.Item.IsCrystal)
                 .Where(CheckItemOvercap)
                 //Prioritize crystals in the gathering list

@@ -3,6 +3,7 @@ using System.Numerics;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Utility;
 using ECommons.ImGuiMethods;
+using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
 using GatherBuddy.Config;
@@ -76,12 +77,6 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.AbandonNodes, 
                 b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
 
-        public static void DrawAdvancedUnstuckBox()
-            => DrawCheckbox("启用避免卡死测试功能",
-                "当角色卡住时，使用非寻路的特殊移动技巧",
-                GatherBuddy.Config.AutoGatherConfig.UseExperimentalUnstuck,
-                b => GatherBuddy.Config.AutoGatherConfig.UseExperimentalUnstuck = b);
-
         public static void DrawHonkModeBox()
             => DrawCheckbox("采集完成时播放音效", "完成列表采集后结束自动采集并播放音效",
                 GatherBuddy.Config.AutoGatherConfig.HonkMode,   b => GatherBuddy.Config.AutoGatherConfig.HonkMode = b);
@@ -91,67 +86,6 @@ public partial class Interface
                 "你需要安装 YesAlready 并开启: Bothers -> MaterializeDialog",
                 GatherBuddy.Config.AutoGatherConfig.DoMaterialize,
                 b => GatherBuddy.Config.AutoGatherConfig.DoMaterialize = b);
-
-        public static void DrawMinimumGPGathering()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering;
-            if (ImGui.DragInt("采集时的最低 GP", ref tmp, 1, 0, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MinimumGPForGathering = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawMinimumGPCollectibleRotation()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectableRotation;
-            if (ImGui.DragInt("采集时使用技能的最低 GP", ref tmp, 1, 0, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectableRotation = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawAlwaysUseSolidAgeCollectables()
-            => DrawCheckbox("使用 石工之理/农夫之智 时忽略上述选项", "如果满足采集分，无视开始时 GP ，使用 石工之理/农夫之智",
-                GatherBuddy.Config.AutoGatherConfig.AlwaysUseSolidAgeCollectables, b => GatherBuddy.Config.AutoGatherConfig.AlwaysUseSolidAgeCollectables = b);
-
-        public static void DrawMinimumGPCollectable()
-        {
-            ImGui.PushItemWidth(300);
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable;
-            if (ImGui.DragInt("采集收藏品的最小 GP", ref tmp, 1, 0, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MinimumGPForCollectable = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawMinimumCollectibilityScore()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore;
-            if (ImGui.DragInt("采集前需达到的收藏价值", ref tmp, 1, 1, 1000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawGatherIfLastIntegrity()
-            => DrawCheckbox(
-                "以采集替代耐久耗尽点位丢失",
-                "如果收藏价值不能达到要求而耐久即将耗尽，将会在最后以收藏品采集结尾",
-                GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrity,
-                b => GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrity = b);
-
-        public static void DrawGatherIfLastIntegrityMinimumCollectibility()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrityMinimumCollectibility;
-            if (ImGui.DragInt("以采集替代耐久耗尽点位丢失时所需的最低收藏价值", ref tmp, 1, 1000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrityMinimumCollectibility = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
 
         public static void DrawUseFlagBox()
             => DrawCheckbox("禁用地图标记导航",            "是否使用地图标记进行导航（仅限时采集点）",
@@ -185,279 +119,25 @@ public partial class Interface
         public static void DrawExecutionDelay()
         {
             var tmp = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
-            if (ImGui.DragInt("Execution delay (Milliseconds)", ref tmp, 1, 0, 1500))
+            if (ImGui.DragInt("执行延迟 (毫秒)", ref tmp, 1, 0, 1500))
             {
                 GatherBuddy.Config.AutoGatherConfig.ExecutionDelay = (uint)Math.Min(Math.Max(0, tmp), 10000);
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("Delay executing each action by the specified amount.");
+            ImGuiUtil.HoverTooltip("使用任一技能前需要等待的时间");
         }
+      
+        public static void DrawForceCloseLingeringMasterpieceAddon()
+            => DrawCheckbox(
+                "强制关闭 收藏品采集 界面 (可能会致使游戏崩溃)",
+                "当自动采集过程中由于 BUG 导致 收藏品采集 界面未能被正确关闭时, 若此项被启用, 则会尝试强制关闭这一界面",
+                GatherBuddy.Config.AutoGatherConfig.ForceCloseLingeringMasterpieceAddon,
+                b => GatherBuddy.Config.AutoGatherConfig.ForceCloseLingeringMasterpieceAddon = b);
 
-        public static void DrawBYIIBox()
-            => DrawCheckbox("使用 高产/丰收 II", "切换是否在采集中使用 高产/丰收 II", GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.BYIIConfig.UseAction = b);
-
-        public static void DrawBYIIMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP;
-            if (ImGui.DragInt("高产/丰收 II 最小使用 GP", ref tmp, 1, 100, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawBYIIMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP;
-            if (ImGui.DragInt("高产/丰收 II 最大使用 GP", ref tmp, 1, 100, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.BYIIConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawBYIIMinimumIncrease()
-        {
-            var tmp = GatherBuddy.Config.AutoGatherConfig.BYIIConfig.GetOptionalProperty<int>("MinimumIncrease");
-            if (ImGui.DragInt("Minimum yield increase", ref tmp, 0.1f, 1, 3))
-            {
-                GatherBuddy.Config.AutoGatherConfig.BYIIConfig.SetOptionalProperty("MinimumIncrease", tmp);
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawBYIIUseWithCrystals()
-            => DrawCheckbox("采集水晶时使用", "", GatherBuddy.Config.AutoGatherConfig.BYIIConfig.GetOptionalProperty<bool>("UseWithCystals"),
-                b => GatherBuddy.Config.AutoGatherConfig.BYIIConfig.SetOptionalProperty("UseWithCystals", b));
-
-        public static void DrawLuckBox()
-            => DrawCheckbox("使用 登山者/开拓者的眼力", "切换是否在采集中使用 登山者/开拓者的眼力。", GatherBuddy.Config.AutoGatherConfig.LuckConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.LuckConfig.UseAction = b);
-
-        public static void DrawLuckMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.LuckConfig.MinimumGP;
-            if (ImGui.DragInt("登山者/开拓者的眼力 最小 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.LuckConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawLuckMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.LuckConfig.MaximumGP;
-            if (ImGui.DragInt("登山者/开拓者的眼力 最大 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.LuckConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawGivingLandBox()
-            => DrawCheckbox("使用 大地的恩惠", "切换是否在采集中使用 大地的恩惠 。", GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.UseAction = b);
-
-        public static void DrawGivingLandMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MinimumGP;
-            if (ImGui.DragInt("大地的恩惠 最小 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawGivingLandMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MaximumGP;
-            if (ImGui.DragInt("大地的恩惠 最大 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.GivingLandConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
         public static void DrawUseGivingLandOnCooldown()
             => DrawCheckbox("当 大地的恩惠 冷却完成后，采集任意水晶", "当大地的恩惠可用时，在任意普通采集点上随机采集水晶，不管当前的目标物品是什么。", GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown,
                 b => GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown = b);
-        public static void DrawTwelvesBountyBox()
-            => DrawCheckbox("使用 十二神加护", "切换是否使用 十二神加护 采集水晶。", GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.UseAction = b);
-
-        public static void DrawTwelvesBountyMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MinimumGP;
-            if (ImGui.DragInt("十二神加护 最小 GP", ref tmp, 1, 150, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawTwelvesBountyMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MaximumGP;
-            if (ImGui.DragInt("十二神加护 最大 GP", ref tmp, 1, 150, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawYieldIIMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MaximumGP;
-            if (ImGui.DragInt("莫非王土/天赐收成 II 最大 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawYieldIIMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MinimumGP;
-            if (ImGui.DragInt("莫非王土/天赐收成 II 最小 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawYieldIIUseWithCrystals()
-            => DrawCheckbox("在采集水晶时使用", "", GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.GetOptionalProperty<bool>("UseWithCystals"),
-                b => GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.SetOptionalProperty("UseWithCystals", b));
-
-        public static void DrawYieldIMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MaximumGP;
-            if (ImGui.DragInt("莫非王土/天赐收成 I 最大 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawYieldIMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MinimumGP;
-            if (ImGui.DragInt("莫非王土/天赐收成 I 最小 GP", ref tmp, 1, 200, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.YieldIConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawYieldIUseWithCrystals()
-            => DrawCheckbox("在采集水晶时使用", "", GatherBuddy.Config.AutoGatherConfig.YieldIConfig.GetOptionalProperty<bool>("UseWithCystals"),
-                b => GatherBuddy.Config.AutoGatherConfig.YieldIConfig.SetOptionalProperty("UseWithCystals", b));
-
-        public static void DrawConditions(AutoGatherConfig.ActionConfig config)
-        {
-            DrawCheckbox("使用条件", "对技能应用特定的条件",
-                config.Conditions.UseConditions,
-                b => config.Conditions.UseConditions = b);
-
-            if (config.Conditions.UseConditions)
-            {
-                if (ImGui.TreeNodeEx("技能条件"))
-                {
-                    DrawCheckbox("仅在第一步使用", "仅在当前为采集的第一下时使用",
-                        config.Conditions.UseOnlyOnFirstStep,
-                        b => config.Conditions.UseOnlyOnFirstStep = b);
-
-                    int tmp = (int)config.Conditions.RequiredIntegrity;
-                    if (ImGui.DragInt("需要采集点满耐久使用", ref tmp, 0.1f, 1, 10))
-                    {
-                        config.Conditions.RequiredIntegrity = (uint)tmp;
-                        GatherBuddy.Config.Save();
-                    }
-
-                    DrawCheckbox("使用采集点类型过滤器", "仅在特定类型的采集点使用",
-                        config.Conditions.FilterNodeTypes,
-                        b => config.Conditions.FilterNodeTypes = b);
-
-                    if (config.Conditions.FilterNodeTypes)
-                    {
-                        if (ImGui.TreeNodeEx("采集点过滤器"))
-                        {
-                            var node = config.Conditions.NodeFilter;
-                            DrawNodeFilter("普通",   node.RegularNode);
-                            DrawNodeFilter("未知", node.UnspoiledNode);
-                            DrawNodeFilter("限时", node.EphemeralNode);
-                            DrawNodeFilter("传说", node.LegendaryNode);
-                        }
-                    }
-                }
-            }
-        }
-
-        private static void DrawNodeFilter(string name, AutoGatherConfig.ActionConditions.NodeFilters.NodeConfig node)
-        {
-            using var id = ImRaii.PushId(name);
-            if (ImGuiUtil.Checkbox($"在 {name} 采集点使用", $"在 {name} 采集点使用该技能", node.Use, b => node.Use = b))
-                GatherBuddy.Config.Save();
-
-            if (!node.Use)
-                return;
-
-            ImGui.Indent();
-            var tmp = node.NodeLevel;
-
-            ImGui.AlignTextToFramePadding();
-            ImGuiUtil.TextWrapped("最低采集点等级：");
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputInt($"", ref tmp, 1, 1))
-            {
-                // make sure the level is within bounds, max 100
-                node.NodeLevel = Math.Clamp(tmp, 1, 100);
-                GatherBuddy.Config.Save();
-            }
-
-            if (ImGuiUtil.Checkbox($"如果 GP 已满，允许更低等级的采集点", "在某些情况下避免 GP 溢出", node.AvoidCap,
-                    b => node.AvoidCap = b))
-                GatherBuddy.Config.Save();
-            ImGui.Unindent();
-        }
-
-
-        public static void DrawYieldIICheckbox()
-            => DrawCheckbox("使用 莫非王土/天赐收成 II", "在可用时使用这些技能",
-                GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.YieldIIConfig.UseAction = b);
-
-        public static void DrawYieldICheckbox()
-            => DrawCheckbox("使用莫非王土/天赐收成 I", "在可用时使用这些技能",
-                GatherBuddy.Config.AutoGatherConfig.YieldIConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.YieldIConfig.UseAction = b);
-
-        public static void DrawScrutinyCheckbox()
-            => DrawCheckbox("使用 集中检查", "使用 集中检查 采集收藏品", GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.UseAction = b);
-
-        public static void DrawMeticulousCheckbox()
-            => DrawCheckbox("使用 慎重提纯", "使用 慎重提纯 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.UseAction = b);
-
-        public static void DrawScourCheckbox()
-            => DrawCheckbox("使用 提纯", "在合适时使用 提纯 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.ScourConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.ScourConfig.UseAction = b);
-
-        public static void DrawBrazenCheckbox()
-            => DrawCheckbox("使用 大胆提纯", "在合适时使用 大胆提纯 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.BrazenConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.BrazenConfig.UseAction = b);
-
-        public static void DrawSolidAgeCollectablesCheckbox()
-            => DrawCheckbox("使用 石工之理/农夫之智 （收藏品）", "使用 石工之理/农夫之智 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.UseAction = b);
-
-        public static void DrawSolidAgeGatherablesCheckbox()
-            => DrawCheckbox("使用 石工之理/农夫之智 （可采集物）", "使用 石工之理/农夫之智 采集收藏品",
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.UseAction,
-                b => GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.UseAction = b);
 
         public static void DrawMountUpDistance()
         {
@@ -470,201 +150,6 @@ public partial class Interface
 
             ImGuiUtil.HoverTooltip("你将会上坐骑来移动到下一个采集点的距离。");
         }
-
-        public static void DrawScrutinyMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MaximumGP;
-            if (ImGui.DragInt("集中检查 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Scrutiny.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawMeticulousMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MaximumGP;
-            if (ImGui.DragInt("慎重提纯 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Meticulous.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawScourMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP;
-            if (ImGui.DragInt("提纯 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Scour.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawBrazenMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MaximumGP;
-            if (ImGui.DragInt("大胆提纯 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Brazen.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawSolidAgeCollectablesMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MaximumGP;
-            if (ImGui.DragInt("石工之理/农夫之智 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.SolidAge.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawSolidAgeGatherablesMaxGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.MaximumGP;
-            if (ImGui.DragInt("石工之理/农夫之智 最大 GP", ref tmp, 1, AutoGather.AutoGather.Actions.SolidAge.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-        public static void DrawSolidAgeGatherablesUseWithCrystals()
-            => DrawCheckbox("当采集水晶时使用", "", GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.GetOptionalProperty<bool>("UseWithCystals"),
-                b => GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.SetOptionalProperty("UseWithCystals", b));
-
-        public static void DrawSolidAgeGatherablesMinYield()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.GetOptionalProperty<int>("MinimumYield");
-            if (ImGui.DragInt("最小 莫非王土/天赐收成", ref tmp, 0.1f, 1, 20))
-            {
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.SetOptionalProperty("MinimumYield", tmp);
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawScrutinyMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MinimumGP;
-            if (ImGui.DragInt("集中检查 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Scrutiny.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawMeticulousMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MinimumGP;
-            if (ImGui.DragInt("慎重提纯 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Meticulous.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawScourMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP;
-            if (ImGui.DragInt("提纯 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Scour.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawBrazenMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MinimumGP;
-            if (ImGui.DragInt("大胆提纯 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.Brazen.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawSolidAgeCollectablesMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MinimumGP;
-            if (ImGui.DragInt("石工之理/农夫之智 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.SolidAge.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawSolidAgeGatherablesMinGp()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.MinimumGP;
-            if (ImGui.DragInt("石工之理/农夫之智 最小 GP", ref tmp, 1, AutoGather.AutoGather.Actions.SolidAge.GpCost, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawCordialCheckbox()
-            => DrawCheckbox(
-                "使用 强心剂",
-                "当可用时使用 强心剂，如果 强心剂 不在冷却中且 GP 在特定范围内。",
-                GatherBuddy.Config.AutoGatherConfig.CordialConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.CordialConfig.UseConsumable = b);
-
-        public static void DrawCordialMinGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.CordialConfig.MinimumGP;
-            if (ImGui.DragInt("强心剂 最小 GP", ref tmp, 1, 0, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.CordialConfig.MinimumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawCordialMaxGP()
-        {
-            int tmp = (int)GatherBuddy.Config.AutoGatherConfig.CordialConfig.MaximumGP;
-            if (ImGui.DragInt("强心剂 最大 GP", ref tmp, 1, 1000, 30000))
-            {
-                GatherBuddy.Config.AutoGatherConfig.CordialConfig.MaximumGP = (uint)tmp;
-                GatherBuddy.Config.Save();
-            }
-        }
-
-        public static void DrawFoodCheckbox()
-            => DrawCheckbox(
-                "使用 食物",
-                "使用 食物 如果物品可用且角色无该状态。",
-                GatherBuddy.Config.AutoGatherConfig.FoodConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.FoodConfig.UseConsumable = b);
-
-        public static void DrawPotionCheckbox()
-            => DrawCheckbox(
-                "使用 药剂",
-                "使用 药剂 如果物品可用且角色无该状态。",
-                GatherBuddy.Config.AutoGatherConfig.PotionConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.PotionConfig.UseConsumable = b);
-
-        public static void DrawManualCheckbox()
-            => DrawCheckbox(
-                "使用 指南",
-                "使用 指南 如果物品可用且角色无该状态。",
-                GatherBuddy.Config.AutoGatherConfig.ManualConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.ManualConfig.UseConsumable = b);
-
-        public static void DrawSquadronManualCheckbox()
-            => DrawCheckbox(
-                "使用 军用指南",
-                "使用 军用指南 如果物品可用且角色无该状态。",
-                GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.UseConsumable = b);
-
-        public static void DrawSquadronPassCheckbox()
-            => DrawCheckbox(
-                "使用 传送网使用优惠券",
-                "使用 传送网使用优惠券 如果物品可用且角色无该状态。",
-                GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.UseConsumable,
-                b => GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.UseConsumable = b);
 
         public static void DrawAntiStuckCooldown()
         {
@@ -1081,6 +566,11 @@ public partial class Interface
                 "仅显示采集窗口设置中的当前可采集的物品。",
                 GatherBuddy.Config.ShowGatherWindowOnlyAvailable, b => GatherBuddy.Config.ShowGatherWindowOnlyAvailable = b);
 
+        public static void DrawHideGatherWindowCompletedItemsBox()
+            => DrawCheckbox("隐藏已经完成的物品",
+                "隐藏已经满足自动采集数量要求的物品",
+                GatherBuddy.Config.HideGatherWindowCompletedItems, b => GatherBuddy.Config.HideGatherWindowCompletedItems = b);
+
         public static void DrawHideGatherWindowInDutyBox()
             => DrawCheckbox("副本任务中隐藏采集窗口",
                 "进入任何副本任务后隐藏采集窗口。",
@@ -1116,7 +606,7 @@ public partial class Interface
 
         public static void DrawMainInterfaceHotkeyInput()
         {
-            if (Widget.ModifiableKeySelector("打开主界面的快捷键", "设置一个用来打开 GatherBuddy 主界面的快捷键Set a hotkey to open the main GatherBuddy interface.",
+            if (Widget.ModifiableKeySelector("打开主界面的快捷键", "设置一个用来打开 GatherBuddy 主界面的快捷键",
                     SetInputWidth,
                     GatherBuddy.Config.MainInterfaceHotkey, k => GatherBuddy.Config.MainInterfaceHotkey = k, Configuration.ValidKeys))
                 GatherBuddy.Config.Save();
@@ -1197,7 +687,6 @@ public partial class Interface
                 ConfigFunctions.DrawHonkModeBox();
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
-                ConfigFunctions.DrawMinimumGPGathering();
                 ConfigFunctions.DrawSortingMethodCombo();
                 ConfigFunctions.DrawUseGivingLandOnCooldown();
                 ConfigFunctions.DrawGoHomeBox();
@@ -1206,193 +695,13 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("收藏品"))
-            {
-                ConfigFunctions.DrawMinimumGPCollectable();
-                ConfigFunctions.DrawMinimumGPCollectibleRotation();
-                ConfigFunctions.DrawAlwaysUseSolidAgeCollectables();
-                ConfigFunctions.DrawMinimumCollectibilityScore();
-                ConfigFunctions.DrawGatherIfLastIntegrity();
-
-                if (GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrity)
-                    ConfigFunctions.DrawGatherIfLastIntegrityMinimumCollectibility();
-
-                ImGui.TreePop();
-            }
-
-            if (ImGui.TreeNodeEx("采集技能"))
-            {
-                if (ImGui.TreeNodeEx("高产/丰收 II"))
-                {
-                    ConfigFunctions.DrawBYIIBox();
-                    ConfigFunctions.DrawBYIIMinGP();
-                    ConfigFunctions.DrawBYIIMaxGP();
-                    ConfigFunctions.DrawBYIIMinimumIncrease();
-                    ConfigFunctions.DrawBYIIUseWithCrystals();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.BYIIConfig);
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("莫非王土/天赐收成 II"))
-                {
-                    ConfigFunctions.DrawYieldIICheckbox();
-                    ConfigFunctions.DrawYieldIIMinGP();
-                    ConfigFunctions.DrawYieldIIMaxGP();
-                    ConfigFunctions.DrawYieldIIUseWithCrystals();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.YieldIIConfig);
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("莫非王土/天赐收成 I"))
-                {
-                    ConfigFunctions.DrawYieldICheckbox();
-                    ConfigFunctions.DrawYieldIMinGP();
-                    ConfigFunctions.DrawYieldIMaxGP();
-                    ConfigFunctions.DrawYieldIUseWithCrystals();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.YieldIConfig);
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("石工之理/农夫之智"))
-                {
-                    ConfigFunctions.DrawSolidAgeGatherablesCheckbox();
-                    ConfigFunctions.DrawSolidAgeGatherablesMinGp();
-                    ConfigFunctions.DrawSolidAgeGatherablesMaxGp();
-                    ConfigFunctions.DrawSolidAgeGatherablesMinYield();
-                    ConfigFunctions.DrawSolidAgeGatherablesUseWithCrystals();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.SolidAgeGatherablesConfig);
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("登山者/开拓者的眼力"))
-                {
-                    ConfigFunctions.DrawLuckBox();
-                    ConfigFunctions.DrawLuckMinGP();
-                    ConfigFunctions.DrawLuckMaxGP();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.LuckConfig);
-                    ImGui.TreePop();
-                }
-                if (ImGui.TreeNodeEx("大地的恩惠"))
-                {
-                    ConfigFunctions.DrawGivingLandBox();
-                    ConfigFunctions.DrawGivingLandMinGP();
-                    ConfigFunctions.DrawGivingLandMaxGP();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.GivingLandConfig);
-                    ImGui.TreePop();
-                }
-                if (ImGui.TreeNodeEx("十二神加护"))
-                {
-                    ConfigFunctions.DrawTwelvesBountyBox();
-                    ConfigFunctions.DrawTwelvesBountyMinGP();
-                    ConfigFunctions.DrawTwelvesBountyMaxGP();
-                    ConfigFunctions.DrawConditions(GatherBuddy.Config.AutoGatherConfig.TwelvesBountyConfig);
-                    ImGui.TreePop();
-                }
-
-                ImGui.TreePop();
-            }
-
-            if (ImGui.TreeNodeEx("收藏品技能"))
-            {
-                if (ImGui.TreeNodeEx("提纯"))
-                {
-                    ConfigFunctions.DrawScourCheckbox();
-                    ConfigFunctions.DrawScourMinGp();
-                    ConfigFunctions.DrawScourMaxGp();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("大胆提纯"))
-                {
-                    ConfigFunctions.DrawBrazenCheckbox();
-                    ConfigFunctions.DrawBrazenMinGp();
-                    ConfigFunctions.DrawBrazenMaxGp();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("慎重提纯"))
-                {
-                    ConfigFunctions.DrawMeticulousCheckbox();
-                    ConfigFunctions.DrawMeticulousMinGp();
-                    ConfigFunctions.DrawMeticulousMaxGp();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("集中检查"))
-                {
-                    ConfigFunctions.DrawScrutinyCheckbox();
-                    ConfigFunctions.DrawScrutinyMinGp();
-                    ConfigFunctions.DrawScrutinyMaxGp();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("石工之理/农夫之智"))
-                {
-                    ConfigFunctions.DrawSolidAgeCollectablesCheckbox();
-                    ConfigFunctions.DrawSolidAgeCollectablesMinGp();
-                    ConfigFunctions.DrawSolidAgeCollectablesMaxGp();
-                    ImGui.TreePop();
-                }
-
-                ImGui.TreePop();
-            }
-
-            if (ImGui.TreeNodeEx("消耗品"))
-            {
-                if (ImGui.TreeNodeEx("强心剂"))
-                {
-                    ConfigFunctions.DrawCordialCheckbox();
-                    ConfigFunctions.DrawCordialMinGP();
-                    ConfigFunctions.DrawCordialMaxGP();
-                    AutoGatherUI.DrawCordialSelector();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("食物"))
-                {
-                    ConfigFunctions.DrawFoodCheckbox();
-                    AutoGatherUI.DrawFoodSelector();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("药剂"))
-                {
-                    ConfigFunctions.DrawPotionCheckbox();
-                    AutoGatherUI.DrawPotionSelector();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("指南"))
-                {
-                    ConfigFunctions.DrawManualCheckbox();
-                    AutoGatherUI.DrawManualSelector();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("军用指南"))
-                {
-                    ConfigFunctions.DrawSquadronManualCheckbox();
-                    AutoGatherUI.DrawSquadronManualSelector();
-                    ImGui.TreePop();
-                }
-
-                if (ImGui.TreeNodeEx("传送网使用优惠券"))
-                {
-                    ConfigFunctions.DrawSquadronPassCheckbox();
-                    AutoGatherUI.DrawSquadronPassSelector();
-                    ImGui.TreePop();
-                }
-
-                ImGui.TreePop();
-            }
-
             if (ImGui.TreeNodeEx("高级"))
             {
                 ConfigFunctions.DrawAutoGatherBox();
                 ConfigFunctions.DrawUseFlagBox();
                 ConfigFunctions.DrawForceWalkingBox();
-                ConfigFunctions.DrawAdvancedUnstuckBox();
                 ConfigFunctions.DrawMaterialExtraction();
+                ConfigFunctions.DrawForceCloseLingeringMasterpieceAddon();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
                 ConfigFunctions.DrawTimedNodePrecog();
@@ -1489,6 +798,7 @@ public partial class Interface
                 ConfigFunctions.DrawGatherWindowAlarmsBox();
                 ConfigFunctions.DrawSortGatherWindowBox();
                 ConfigFunctions.DrawGatherWindowShowOnlyAvailableBox();
+                ConfigFunctions.DrawHideGatherWindowCompletedItemsBox();
                 ConfigFunctions.DrawHideGatherWindowInDutyBox();
                 ConfigFunctions.DrawGatherWindowHoldKey();
                 ConfigFunctions.DrawGatherWindowLockBox();

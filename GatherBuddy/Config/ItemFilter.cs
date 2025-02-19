@@ -26,5 +26,5 @@ public enum ItemFilter
     可用   = 0x010000,
     不可用 = 0x020000,
 
-    全部 = 0x073FFF,
+    全部 = 0x033FFF,
 }

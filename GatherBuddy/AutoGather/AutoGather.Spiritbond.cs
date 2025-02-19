@@ -2,6 +2,7 @@ using Dalamud.Game.ClientState.Conditions;
 using ECommons.Automation;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using GatherBuddy.Plugin;
 using static ECommons.UIHelpers.AddonMasterImplementations.AddonMaster;
 
 namespace GatherBuddy.AutoGather;
@@ -9,7 +10,7 @@ namespace GatherBuddy.AutoGather;
 public partial class AutoGather
 {
 
-    unsafe int SpiritBondMax
+    unsafe int SpiritbondMax
     {
         get
         {
@@ -34,6 +35,12 @@ public partial class AutoGather
 
     unsafe void DoMateriaExtraction()
     {
+        if (!QuestManager.IsQuestComplete(66174))
+        {
+            GatherBuddy.Config.AutoGatherConfig.DoMaterialize = false;
+            Communicator.PrintError("[GatherBuddy Reborn] Materia Extraction enabled but relevant quest not complete yet. Feature disabled.");
+            return;
+        }
         if (MaterializeAddon == null)
         {
             TaskManager.Enqueue(StopNavigation);
@@ -47,7 +54,7 @@ public partial class AutoGather
         EnqueueActionWithDelay(() => { if (MaterializeDialogAddon is var addon and not null) new MaterializeDialog(addon).Materialize(); });
         TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Occupied39]);
 
-        if (SpiritBondMax == 1) 
+        if (SpiritbondMax == 1) 
         {
             EnqueueActionWithDelay(() => { if (MaterializeAddon is var addon and not null) addon->Close(true); });
         }

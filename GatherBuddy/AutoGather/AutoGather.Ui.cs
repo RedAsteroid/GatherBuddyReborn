@@ -3,7 +3,7 @@ using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.Plugin;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,10 +50,10 @@ namespace GatherBuddy.AutoGather
             {
                 var settings = new JsonSerializerSettings();
                 var                          text    = ImGuiUtil.GetClipboardText();
-                List<OffsetPair> vectors = JsonConvert.DeserializeObject<List<OffsetPair>>(text, settings) ?? new System.Collections.Generic.List<OffsetPair>();
+                var vectors = JsonConvert.DeserializeObject<List<OffsetPair>>(text, settings) ?? [];
                 foreach (var offset in vectors)
                 {
-                    WorldData.NodeOffsets.Add(offset);
+                    WorldData.NodeOffsets[offset.Original] = offset.Offset;
                     GatherBuddy.Log.Information($"已添加偏移 {offset} 至字典");
                 }
                 WorldData.SaveOffsetsToFile();
@@ -63,7 +63,7 @@ namespace GatherBuddy.AutoGather
             if (ImGui.Button("导出节点偏移设置至剪贴板"))
             {
                 var settings = new JsonSerializerSettings();
-                var offsetString = JsonConvert.SerializeObject(WorldData.NodeOffsets, Formatting.Indented, settings);
+                var offsetString = JsonConvert.SerializeObject(WorldData.NodeOffsets.Select(x => new OffsetPair(x.Key, x.Value)).ToList(), Formatting.Indented, settings);
                 ImGui.SetClipboardText(offsetString);
                 GatherBuddy.Log.Information("节点偏移设置已导出至剪贴板");
             }
@@ -136,20 +136,19 @@ namespace GatherBuddy.AutoGather
                             Communicator.PrintError("[GatherBuddyReborn] 已启用自动采集, 无法使用手动导航");
                             return;
                         }
-                        VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
+                        //VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
                         VNavmesh_IPCSubscriber.Path_Stop();
                         VNavmesh_IPCSubscriber.SimpleMove_PathfindAndMoveTo(node.Position, GatherBuddy.AutoGather.ShouldFly(node.Position));
                     }
 
-                    var offset = WorldData.NodeOffsets.FirstOrDefault(o => o.Original == node.Position);
-                    if (offset != null)
+                    if (WorldData.NodeOffsets.TryGetValue(node.Position, out var offset))
                     {
                         if (ImGui.Button($"移除该偏移##{node.Position}"))
                         {
-                            WorldData.NodeOffsets.Remove(offset);
+                            WorldData.NodeOffsets.Remove(node.Position);
                             WorldData.SaveOffsetsToFile();
                         }
-                        ImGui.Text(offset.Offset.ToString());
+                        ImGui.Text(offset.ToString());
                         if (ImGui.Button($"导航至偏移##{node.Position}"))
                         {
                             if (GatherBuddy.AutoGather.Enabled)
@@ -157,9 +156,9 @@ namespace GatherBuddy.AutoGather
                                 Communicator.PrintError("[GatherBuddyReborn] 已启用自动采集, 无法使用手动导航");
                                 return;
                             }
-                            VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
+                            //VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
                             VNavmesh_IPCSubscriber.Path_Stop();
-                            VNavmesh_IPCSubscriber.SimpleMove_PathfindAndMoveTo(offset.Offset, GatherBuddy.AutoGather.ShouldFly(offset.Offset));
+                            VNavmesh_IPCSubscriber.SimpleMove_PathfindAndMoveTo(offset, GatherBuddy.AutoGather.ShouldFly(offset));
                         }
                     }
                     else
@@ -213,7 +212,7 @@ namespace GatherBuddy.AutoGather
         }
 
         /// <summary>
-        /// Extension method to convert the strings to Proper Case.
+        /// Extension method to convert the string to Proper Case.
         /// </summary>
         /// <param name="input">The string input.</param>
         /// <returns>The string in Proper Case.</returns>
@@ -221,217 +220,5 @@ namespace GatherBuddy.AutoGather
         {
             return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(input.ToLower());
         }
-
-        public static unsafe void DrawCordialSelector()
-        {
-            // HQ items have IDs 100000 more than their NQ counterparts
-            var previewItem = AutoGather.PossibleCordials.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId));
-            // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("选择强心剂", previewItem is null
-                ? ""
-                : $"{(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossibleCordials);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable((rowid > 100000 ? " " : "") + $"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.CordialConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-
-        public static unsafe void DrawFoodSelector()
-        {
-            // HQ items have IDs 100000 more than their NQ counterparts
-            var previewItem = AutoGather.PossibleFoods.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId));
-            // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("选择食物", previewItem is null
-                ? ""
-                : $"{(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossibleFoods);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable((rowid > 100000 ? " " : "") + $"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.FoodConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-
-        public static unsafe void DrawPotionSelector()
-        {
-            // HQ items have IDs 100000 more than their NQ counterparts
-            var previewItem = AutoGather.PossiblePotions.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId));
-            // PluginLog.Information(JsonConvert.SerializeObject(previewItem.ItemAction));
-            if (ImGui.BeginCombo("选择药剂", previewItem is null
-                ? ""
-                : $"{(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId > 100000 ? " " : "")}{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossiblePotions);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable((rowid > 100000 ? " " : "") + $"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.PotionConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-
-        public static unsafe void DrawManualSelector()
-        {
-            var previewItem = AutoGather.PossibleManuals.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId);
-            if (ImGui.BeginCombo("选择指南", previewItem is null
-                ? ""
-                : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossibleManuals);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable((rowid > 100000 ? " " : "") + $"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.ManualConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-
-        public static unsafe void DrawSquadronManualSelector()
-        {
-            var previewItem = AutoGather.PossibleSquadronManuals.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId);
-            if (ImGui.BeginCombo("选择军用指南", previewItem is null
-                ? ""
-                : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossibleSquadronManuals);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable((rowid > 100000 ? " " : "") + $"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.SquadronManualConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-
-        public static unsafe void DrawSquadronPassSelector()
-        {
-            var previewItem = AutoGather.PossibleSquadronPasses.FirstOrDefault(item => item.RowId == GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId);
-            if (ImGui.BeginCombo("选择传送网使用优惠券", previewItem is null
-                ? ""
-                : $"{previewItem.Name} ({AutoGather.GetInventoryItemCount(GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId)})"))
-            {
-                if (ImGui.Selectable("", GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId == 0))
-                {
-                    GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId = 0;
-                    GatherBuddy.Config.Save();
-                }
-
-                var items = PrepareConsumablesList(AutoGather.PossibleSquadronPasses);
-                bool? separatorState = null;
-
-                foreach (var (name, rowid, count) in items)
-                {
-                    DrawConsumablesSeparator(ref separatorState, count == 0);
-
-                    if (ImGui.Selectable($"{name} ({count})", GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId == rowid))
-                    {
-                        GatherBuddy.Config.AutoGatherConfig.SquadronPassConfig.ItemId = rowid;
-                        GatherBuddy.Config.Save();
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
-        }
-        private static unsafe IOrderedEnumerable<(string name, uint rowid, int count)> PrepareConsumablesList(IEnumerable<Item> items)
-        {
-            return items.SelectMany(item => new[] { (item, rowid: item.RowId), (item, rowid: item.RowId + 100000) })
-                        .Where(t => t.item.CanBeHq || t.rowid < 100000)
-                        .Select(t => (name: t.item.Name.ToString(), t.rowid, count: AutoGather.GetInventoryItemCount(t.rowid)))
-                        .OrderBy(t => t.count == 0)
-                        .ThenBy(t => t.name);
-        }
-
-        private static void DrawConsumablesSeparator(ref bool? canDraw, bool drawNow)
-        {
-            if (!drawNow)
-                canDraw = true;
-            else if (canDraw.GetValueOrDefault())
-            {
-                ImGui.Separator();
-                canDraw = false;
-            }
-        }
-
     }
 }

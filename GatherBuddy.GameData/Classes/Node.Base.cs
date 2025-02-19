@@ -4,9 +4,10 @@ using System.Linq;
 using System.Numerics;
 using GatherBuddy.Enums;
 using GatherBuddy.Interfaces;
+using GatherBuddy.Structs;
 using GatherBuddy.Time;
 using GatherBuddy.Utility;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using GatheringType = GatherBuddy.Enums.GatheringType;
 
 namespace GatherBuddy.Classes;
@@ -16,7 +17,7 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
     public NodeType           NodeType     { get; init; }
     public GatheringPointBase BaseNodeData { get; init; }
     public string             Name         { get; init; }
-    public Vector3[]          Markers      { get; set; } = Array.Empty<Vector3>();
+    public WaymarkSet         Markers      { get; set; } = WaymarkSet.None;
     public BitfieldUptime     Times        { get; init; }
 
     public uint Id
@@ -32,13 +33,13 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         => BaseNodeData.GatheringLevel;
 
     public GatheringType GatheringType
-        => (GatheringType)BaseNodeData.GatheringType.Row;
+        => (GatheringType)BaseNodeData.GatheringType.RowId;
 
     public bool IsMiner
-        => GatheringType.ToGroup() == GatheringType.≤…øÛπ§;
+        => GatheringType.ToGroup() == GatheringType.ÈááÁüøÂ∑•;
 
     public bool IsBotanist
-        => GatheringType.ToGroup() == GatheringType.‘∞“’π§;
+        => GatheringType.ToGroup() == GatheringType.Âõ≠Ëâ∫Â∑•;
 
     public string Folklore { get; init; }
 
@@ -51,14 +52,14 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         // Obtain the territory from the first node that has this as a base.
         var nodes    = data.DataManager.GetExcelSheet<GatheringPoint>()!;
         var nodeList = gatheringPoint.TryGetValue(node.RowId, out var nl) ? (IReadOnlyList<uint>)nl : Array.Empty<uint>();
-        var nodeRow  = nodeList.Count > 0 ? nodes.GetRow(nodeList[0]) : null;
+        var nodeRow  = nodeList.Count > 0 ? nodes.GetRowOrDefault(nodeList[0]) : null;
         Territory = data.FindOrAddTerritory(nodeRow?.TerritoryType.Value) ?? Territory.Invalid;
-        Name      = MultiString.ParseSeStringLumina(nodeRow?.PlaceName.Value?.Name);
+        Name      = MultiString.ParseSeStringLumina(nodeRow?.PlaceName.ValueNullable?.Name);
         // Obtain the center of the coordinates. We do not care for the radius.
         var coords   = data.DataManager.GetExcelSheet<ExportedGatheringPoint>();
-        var coordRow = coords?.GetRow(node.RowId);
-        IntegralXCoord = coordRow != null ? Maps.NodeToMap(coordRow.X, Territory.SizeFactor) : 100;
-        IntegralYCoord = coordRow != null ? Maps.NodeToMap(coordRow.Y, Territory.SizeFactor) : 100;
+        var coordRow = coords.GetRowOrDefault(node.RowId);
+        IntegralXCoord = coordRow != null ? Maps.NodeToMap(coordRow.Value.X, Territory.SizeFactor) : 100;
+        IntegralYCoord = coordRow != null ? Maps.NodeToMap(coordRow.Value.Y, Territory.SizeFactor) : 100;
         
         foreach (var nodeRow2 in nodeList)
         {
@@ -78,15 +79,15 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         DefaultRadius    = Radius;
 
         // Obtain additional information.
-        Folklore = MultiString.ParseSeStringLumina(nodeRow?.GatheringSubCategory.Value?.FolkloreBook);
-        var extendedRow = nodeRow == null ? null : data.DataManager.GetExcelSheet<GatheringPointTransient>()?.GetRow(nodeRow.RowId);
+        Folklore = MultiString.ParseSeStringLumina(nodeRow?.GatheringSubCategory.ValueNullable?.FolkloreBook);
+        var extendedRow = nodeRow == null ? null : data.DataManager.GetExcelSheet<GatheringPointTransient>()?.GetRow(nodeRow.Value.RowId);
         (Times, NodeType) = GetTimes(extendedRow);
-        if (Folklore.Length > 0 && NodeType == NodeType.Œ¥÷™ && nodeRow!.GatheringSubCategory.Value!.Item.Row != 0)
-            NodeType = NodeType.¥´Àµ;
+        if (Folklore.Length > 0 && NodeType == NodeType.Êú™Áü• && nodeRow!.Value.GatheringSubCategory.Value!.Item.RowId != 0)
+            NodeType = NodeType.‰º†ËØ¥;
 
         // Obtain the items and add the node to their individual lists.
         Items = node.Item
-            .Select(i => data.GatherablesByGatherId.TryGetValue((uint)i, out var gatherable) ? gatherable : null)
+            .Select(i => data.GatherablesByGatherId.GetValueOrDefault(i.RowId))
             .OfType<Gatherable>()
             .ToList();
 
@@ -118,19 +119,19 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
     private static (BitfieldUptime, NodeType) GetTimes(GatheringPointTransient? row)
     {
         if (row == null)
-            return (BitfieldUptime.AllHours, NodeType.≥£πÊ);
+            return (BitfieldUptime.AllHours, NodeType.Â∏∏ËßÑ);
 
         // Check for ephemeral nodes
-        if (row.GatheringRarePopTimeTable.Row == 0)
+        if (row.Value.GatheringRarePopTimeTable.RowId == 0)
         {
-            var time = new BitfieldUptime(row.EphemeralStartTime, row.EphemeralEndTime);
-            return time.AlwaysUp() ? (time, Regular: NodeType.≥£πÊ) : (time, Ephemeral: NodeType.œﬁ ±);
+            var time = new BitfieldUptime(row.Value.EphemeralStartTime, row.Value.EphemeralEndTime);
+            return time.AlwaysUp() ? (time, NodeType.Â∏∏ËßÑ) : (time, NodeType.ÈôêÊó∂);
         }
         // and for unspoiled
         else
         {
-            var time = new BitfieldUptime(row.GatheringRarePopTimeTable.Value!);
-            return time.AlwaysUp() ? (time, Regular: NodeType.≥£πÊ) : (time, Unspoiled: NodeType.Œ¥÷™);
+            var time = new BitfieldUptime(row.Value.GatheringRarePopTimeTable.Value);
+            return time.AlwaysUp() ? (time, NodeType.Â∏∏ËßÑ) : (time, NodeType.Êú™Áü•);
         }
     }
 }

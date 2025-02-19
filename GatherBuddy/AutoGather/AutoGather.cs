@@ -3,6 +3,7 @@ using GatherBuddy.Plugin;
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Dalamud.Game.ClientState.Conditions;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
@@ -45,7 +46,7 @@ namespace GatherBuddy.AutoGather
         public           TaskManager TaskManager { get; }
 
         private bool _enabled { get; set; } = false;
-        internal readonly GatheringTracker NodeTarcker = new();
+        internal readonly GatheringTracker NodeTracker = new();
 
         public unsafe bool Enabled
         {
@@ -54,21 +55,17 @@ namespace GatherBuddy.AutoGather
             {
                 if (!value)
                 {
-                    //Do Reset Tasks
-                    var gatheringMasterpiece = (AddonGatheringMasterpiece*)Dalamud.GameGui.GetAddonByName("GatheringMasterpiece", 1);
-                    if (gatheringMasterpiece != null && !gatheringMasterpiece->AtkUnitBase.IsVisible)
-                    {
-                        gatheringMasterpiece->AtkUnitBase.IsVisible = true;
-                    }
-
                     TaskManager.Abort();
-                    targetInfo                          = null;
+                    targetInfo = null;
+                    if (VNavmesh_IPCSubscriber.IsEnabled && IsPathGenerating) 
+                        VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
                     StopNavigation();
                     AutoStatus = "空闲中...";
+                    ActionSequence = null;
                 }
                 else
                 {
-                    RefreshNextTresureMapAllowance();                    
+                    RefreshNextTreasureMapAllowance();                    
                     WentHome = true; //Prevents going home right after enabling auto-gather
                 }
 
@@ -92,8 +89,8 @@ namespace GatherBuddy.AutoGather
                 GatherBuddy.Log.Warning("未安装或启用 Lifestream");
         }
 
-        private class NoGatherableItemsInNodeExceptions : Exception { }
-        private class NoColectableActionsExceptions : Exception { }
+        private class NoGatherableItemsInNodeException : Exception { }
+        private class NoCollectableActionsException : Exception { }
         public void DoAutoGather()
         {
             if (!IsGathering)
@@ -131,6 +128,9 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
+            if (CheckForLingeringMasterpieceAddon())
+                return;
+
             if (FreeInventorySlots == 0)
             {
                 AbortAutoGather("背包已满");
@@ -158,38 +158,43 @@ namespace GatherBuddy.AutoGather
                     }
                 }
 
-                if (GatherBuddy.Config.AutoGatherConfig.DoGathering)
-                {
-                    AutoStatus = "采集中...";
-                    StopNavigation();
-                    try
-                    {
-                        DoActionTasks(targetInfo?.Item);
-                    }
-                    catch (NoGatherableItemsInNodeExceptions)
-                    {
-                        CloseGatheringAddons();
-                    }
-                    catch (NoColectableActionsExceptions)
-                    {
-                        Communicator.PrintError("Unable to pick a collectability increasing action to use. Make sure that at least one of the collectable actions is enabled.");
-                        AbortAutoGather();
-                    }
+                if (!GatherBuddy.Config.AutoGatherConfig.DoGathering)
                     return;
-                }
 
+                AutoStatus = "采集中...";
+                StopNavigation();
+                try
+                {
+                    DoActionTasks(targetInfo?.Item);
+                }
+                catch (NoGatherableItemsInNodeException)
+                {
+                    CloseGatheringAddons();
+                }
+                catch (NoCollectableActionsException)
+                {
+                    Communicator.PrintError("当前无可用的收藏品价值上升技能, 请检查设置中相关技能的启用情况Unable to pick a collectability increasing action to use. Make sure that at least one of the collectable actions is enabled.");
+                    AbortAutoGather();
+                }
                 return;
             }
+
+            ActionSequence = null;
 
             //Cache IPC call results
             var isPathGenerating = IsPathGenerating;
             var isPathing = IsPathing;
 
-            if (_advancedUnstuck.IsRunning || CurrentDestination != default && CurrentDestination.DistanceToPlayer() > 3 && _advancedUnstuck.Check(isPathGenerating, isPathing))
+            switch (_advancedUnstuck.Check(CurrentDestination, isPathGenerating, isPathing))
             {
-                StopNavigation();
-                AutoStatus = $"Advanced unstuck in progress!";
-                return;
+                case AdvancedUnstuckCheckResult.Pass:
+                    break;
+                case AdvancedUnstuckCheckResult.Wait:
+                    return;
+                case AdvancedUnstuckCheckResult.Fail:
+                    StopNavigation();
+                    AutoStatus = $"Advanced unstuck in progress!";
+                    return;
             }
 
             if (isPathGenerating)
@@ -199,20 +204,19 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (isPathing)
-            {
-                StuckCheck();
-            }
-
             if (GatherBuddy.Config.AutoGatherConfig.DoMaterialize 
                 && Player.Job is Job.BTN or Job.MIN
                 && !isPathing 
                 && !Svc.Condition[ConditionFlag.Mounted] 
-                && SpiritBondMax > 0)
+                && SpiritbondMax > 0)
             {
                 DoMateriaExtraction();
                 return;
             }
+
+            foreach (var (loc, time) in VisitedTimedLocations)
+                if (time.End < AdjustedServerTime)
+                    VisitedTimedLocations.Remove(loc);
 
             {//Block to limit the scope of the variable "next"
                 UpdateItemsToGather();
@@ -220,7 +224,7 @@ namespace GatherBuddy.AutoGather
 
                 if (next == null)
                 {
-                    if (!_plugin.GatherWindowManager.ActiveItems.OfType<Gatherable>().Any(i => InventoryCount(i) < QuantityTotal(i) && !(i.IsTreasureMap && InventoryCount(i) != 0)))
+                    if (!_plugin.AutoGatherListsManager.ActiveItems.OfType<Gatherable>().Any(i => InventoryCount(i) < QuantityTotal(i) && !(i.IsTreasureMap && InventoryCount(i) != 0)))
                     {
                         AbortAutoGather();
                         return;
@@ -233,13 +237,9 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
 
-                foreach (var (loc, time) in VisitedTimedLocations)
-                    if (time.End < AdjuctedServerTime)
-                        VisitedTimedLocations.Remove(loc);
-
                 if (targetInfo == null
                     || targetInfo.Location == null
-                    || targetInfo.Time.End < AdjuctedServerTime
+                    || targetInfo.Time.End < AdjustedServerTime
                     || targetInfo.Item != next.Item
                     || VisitedTimedLocations.ContainsKey(targetInfo.Location))
                 {
@@ -252,15 +252,15 @@ namespace GatherBuddy.AutoGather
 
             if (targetInfo.Location == null)
             {
-                //Should not happen because UpdateItemsToGather filters out all unaviable items
-                GatherBuddy.Log.Debug("未能找到任一导向该物品的目标地点");
+                //Should not happen because UpdateItemsToGather filters out all unavailable items
+                GatherBuddy.Log.Debug("目标物品无任一可用的采集地点");
                 return;
             }
 
-            if (targetInfo.Item.IsTreasureMap && NextTresureMapAllowance == DateTime.MinValue)
+            if (targetInfo.Item.IsTreasureMap && NextTreasureMapAllowance == DateTime.MinValue)
             {
                 //Wait for timer refresh
-                RefreshNextTresureMapAllowance();
+                RefreshNextTreasureMapAllowance();
                 return;
             }
 
@@ -275,6 +275,13 @@ namespace GatherBuddy.AutoGather
             if (targetInfo.Item.ItemData.IsCollectable && !CheckCollectablesUnlocked())
             {
                 AbortAutoGather();
+                return;
+            }
+
+            if (HasBrokenGear())
+            {
+                Communicator.PrintError("Your gear is almost broken. Repair it before enabling Auto-Gather.");
+                AbortAutoGather("Gear is broken");
                 return;
             }
 
@@ -295,7 +302,7 @@ namespace GatherBuddy.AutoGather
                         AutoStatus = "传送中...";
                         StopNavigation();
                         var exit = targetInfo.Location.DefaultXCoord < 2000 ? 91u : 92u;
-                        var name = Dalamud.GameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()!.GetRow(exit)!.AethernetName.Value!.Name;
+                        var name = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.Aetheryte>().GetRow(exit).AethernetName.Value.Name.ToString();
                         Lifestream_IPCSubscriber.AethernetTeleport(name);
                     }
                     return;
@@ -305,8 +312,8 @@ namespace GatherBuddy.AutoGather
             var forcedAetheryte = ForcedAetherytes.ZonesWithoutAetherytes.Where(z => z.ZoneId == targetInfo.Location.Territory.Id).FirstOrDefault();
             if (forcedAetheryte.ZoneId != 0 
                 && (GatherBuddy.GameData.Aetherytes[forcedAetheryte.AetheryteId].Territory.Id == territoryId
-                    || forcedAetheryte.AetheryteId == 70 && territoryId == 886)) //The Firmament
-                {
+                || forcedAetheryte.AetheryteId == 70 && territoryId == 886)) //The Firmament
+            {
                 if (territoryId == 478 && !Lifestream_IPCSubscriber.IsEnabled)
                     AutoStatus = $"请安装 Lifestraem 或手动传送至 {targetInfo.Location.Territory.Name}";
                 else
@@ -337,7 +344,9 @@ namespace GatherBuddy.AutoGather
             if (ActivateGatheringBuffs(targetInfo.Item.NodeType is NodeType.未知 or NodeType.传说))
                 return;
 
-            if (DoUseConsumablesWithoutCastTime())
+            var config = MatchConfigPreset(targetInfo.Item);
+
+            if (DoUseConsumablesWithoutCastTime(config))
                 return;
 
             var allPositions = targetInfo.Location.WorldPositions
@@ -356,8 +365,8 @@ namespace GatherBuddy.AutoGather
 
             if (closestTargetableNode != null)
             {
-                AutoStatus = "正在移动至较近节点...";
-                MoveToCloseNode(closestTargetableNode, targetInfo.Item);
+                AutoStatus = "正在移动至节点...";
+                MoveToCloseNode(closestTargetableNode, targetInfo.Item, config);
                 return;
             }
 
@@ -385,7 +394,7 @@ namespace GatherBuddy.AutoGather
                 foreach (var node in visibleNodes.Where(o => o.Position.DistanceToPlayer() < 80))
                     FarNodesSeenSoFar.Add(node.Position);
 
-                if (FarNodesSeenSoFar.Contains(CurrentDestination))
+                if (CurrentDestination.DistanceToPlayer() < 80)
                 {
                     GatherBuddy.Log.Verbose("下一节点距离较远, 当前尚不可选中, 已切换至另一节点");
                 }
@@ -402,7 +411,7 @@ namespace GatherBuddy.AutoGather
             {
                 var pos = TimedNodePosition;
                 // marker not yet loaded on game
-                if (pos == null)
+                if (pos == null || targetInfo.Time.Start > GatherBuddy.Time.ServerTime.AddSeconds(-8))
                 {
                     AutoStatus = "等待标点出现中";
                     return;
@@ -440,7 +449,7 @@ namespace GatherBuddy.AutoGather
             if (!string.IsNullOrEmpty(status))
                 AutoStatus = status;
             if (GatherBuddy.Config.AutoGatherConfig.HonkMode)
-                _soundHelper.PlayHonkSound(3);
+                Task.Run(() => _soundHelper.PlayHonkSound(3));
             CloseGatheringAddons();
             if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone)
                 EnqueueActionWithDelay(GoHome);
@@ -453,36 +462,40 @@ namespace GatherBuddy.AutoGather
             if (masterpieceOpen)
             {
                 EnqueueActionWithDelay(() => { if (MasterpieceAddon is var addon and not null) { Callback.Fire(&addon->AtkUnitBase, true, -1); } });
-                TaskManager.Enqueue(() => MasterpieceAddon == null);
-                TaskManager.Enqueue(() => GatheringAddon != null);
+                TaskManager.Enqueue(() => MasterpieceAddon == null, "Wait until GatheringMasterpiece addon is closed");
+                TaskManager.Enqueue(() => GatheringAddon is var addon and not null, "Wait until Gathering addon pops up");
+                TaskManager.DelayNext(300);//There is some delay after the moment the addon pops up (and is ready) before the callback can be used to close it. We wait some time and retry the callback.
             }
             if (gatheringOpen || masterpieceOpen)
             {
-                EnqueueActionWithDelay(() => { if (GatheringAddon is var addon and not null) { Callback.Fire(&addon->AtkUnitBase, true, -1); } });
                 TaskManager.Enqueue(() => {
-                    var addon = (AddonSelectYesno*)Dalamud.GameGui.GetAddonByName("SelectYesno");
+                    if (GatheringAddon is var gathering and not null && gathering->IsReady)
+                    {
+                        Callback.Fire(&gathering->AtkUnitBase, true, -1);
+                        TaskManager.DelayNextImmediate(100);
+                        return false;
+                    }
+                    var addon = SelectYesnoAddon;
                     if (addon != null)
                     {
                         EnqueueActionWithDelay(() =>
                         {
-                            if ((AddonSelectYesno*)Dalamud.GameGui.GetAddonByName("SelectYesno") is var addon and not null)
+                            if (SelectYesnoAddon is var addon and not null)
                             {
                                 var master = new AddonMaster.SelectYesno(addon);
                                 master.Yes();
                             }
-                        });
-                        TaskManager.Enqueue(() => !IsGathering);
+                        }, true);
+                        TaskManager.EnqueueImmediate(() => !IsGathering, "Wait until Gathering addon is closed");
                         return true;
                     }
-                    else
-                    {
-                        return IsGathering;
-                    }    
-                });
+
+                    return !IsGathering;       
+                }, "Wait until Gathering addon is closed or SelectYesno addon pops up");
             }
         }
 
-        private static unsafe void RefreshNextTresureMapAllowance()
+        private static unsafe void RefreshNextTreasureMapAllowance()
         {
             if (EzThrottler.Throttle("RequestResetTimestamps", 1000))
             {
@@ -497,26 +510,26 @@ namespace GatherBuddy.AutoGather
                 Communicator.PrintError("列表内存在当前无法采集的收藏品, 原因: 等级不足");
                 return false;
             }
-            if (Actions.Collect.QuestID != 0 && !QuestManager.IsQuestComplete(Actions.Collect.QuestID))
+            if (Actions.Collect.QuestId != 0 && !QuestManager.IsQuestComplete(Actions.Collect.QuestId))
             {
                 Communicator.PrintError("列表内存在当前无法采集的收藏品, 原因: 尚未解锁");
-                var sheet = Dalamud.GameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Quest>()!;
-                var row = sheet.GetRow(Actions.Collect.QuestID)!;
+                var sheet = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.Quest>()!;
+                var row = sheet.GetRow(Actions.Collect.QuestId)!;
                 var loc = row.IssuerLocation.Value!;
                 var map = loc.Map.Value!;
                 var pos = MapUtil.WorldToMap(new Vector2(loc.X, loc.Z), map);
-                var mapPayload = new MapLinkPayload(loc.Territory.Row, loc.Map.Row, pos.X, pos.Y);
+                var mapPayload = new MapLinkPayload(loc.Territory.RowId, loc.Map.RowId, pos.X, pos.Y);
                 var text = new SeStringBuilder();
                 text.AddText("收藏品可以由 ")
                     .AddUiForeground(0x0225)
                     .AddUiGlow(0x0226)
-                    .AddQuestLink(Actions.Collect.QuestID)
+                    .AddQuestLink(Actions.Collect.QuestId)
                     .AddUiForeground(500)
                     .AddUiGlow(501)
                     .AddText($"{(char)SeIconChar.LinkMarker}")
                     .AddUiGlowOff()
                     .AddUiForegroundOff()
-                    .AddText(row.Name)
+                    .AddText(row.Name.ToString())
                     .Add(RawPayload.LinkTerminator)
                     .AddUiGlowOff()
                     .AddUiForegroundOff()
@@ -548,7 +561,7 @@ namespace GatherBuddy.AutoGather
                 GatheringType.园艺工 => GatherBuddy.Config.BotanistSetName,
                 _ => null,
             };
-            if (set == null || set.Length == 0)
+            if (string.IsNullOrEmpty(set))
             {
                 Communicator.PrintError($"未对 {job} 配置任何职业套装");
                 return false;
@@ -559,10 +572,75 @@ namespace GatherBuddy.AutoGather
             return true;
         }
 
+        private bool CheckForLingeringMasterpieceAddon()
+        {
+            if (IsMasterpieceOK())
+                return false;
+
+            GatherBuddy.Log.Warning("Lingering GatheringMasterpiece addon may have been detected, rechecking in one second.");
+
+            //Check again in a second to reduce the probability of false positives due to lags or race conditions.
+            TaskManager.DelayNext(1000);
+            TaskManager.Enqueue(() =>
+            {
+                if (IsMasterpieceOK())
+                    return;
+
+                GatherBuddy.Log.Error("Lingering GatheringMasterpiece addon detected.");
+                Communicator.PrintError("Your game client is in an erroneous state: the GatheringMasterpiece addon (collectable window) is left lingering in the memory " +
+                    "after the end of the gathering session. This may be due to a bug in some plugin, Dalamud, or the game itself. Gathering a collectable will crash your game. " +
+                    "You may need to restart it.");
+                if (GatherBuddy.Config.AutoGatherConfig.ForceCloseLingeringMasterpieceAddon)
+                {
+                    Communicator.PrintError("Attempting to force close GatheringMasterpiece addon.");
+                    GatherBuddy.Log.Warning("Attempting to force close GatheringMasterpiece addon.");
+                    unsafe { MasterpieceAddon->Close(true); }
+                    TaskManager.DelayNext(1000);//It persists for a few framework updates, so we wait.
+                }
+                else
+                {
+                    Communicator.PrintError("Alternatively, you can try enabling the \"Force close lingering GatheringMasterpiece addon\" option under Auto-Gather > Advanced.");
+                    Enabled = false;
+                    AutoStatus = "Error";
+                }
+            });
+            return true;
+
+            unsafe bool IsMasterpieceOK()
+            {
+                if (MasterpieceAddon == null)
+                    return true;
+
+                var gathering = GatheringAddon;
+                if (IsGathering && (gathering == null || !gathering->IsVisible))
+                    return true;
+
+                return false;
+            }
+        }
+
+        private unsafe bool HasBrokenGear()
+        {
+            var inventory = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+            for (var slot = 0; slot < inventory->Size; slot++)
+            {
+                var inventoryItem = inventory->GetInventorySlot(slot);
+                if (inventoryItem == null || inventoryItem->ItemId <= 0)
+                    continue;
+
+                if (inventoryItem->Condition <= 300) //1%
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void Dispose()
         {
             _advancedUnstuck.Dispose();
-            NodeTarcker.Dispose();
+            NodeTracker.Dispose();
         }
     }
 }

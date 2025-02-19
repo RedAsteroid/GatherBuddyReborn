@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Dalamud.Game;
 using Dalamud.Game.Text.SeStringHandling;
 using GatherBuddy.Alarms;
+using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.GatherHelper;
@@ -70,14 +71,19 @@ public partial class Interface
                 : $"添加 {item.Name[GatherBuddy.Language]} 至 {current.Name}");
     }
 
-    private void DrawAddGatherWindow(Gatherable item)
+    private void DrawAddGatherWindow(IGatherable item)
     {
         var current = _gatherWindowCache.Selector.EnsureCurrent();
 
-        if (ImGui.Selectable("添加至当前自动采集预设"))
+        if (ImGui.Selectable("添加至采集窗口预设"))
         {
             if (current == null)
-                CreateAndAddPreset(item);
+                _plugin.GatherWindowManager.AddPreset(new GatherWindowPreset
+                {
+                    Enabled     = true,
+                    Items       = new List<IGatherable> { item },
+                    Description = AutomaticallyGenerated,
+                });
             else
                 _plugin.GatherWindowManager.AddItem(current, item);
         }
@@ -104,7 +110,7 @@ public partial class Interface
 
     private static string TeamCraftAddressEnd(FishingSpot s)
         => s.Spearfishing
-            ? TeamCraftAddressEnd("spearfishing-spot", s.SpearfishingSpotData!.GatheringPointBase.Row)
+            ? TeamCraftAddressEnd("spearfishing-spot", s.SpearfishingSpotData!.Value.GatheringPointBase.RowId)
             : TeamCraftAddressEnd("fishing-spot",      s.Id);
 
     private static string GarlandToolsItemAddress(uint itemId)
@@ -154,7 +160,7 @@ public partial class Interface
         {
             try
             {
-                using var request  = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:14500/{addressEnd}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:14500/{addressEnd}");
                 using var response = GatherBuddy.HttpClient.Send(request);
             }
             catch
@@ -198,12 +204,10 @@ public partial class Interface
 
         DrawAddAlarm(item);
         DrawAddToGatherGroup(item);
+        DrawAddGatherWindow(item);
         if (item is Gatherable gatherable)
-        {
-            DrawAddGatherWindow(gatherable);
             DrawAddToAutoGather(gatherable);
-        }
-        if (ImGui.Selectable("创建列"))
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -211,36 +215,33 @@ public partial class Interface
 
     private const string PresetName = "来自可采集物品列表";
 
-    private static void DrawAddToAutoGather(Gatherable item)
+    private void DrawAddToAutoGather(Gatherable item)
     {
-        if (ImGui.Selectable($"添加至自动采集预设"))
-        {
-            // Fetch preset if exists.
-            var preset = _plugin.GatherWindowManager.Presets.FirstOrDefault(p => p.Name == PresetName);
+        var current = _autoGatherListsCache.Selector.EnsureCurrent();
 
-            if (preset == null)
-                // Create and add preset if it doesn't exist.
+        if (ImGui.Selectable("添加至自动采集列表"))
+        {
+            if (current == null)
                 CreateAndAddPreset(item);
             else
-                // Add item to existing preset.
-                _plugin.GatherWindowManager.AddItem(preset, item);
+                _plugin.AutoGatherListsManager.AddItem(current, item);
         }
 
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(
-                $"Add {item.Name[GatherBuddy.Language]} to {PresetName}");
+                $"添加 {item.Name[GatherBuddy.Language]} 至 {(current == null ? "一个新的采集窗口预设" : CheckUnnamed(current.Name))}");
     }
 
-    private static GatherWindowPreset CreateAndAddPreset(Gatherable item)
+    private static AutoGatherList CreateAndAddPreset(Gatherable item)
     {
-        var preset = new GatherWindowPreset
+        var preset = new AutoGatherList
         {
             Enabled     = true,
             Description = AutomaticallyGenerated,
             Name        = PresetName
         };
         preset.Add(item);
-        _plugin.GatherWindowManager.AddPreset(preset);
+        _plugin.AutoGatherListsManager.AddList(preset);
 
         return preset;
     }
@@ -254,7 +255,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("创建链接"))
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -272,7 +273,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("创建链接"))
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(bait.Id));
         DrawOpenInGarlandTools(bait.Id);
         DrawOpenInTeamCraft(bait.Id);
