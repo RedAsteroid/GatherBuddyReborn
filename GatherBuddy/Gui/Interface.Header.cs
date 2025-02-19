@@ -102,10 +102,10 @@ public partial class Interface
     }
 
     private void DrawLastItemAlarm()
-        => DrawLastAlarm(true, "No Item Alarm Triggered");
+        => DrawLastAlarm(true, "无已触发的采集闹钟");
 
     private void DrawLastFishAlarm()
-        => DrawLastAlarm(false, "No Fish Alarm Triggered");
+        => DrawLastAlarm(false, "无已触发的钓鱼闹钟");
 
 
     private void DrawAlarmRow()
@@ -126,9 +126,9 @@ public partial class Interface
         if (ImGui.IsItemHovered())
         {
             using var tt = ImRaii.Tooltip();
-            ImGui.TextUnformatted("If this does not correspond to your in-game Eorzea Time, verify that your windows system time is accurate.");
-            ImGui.TextUnformatted($"Next Aldenard Ocean Route: {OceanUptime.NextOceanRoute(OceanArea.Aldenard, TimeStamp.UtcNow)}");
-            ImGui.TextUnformatted($"Next Othard Ocean Route: {OceanUptime.NextOceanRoute(OceanArea.Othard,     TimeStamp.UtcNow)}");
+            ImGui.TextUnformatted("如果游戏中的艾欧泽亚时间不一致，请验证您的Windows系统时间是否准确。");
+            ImGui.TextUnformatted($"下一近海航线: {OceanUptime.NextOceanRoute(OceanArea.近海, TimeStamp.UtcNow)}");
+            ImGui.TextUnformatted($"下一远洋航线: {OceanUptime.NextOceanRoute(OceanArea.远洋,     TimeStamp.UtcNow)}");
         }
     }
 
@@ -154,14 +154,19 @@ public partial class Interface
     private void DrawNextWeather(string nextWeather)
     {
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-        DrawIconTint(_headerCache.LastWeather, _headerCache.LastWeatherIcon, WeatherIconSize, _headerCache.LastWeatherTint);
-        ImGui.SameLine();
-        DrawIcon(_headerCache.CurrentWeather, _headerCache.CurrentWeatherIcon, WeatherIconSize);
-        style.Pop();
-        ImGui.SameLine();
-        ImGuiUtil.DrawTextButton(nextWeather, Vector2.UnitY * WeatherIconSize.Y, ColorId.HeaderWeather.Value());
-        ImGui.SameLine();
-        DrawIcon(_headerCache.NextWeather, _headerCache.NextWeatherIcon, WeatherIconSize);
+        using (ImRaii.Group())
+        {
+            DrawIconTint(_headerCache.LastWeather, _headerCache.LastWeatherIcon, WeatherIconSize, _headerCache.LastWeatherTint);
+            ImGui.SameLine();
+            DrawIcon(_headerCache.CurrentWeather, _headerCache.CurrentWeatherIcon, WeatherIconSize);
+            style.Pop();
+            ImGui.SameLine();
+            ImGuiUtil.DrawTextButton(nextWeather, Vector2.UnitY * WeatherIconSize.Y, ColorId.HeaderWeather.Value());
+            ImGui.SameLine();
+            DrawIcon(_headerCache.NextWeather, _headerCache.NextWeatherIcon, WeatherIconSize);
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("距离切换至下一天气剩余的时间");
     }
 
     private void DrawTimeRow()
@@ -176,7 +181,7 @@ public partial class Interface
         nextHourS    -= nextHourM * RealTime.SecondsPerMinute;
         nextWeatherS -= nextWeatherM * RealTime.SecondsPerMinute;
 
-        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2} Min.  ";
+        var nextWeatherString = $"  {nextWeatherM:D2}:{nextWeatherS:D2}  ";
         var width = -(ImGui.CalcTextSize(nextWeatherString).X
           + (WeatherIconSize.X + ItemSpacing.X + FramePadding.X) * 3);
 
@@ -184,7 +189,7 @@ public partial class Interface
         using var _ = ImRaii.Group();
         DrawEorzeaTime($"ET {GatherBuddy.Time.EorzeaHourOfDay:D2}:{GatherBuddy.Time.EorzeaMinuteOfHour:D2}");
         ImGui.SameLine();
-        DrawNextEorzeaHour($"{nextHourM:D2}:{nextHourS:D2} Min to next hour.", new Vector2(width, WeatherIconSize.Y));
+        DrawNextEorzeaHour($"距下一小时还有 {nextHourM:D2}:{nextHourS:D2} 分钟", new Vector2(width, WeatherIconSize.Y));
         ImGui.SameLine();
         DrawNextWeather(nextWeatherString);
     }

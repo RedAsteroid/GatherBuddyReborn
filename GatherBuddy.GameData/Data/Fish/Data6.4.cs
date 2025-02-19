@@ -1,4 +1,4 @@
-using GatherBuddy.Enums;
+﻿using GatherBuddy.Enums;
 
 namespace GatherBuddy.Data;
 
@@ -95,11 +95,11 @@ public static partial class Fish
         data.Apply(40532, Patch.TheDarkThrone) // Broadhead
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Day, OceanTime.Sunset);
+            .Ocean(OceanTime.白昼, OceanTime.日落);
         data.Apply(40533, Patch.TheDarkThrone) // Vivid Pink Shrimp
             .Bait(data, 29715)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40534, Patch.TheDarkThrone) // Sunken Coelacanth
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Legendary);
@@ -109,7 +109,7 @@ public static partial class Fish
         data.Apply(40536, Patch.TheDarkThrone) // Black-jawed Helicoprion
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40537, Patch.TheDarkThrone) // Impostopus
             .Bait(data, 29715)
             .Bite(data, HookSet.Precise, BiteType.Weak);
@@ -119,12 +119,12 @@ public static partial class Fish
         data.Apply(40539, Patch.TheDarkThrone) // Nymeia's Wheel
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40540, Patch.TheDarkThrone) // Taniwha
             .Bait(data, 36593)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
             .Predators (data, 15, (40534, 3))
-            .Ocean(OceanTime.Day);
+            .Ocean(OceanTime.白昼);
         data.Apply(40541, Patch.TheDarkThrone) // Ruby Herring
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
@@ -169,33 +169,33 @@ public static partial class Fish
         data.Apply(40553, Patch.TheDarkThrone) // Stingfin Trevally
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Day);
+            .Ocean(OceanTime.白昼);
         data.Apply(40554, Patch.TheDarkThrone) // Swordtip Squid
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Strong);
         data.Apply(40555, Patch.TheDarkThrone) // Mailfish
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40556, Patch.TheDarkThrone) // Idaten's Bolt
             .Bait(data, 29715)
             .Bite(data, HookSet.Precise, BiteType.Weak);
         data.Apply(40557, Patch.TheDarkThrone) // Maelstrom Turban
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Day, OceanTime.Sunset);
+            .Ocean(OceanTime.白昼, OceanTime.日落);
         data.Apply(40558, Patch.TheDarkThrone) // Shoshitsuki
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Legendary);
         data.Apply(40559, Patch.TheDarkThrone) // Spadefish
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40560, Patch.TheDarkThrone) // Glass Dragon
             .Mooch(data, 29715, 40551)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
             .Predators (data, 45, (40558, 2))
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40561, Patch.TheDarkThrone) // Crimson Kelp
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak);
@@ -240,7 +240,7 @@ public static partial class Fish
         data.Apply(40573, Patch.TheDarkThrone) // Pitch Pickle
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Day);
+            .Ocean(OceanTime.白昼);
         data.Apply(40574, Patch.TheDarkThrone) // Senbei Octopus
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak);
@@ -250,15 +250,15 @@ public static partial class Fish
         data.Apply(40576, Patch.TheDarkThrone) // Bekko Rockhugger
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40577, Patch.TheDarkThrone) // Yellow Iris
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Day);
+            .Ocean(OceanTime.白昼);
         data.Apply(40578, Patch.TheDarkThrone) // Crimson Sentry
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40579, Patch.TheDarkThrone) // Flying Squid
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Strong);
@@ -266,7 +266,7 @@ public static partial class Fish
             .Bait(data, 27590)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
             .Predators (data, 15, (40571, 2), (40579, 1))
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40581, Patch.TheDarkThrone) // Catching Carp
             .Bait(data, 29714)
             .Bite(data, HookSet.Precise, BiteType.Weak);
@@ -320,24 +320,24 @@ public static partial class Fish
         data.Apply(40596, Patch.TheDarkThrone) // Iridescent Trout
             .Bait(data, 29715)
             .Bite(data, HookSet.Precise, BiteType.Weak)
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40597, Patch.TheDarkThrone) // Un-Namazu
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40598, Patch.TheDarkThrone) // Gakugyo
             .Bait(data, 29716)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
-            .Ocean(OceanTime.Night);
+            .Ocean(OceanTime.夜晚);
         data.Apply(40599, Patch.TheDarkThrone) // Ginrin Goshiki
             .Bait(data, 29715)
             .Bite(data, HookSet.Powerful, BiteType.Strong)
-            .Ocean(OceanTime.Sunset);
+            .Ocean(OceanTime.日落);
         data.Apply(40600, Patch.TheDarkThrone) // Jewel of Plum Spring
             .Bait(data, 12704)
             .Bite(data, HookSet.Powerful, BiteType.Legendary)
             .Predators (data, 15, (40595, 2), (40591, 1))
-            .Ocean(OceanTime.Day);
+            .Ocean(OceanTime.白昼);
     }
     // @formatter:on
 }

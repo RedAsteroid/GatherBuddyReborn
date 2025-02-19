@@ -222,7 +222,7 @@ namespace GatherBuddy.AutoGather
 
         private bool ShouldUseGivingLandOutOfOrder(Gatherable? desiredItem)
         {
-            if (GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown && desiredItem != null && desiredItem.NodeType == Enums.NodeType.Regular)
+            if (GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown && desiredItem is { NodeType: Enums.NodeType.常规 })
             {
                 var anyCrystal = GetAnyCrystalInNode();
                 return anyCrystal != null && ShouldUseGivingLand(anyCrystal, MatchConfigPreset(anyCrystal.Item));

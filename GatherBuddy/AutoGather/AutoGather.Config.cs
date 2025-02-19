@@ -125,7 +125,7 @@ namespace GatherBuddy.AutoGather
                     return value;
                 }
 
-                throw new KeyNotFoundException($"Optional property with key '{key}' not found.");
+                throw new KeyNotFoundException($"未找到 '{key}' 键对应的属性");
             }
         }
 
@@ -168,10 +168,10 @@ namespace GatherBuddy.AutoGather
                 {
                     return nodeType switch
                     {
-                        Enums.NodeType.Regular   => RegularNode,
-                        Enums.NodeType.Unspoiled => UnspoiledNode,
-                        Enums.NodeType.Ephemeral => EphemeralNode,
-                        Enums.NodeType.Legendary => LegendaryNode,
+                        Enums.NodeType.常规 => RegularNode,
+                        Enums.NodeType.未知 => UnspoiledNode,
+                        Enums.NodeType.限时 => EphemeralNode,
+                        Enums.NodeType.传说 => LegendaryNode,
                         _                  => RegularNode
                     };
                 }

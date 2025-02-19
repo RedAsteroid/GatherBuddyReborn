@@ -75,20 +75,20 @@ public partial class Interface
             GatherBuddy.FishLog.Change             += OnLogChange;
         }
 
-        private static readonly NameColumn        _nameColumn        = new() { Label = "Item Name..." };
-        private static readonly CaughtColumn      _caughtColumn      = new() { Label = "Log" };
-        private static readonly NextUptimeColumn  _nextUptimeColumn  = new() { Label = "Next Uptime" };
-        private static readonly UptimesColumn     _uptimeColumn      = new() { Label = "Up%" };
-        private static readonly BaitColumn        _baitColumn        = new() { Label = "Bait..." };
-        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "Aetheryte..." };
-        private static readonly TypeColumn        _typeColumn        = new() { Label = "Fish Type" };
-        private static readonly CollectibleColumn _collectibleColumn = new() { Label = "Coll." };
-        private static readonly PatchColumn       _patchColumn       = new() { Label = "Patch" };
-        private static readonly FolkloreColumn    _folkloreColumn    = new() { Label = "Folklore..." };
-        private static readonly BestSpotColumn    _bestSpotColumn    = new() { Label = "Best Spot..." };
-        private static readonly BestZoneColumn    _bestZoneColumn    = new() { Label = "Best Zone..." };
-        private static readonly ItemIdColumn      _itemIdColumn      = new() { Label = "Item Id" };
-        private static readonly FishIdColumn      _fishIdColumn      = new() { Label = "G. Id" };
+        private static readonly NameColumn        _nameColumn        = new() { Label = "物品名称..." };
+        private static readonly CaughtColumn      _caughtColumn      = new() { Label = "已记录" };
+        private static readonly NextUptimeColumn  _nextUptimeColumn  = new() { Label = "下次窗口期" };
+        private static readonly UptimesColumn     _uptimeColumn      = new() { Label = "概率%" };
+        private static readonly BaitColumn        _baitColumn        = new() { Label = "鱼饵..." };
+        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "钓场..." };
+        private static readonly TypeColumn        _typeColumn        = new() { Label = "采集类型" };
+        private static readonly CollectibleColumn _collectibleColumn = new() { Label = "收藏品." };
+        private static readonly PatchColumn       _patchColumn       = new() { Label = "版本" };
+        private static readonly FolkloreColumn    _folkloreColumn    = new() { Label = "传承录..." };
+        private static readonly BestSpotColumn    _bestSpotColumn    = new() { Label = "传送点..." };
+        private static readonly BestZoneColumn    _bestZoneColumn    = new() { Label = "地图..." };
+        private static readonly ItemIdColumn      _itemIdColumn      = new() { Label = "物品Id" };
+        private static readonly FishIdColumn      _fishIdColumn      = new() { Label = "采集Id" };
 
         private class FishFilterColumn : ColumnFlags<FishFilter, ExtendedFish>
         {
@@ -569,7 +569,7 @@ public partial class Interface
     private void DrawFishTab()
     {
         using var id  = ImRaii.PushId("Fish");
-        using var tab = ImRaii.TabItem("Fish");
+        using var tab = ImRaii.TabItem("钓/刺鱼");
         ImGuiUtil.HoverTooltip("There are plenty of fish in the sea. And the air. And the sand. And the lava. And space, for some reason.\n"
           + " Gotta catch'em all!\n"
           + "Enough information about fish to get you started, and for everything else there's TeamCraft!");
@@ -578,7 +578,7 @@ public partial class Interface
 
         _fishTable.ExtraHeight = GatherBuddy.Config.ShowStatusLine ? ImGui.GetTextLineHeight() : 0;
         _fishTable.Draw(ImGui.GetTextLineHeightWithSpacing());
-        DrawStatusLine(_fishTable, "Fish");
+        DrawStatusLine(_fishTable, "鱼");
         DrawClippy();
     }
 }

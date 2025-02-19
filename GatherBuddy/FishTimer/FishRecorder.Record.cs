@@ -105,12 +105,12 @@ public partial class FishRecorder
     }
 
     private static readonly uint GatheringIdx =
-        Dalamud.GameData.GetExcelSheet<BaseParam>(ClientLanguage.English).Cast<BaseParam?>()
+        Dalamud.GameData.GetExcelSheet<BaseParam>().Cast<BaseParam?>()
             .FirstOrDefault(r => r!.Value.Name == "Gathering")?.RowId
      ?? 72;
 
     private static readonly uint PerceptionIdx =
-        Dalamud.GameData.GetExcelSheet<BaseParam>(ClientLanguage.English).Cast<BaseParam?>()
+        Dalamud.GameData.GetExcelSheet<BaseParam>().Cast<BaseParam?>()
             .FirstOrDefault(r => r!.Value.Name == "Perception")?.RowId
      ?? 73;
 
@@ -203,7 +203,7 @@ public partial class FishRecorder
         if (collectible)
             Record.Flags |= FishRecord.Effects.Collectible;
         GatherBuddy.Log.Verbose(
-            $"Caught {amount} {(large ? "large " : string.Empty)}{(collectible ? "collectible " : string.Empty)}{Record.Catch.Name[ClientLanguage.English]} of size {size / 10f:F1}.");
+            $"Caught {amount} {(large ? "large " : string.Empty)}{(collectible ? "collectible " : string.Empty)}{Record.Catch.Name[(ClientLanguage)4]} of size {size / 10f:F1}.");
     }
 
     private void OnMooch()

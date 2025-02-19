@@ -10,6 +10,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Types;
+using ECommons.Automation;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.SeFunctions;
@@ -24,12 +25,17 @@ namespace GatherBuddy.AutoGather
             TaskManager.Enqueue(StopNavigation);
 
             var am = ActionManager.Instance();
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "下坐骑");
 
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "Wait for not in flight");
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount 2");
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "Wait for dismount");
-            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(500); } );//Prevent "Unable to execute command while jumping."
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "等待飞行状态取消");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "下坐骑 2");
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "等待坐骑状态取消");
+            // 添加移动补偿防止其他玩家看到你浮空
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.Instance.ExecuteCommand($"/automove on"); }, "下坐骑补偿 3"); 
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(100); });
+            // 停止移动
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.Instance.ExecuteCommand($"/automove off"); }, "下坐骑补偿 4"); 
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(400); });
         }
 
         private unsafe void EnqueueMountUp()
@@ -68,9 +74,11 @@ namespace GatherBuddy.AutoGather
 
         private void MoveToCloseNode(IGameObject gameObject, Gatherable targetItem, ConfigPreset config)
         {
-            var distance = gameObject.Position.DistanceToPlayer();
-
-            if (distance < 3)
+            var distance = gameObject.Position.DistanceToPlayer(); // Vector3
+            var distance2 = gameObject.Position.DistanceToPlayer2(); // Vector2，小于 3.5 时为可交互范围
+            var x = Math.Abs(gameObject.Position.Y - Player.Position.Y); // 高度差，绝对值小于 3 时为可交互范围
+            
+            if (distance < 3 && distance2 < 3.5 && x < 3)
             {
                 var waitGP = targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.CollectableMinGP;
                 waitGP |= !targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.GatherableMinGP;
@@ -100,7 +108,7 @@ namespace GatherBuddy.AutoGather
                 else if (waitGP)
                 {
                     StopNavigation();
-                    AutoStatus = "Waiting for GP to regenerate...";
+                    AutoStatus = "等待采集力恢复中...";
                 } 
                 else
                 {
@@ -115,12 +123,12 @@ namespace GatherBuddy.AutoGather
                     else
                     {
                         EnqueueNodeInteraction(gameObject, targetItem);
-                        //The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
-                        //Enqueue navigation anyway, just in case.
-                        if (!Dalamud.Conditions[ConditionFlag.Diving])
-                        {
-                            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
-                        }
+                            //The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
+                            //Enqueue navigation anyway, just in case.
+                            if (!Dalamud.Conditions[ConditionFlag.Diving])
+                            {
+                                TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
+                            }
                     }
                 }
             }
@@ -177,7 +185,7 @@ namespace GatherBuddy.AutoGather
             StopNavigation();
             CurrentDestination = destination;
             var correctedDestination = GetCorrectedDestination(CurrentDestination);
-            GatherBuddy.Log.Debug($"Navigating to {destination} (corrected to {correctedDestination})");
+            GatherBuddy.Log.Debug($"正在导航至 {destination} (关联点: {correctedDestination})");
 
             LastNavigationResult = VNavmesh_IPCSubscriber.SimpleMove_PathfindAndMoveTo(correctedDestination, shouldFly);
         }

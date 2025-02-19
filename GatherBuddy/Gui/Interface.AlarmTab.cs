@@ -20,10 +20,10 @@ namespace GatherBuddy.Gui;
 public partial class Interface
 {
     private static string CheckUnnamed(string name)
-        => name.Length > 0 ? name : "<Unnamed>";
+        => name.Length > 0 ? name : "<未命名>";
 
     private static string CheckUndescribed(string desc)
-        => desc.Length > 0 ? desc : "<No Description>";
+        => desc.Length > 0 ? desc : "<无描述>";
 
 
     private class AlarmWindowDragDropData
@@ -96,7 +96,7 @@ public partial class Interface
                 };
 
                 if (group.Alarms.Count < configGroup.Alarms.Count())
-                    GatherBuddy.Log.Warning("Invalid alarms skipped");
+                    GatherBuddy.Log.Warning("已跳过无效的闹钟");
 
                 _manager.AddGroup(group);
                 return true;
@@ -133,7 +133,7 @@ public partial class Interface
         public static readonly Sounds[] SoundIds = Enum.GetValues<Sounds>().Where(s => s != Sounds.Unknown).ToArray();
 
         public static readonly string SoundIdNames =
-            string.Join("\0", SoundIds.Select(s => s == Sounds.None ? "No Sound" : $"Sound {s.ToIdx()}"));
+            string.Join("\0", SoundIds.Select(s => s == Sounds.None ? "无音效" : $"音效 {s.ToIdx()}"));
 
         public readonly AlarmSelector  Selector;
         public readonly TimedItemCombo ItemCombo = new(string.Empty);
@@ -171,19 +171,19 @@ public partial class Interface
         var       enabled = alarm.Enabled;
 
         ImGui.TableNextColumn();
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "Delete this Alarm...", false, true))
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "删除此闹钟...", false, true))
             _plugin.AlarmManager.DeleteAlarm(group, alarmIdx--);
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(SetInputWidth);
         var name = alarm.Name;
         if (ImGui.InputTextWithHint("##name", CheckUnnamed(string.Empty), ref name, 64))
             _plugin.AlarmManager.ChangeAlarmName(group, alarmIdx, name);
-        ImGuiUtil.HoverTooltip("Names are optional and can be used in the alarm message that is printed to chat.");
+        ImGuiUtil.HoverTooltip("闹钟名称将用于相关输出信息之中, 可为空");
 
         ImGui.TableNextColumn();
         if (ImGui.Checkbox("##Enabled", ref enabled) && enabled != alarm.Enabled)
             _plugin.AlarmManager.ToggleAlarm(group, alarmIdx);
-        ImGuiUtil.HoverTooltip("Enable this Alarm.");
+        ImGuiUtil.HoverTooltip("启用此闹钟");
 
         ImGui.TableNextColumn();
         if (_alarmCache.ItemCombo.Draw(alarm.Item.InternalLocationId - 1, out var newIdx))
@@ -203,13 +203,13 @@ public partial class Interface
 
         if (ImGui.IsItemDeactivated())
             _plugin.AlarmManager.ChangeAlarmOffset(group, alarmIdx, Math.Clamp(_alarmCache.ChangedSecondOffset, 0, RealTime.SecondsPerDay));
-        ImGuiUtil.HoverTooltip("Trigger this alarm this many seconds before the item in question is next available.");
+        ImGuiUtil.HoverTooltip("闹钟触发将略早于物品激活的时间。");
 
         ImGui.TableNextColumn();
         var printMessage = alarm.PrintMessage;
         if (ImGui.Checkbox("##PrintMessage", ref printMessage))
             _plugin.AlarmManager.ChangeAlarmMessage(group, alarmIdx, printMessage);
-        ImGuiUtil.HoverTooltip("Print a chat message when this alarm is triggered.");
+        ImGuiUtil.HoverTooltip("闹钟触发时输出聊天消息。");
 
         ImGui.TableNextColumn();
         var idx = alarm.SoundId.ToIdx();
@@ -219,7 +219,7 @@ public partial class Interface
             _plugin.AlarmManager.ChangeAlarmSound(group, alarmIdx, AlarmCache.SoundIds[idx]);
             AlarmManager.PreviewAlarm(AlarmCache.SoundIds[idx]);
         }
-        ImGuiUtil.HoverTooltip("Play this sound effect when this alarm is triggered.");
+        ImGuiUtil.HoverTooltip("闹钟触发时播放声音效果。");
 
         ImGui.TableNextColumn();
         if (DrawLocationInput(alarm.Item, alarm.PreferLocation, out var newLocation))
@@ -232,7 +232,7 @@ public partial class Interface
         if (time.Start > now)
             ImGuiUtil.DrawTextButton(TimeInterval.DurationString(time.Start, now, false), size, ColorId.WarningBg.Value());
         else
-            ImGuiUtil.DrawTextButton("Currently Triggered", size, ColorId.ChangedLocationBg.Value());
+            ImGuiUtil.DrawTextButton("当前触发器", size, ColorId.ChangedLocationBg.Value());
     }
 
     private void DrawGroupData(AlarmGroup group, int idx)
@@ -248,7 +248,7 @@ public partial class Interface
         if (ImGui.Checkbox("Enabled", ref enabled) && enabled != group.Enabled)
             _plugin.AlarmManager.ToggleGroup(idx);
         ImGuiUtil.HoverTooltip(
-            "Enable this alarm group. Only those alarms in the group that are enabled themselves will be counted as active.");
+            "启用此闹钟组。只有启用自身的组中的那些闹钟才能被视为活动状态。");
     }
 
     private void DrawToggleAll(AlarmGroup group)
@@ -258,7 +258,7 @@ public partial class Interface
         ImGui.TableNextColumn();
         var allEnabled = group.Alarms.All(a => a.Enabled);
         var ret        = ImGui.Checkbox("##allEnabled", ref allEnabled);
-        ImGuiUtil.HoverTooltip("Enable all disabled alarms, or disable all alarms.");
+        ImGuiUtil.HoverTooltip("启用所有禁用中的闹钟，或禁用所有闹钟。");
 
         if (!ret)
             return;
@@ -318,7 +318,7 @@ public partial class Interface
 
     private void DrawAlarmGroupHeaderLine()
     {
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "Copy current Alarm Group to clipboard.",
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "将当前闹钟组复制到剪贴板。",
                 _alarmCache.Selector.Current == null, true))
         {
             var group = _alarmCache.Selector.Current!;
@@ -326,16 +326,16 @@ public partial class Interface
             {
                 var s = new AlarmGroup.Config(group).ToBase64();
                 ImGui.SetClipboardText(s);
-                Communicator.PrintClipboardMessage("Alarm Group ", group.Name);
+                Communicator.PrintClipboardMessage("闹钟组 ", group.Name);
             }
             catch (Exception e)
             {
-                GatherBuddy.Log.Error($"Could not write Alarm Group {group.Name} to Clipboard:\n{e}");
-                Communicator.PrintClipboardMessage("Alarm Group ", group.Name, e);
+                GatherBuddy.Log.Error($"无法将闹钟组 {group.Name} 复制到剪贴板:\n{e}");
+                Communicator.PrintClipboardMessage("闹钟组 ", group.Name, e);
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Create Preset", Vector2.Zero, "Create a new Gather Window Preset from this alarm group.",
+        if (ImGuiUtil.DrawDisabledButton("创建窗口", Vector2.Zero, "由当前闹钟组新建一个采集窗口。",
                 _alarmCache.Selector.Current == null))
         {
             var preset = new GatherWindowPreset(_alarmCache.Selector.Current!);
@@ -344,23 +344,23 @@ public partial class Interface
 
         ImGui.SameLine();
 
-        ImGuiComponents.HelpMarker("Use /gather alarm to gather the last item alarm triggered.\n"
-          + "Use /gatherfish alarm to gather the last fish alarm triggered.");
+        ImGuiComponents.HelpMarker("使用 /gather alarm 以采集上一个闹钟触发的物品\n"
+          + "使用 /gatherfish alarm 以采集上一个闹钟触发的鱼");
     }
 
     private void DrawAlarmTab()
     {
         using var id  = ImRaii.PushId("Alarms");
-        using var tab = ImRaii.TabItem("Alarms");
-        ImGuiUtil.HoverTooltip("Do you often find yourself late for a very important date with no time to say hello or goodbye?\n"
-          + "Set up your very own alarm clock. Viera might even be able to wear it around their neck.");
+        using var tab = ImRaii.TabItem("闹钟");
+        ImGuiUtil.HoverTooltip("您经常发现自己马上就要在非常重要的约会中迟到了，却没有时间打招呼？\n"
+          + "设置自己的闹钟。维埃拉族甚至可以将其戴在脖子上。");
         if (!tab)
             return;
 
         _alarmCache.Selector.Draw(SelectorWidth);
         ImGui.SameLine();
 
-        ItemDetailsWindow.Draw("Alarm Group Details", DrawAlarmGroupHeaderLine, () =>
+        ItemDetailsWindow.Draw("闹钟组详情", DrawAlarmGroupHeaderLine, () =>
         {
             if (_alarmCache.Selector.Current != null)
                 DrawAlarmInfo(_alarmCache.Selector.Current, _alarmCache.Selector.CurrentIdx);

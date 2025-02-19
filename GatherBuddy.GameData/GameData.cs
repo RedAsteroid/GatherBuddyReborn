@@ -163,7 +163,7 @@ public class GameData
 
             foreach (var gatherable in Gatherables.Values)
             {
-                if (gatherable.NodeType != NodeType.Unknown && !gatherable.NodeList.Any(n => n.Times.AlwaysUp()))
+                if (gatherable.NodeType != NodeType.无 && !gatherable.NodeList.Any(n => n.Times.AlwaysUp()))
                     gatherable.InternalLocationId = ++TimedGatherables;
                 else if (gatherable.NodeList.Count > 1)
                     gatherable.InternalLocationId = -++MultiNodeGatherables;
@@ -224,7 +224,7 @@ public class GameData
 
     private static OceanRoute[] SetupOceanRoutes(IDataManager manager, IReadOnlyDictionary<uint, FishingSpot> fishingSpots)
     {
-        var routeSheet = manager.GetExcelSheet<IKDRoute>(ClientLanguage.English);
+        var routeSheet = manager.GetExcelSheet<IKDRoute>();
         var spotSheet  = manager.GetExcelSheet<IKDSpot>();
         var ret        = new OceanRoute[routeSheet.Count - 1];
 
@@ -239,13 +239,13 @@ public class GameData
             var row = routeSheet.GetRow(i);
             var (start, day, sunset, night) = row.Time[0].RowId switch
             {
-                1 => (OceanTime.Sunset, spots[(int)row.Spot[1].RowId - 1], spots[(int)row.Spot[2].RowId - 1],
+                1 => (OceanTime.日落, spots[(int)row.Spot[1].RowId - 1], spots[(int)row.Spot[2].RowId - 1],
                     spots[(int)row.Spot[0].RowId - 1]),
-                2 => (OceanTime.Night, spots[(int)row.Spot[0].RowId - 1], spots[(int)row.Spot[1].RowId - 1],
+                2 => (OceanTime.夜晚, spots[(int)row.Spot[0].RowId - 1], spots[(int)row.Spot[1].RowId - 1],
                     spots[(int)row.Spot[2].RowId - 1]),
-                3 => (OceanTime.Day, spots[(int)row.Spot[2].RowId - 1], spots[(int)row.Spot[0].RowId - 1],
+                3 => (OceanTime.白昼, spots[(int)row.Spot[2].RowId - 1], spots[(int)row.Spot[0].RowId - 1],
                     spots[(int)row.Spot[1].RowId - 1]),
-                _ => (OceanTime.Sunset, spots[(int)row.Spot[1].RowId - 1], spots[(int)row.Spot[2].RowId - 1],
+                _ => (OceanTime.日落, spots[(int)row.Spot[1].RowId - 1], spots[(int)row.Spot[2].RowId - 1],
                     spots[(int)row.Spot[0].RowId - 1]),
             };
             ret[i - 1] = new OceanRoute
@@ -256,7 +256,7 @@ public class GameData
                 SpotDay    = day,
                 SpotSunset = sunset,
                 SpotNight  = night,
-                Area       = i < 13 ? OceanArea.Aldenard : i < 19 ? OceanArea.Othard : OceanArea.Unknown,
+                Area       = i < 13 ? OceanArea.近海 : i < 19 ? OceanArea.远洋 : OceanArea.Unknown,
             };
         }
 
