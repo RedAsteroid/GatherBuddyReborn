@@ -7,12 +7,12 @@ namespace GatherBuddy.Enums;
 [Flags]
 public enum OceanTime : byte
 {
-    ´Ó²»  = 0,
-    ÈÕÂä = 0x01,
-    Ò¹Íí  = 0x02,
-    °×Öç    = 0x04,
+    ä»ä¸ = 0,
+    æ—¥è½ = 0x01,
+    å¤œæ™š = 0x02,
+    ç™½æ˜¼ = 0x04,
 
-    ×ÜÊÇ = ÈÕÂä | Ò¹Íí | °×Öç,
+    æ€»æ˜¯ = æ—¥è½ | å¤œæ™š | ç™½æ˜¼,
 }
 
 public static class OceanTimeExtensions
@@ -20,28 +20,28 @@ public static class OceanTimeExtensions
     public static OceanTime Next(this OceanTime time)
         => time switch
         {
-            OceanTime.ÈÕÂä => OceanTime.Ò¹Íí,
-            OceanTime.Ò¹Íí  => OceanTime.°×Öç,
-            OceanTime.°×Öç    => OceanTime.ÈÕÂä,
-            _                => OceanTime.ÈÕÂä,
+            OceanTime.æ—¥è½ => OceanTime.å¤œæ™š,
+            OceanTime.å¤œæ™š => OceanTime.ç™½æ˜¼,
+            OceanTime.ç™½æ˜¼ => OceanTime.æ—¥è½,
+            _            => OceanTime.æ—¥è½,
         };
 
     public static OceanTime Previous(this OceanTime time)
         => time switch
         {
-            OceanTime.ÈÕÂä => OceanTime.°×Öç,
-            OceanTime.Ò¹Íí  => OceanTime.ÈÕÂä,
-            OceanTime.°×Öç    => OceanTime.Ò¹Íí,
-            _                => OceanTime.ÈÕÂä,
+            OceanTime.æ—¥è½ => OceanTime.ç™½æ˜¼,
+            OceanTime.å¤œæ™š => OceanTime.æ—¥è½,
+            OceanTime.ç™½æ˜¼ => OceanTime.å¤œæ™š,
+            _            => OceanTime.æ—¥è½,
         };
 
     public static IEnumerable<OceanTime> Enumerate(this OceanTime time)
     {
-        if (time.HasFlag(OceanTime.ÈÕÂä))
-            yield return OceanTime.ÈÕÂä;
-        if (time.HasFlag(OceanTime.Ò¹Íí))
-            yield return OceanTime.Ò¹Íí;
-        if (time.HasFlag(OceanTime.°×Öç))
-            yield return OceanTime.°×Öç;
+        if (time.HasFlag(OceanTime.æ—¥è½))
+            yield return OceanTime.æ—¥è½;
+        if (time.HasFlag(OceanTime.å¤œæ™š))
+            yield return OceanTime.å¤œæ™š;
+        if (time.HasFlag(OceanTime.ç™½æ˜¼))
+            yield return OceanTime.ç™½æ˜¼;
     }
 }

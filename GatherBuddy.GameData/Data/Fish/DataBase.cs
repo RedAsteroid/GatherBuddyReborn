@@ -282,8 +282,8 @@ public static partial class Fish
         if (fish == null)
             return null;
 
-        fish.OceanTime = times.Aggregate(OceanTime.从不, (a, b) => a | b);
-        if (fish.OceanTime != OceanTime.总是)
+        fish.OceanTime = times.Aggregate(OceanTime.浠庝笉, (a, b) => a | b);
+        if (fish.OceanTime != OceanTime.鎬绘槸)
             fish.FishRestrictions |= FishRestrictions.Time;
         return fish;
     }

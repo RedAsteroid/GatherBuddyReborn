@@ -160,7 +160,7 @@ public partial class Configuration : IPluginConfiguration
         if (Version >= 6)
             return;
 
-        ShowItems |= ItemFilter.Dawntrail;
+        ShowItems |= ItemFilter.金曦之遗辉;
         Version   =  6;
         Save();
     }

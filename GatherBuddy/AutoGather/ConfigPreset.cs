@@ -208,10 +208,10 @@ namespace GatherBuddy.AutoGather
             )
             && item.NodeType switch
             {
-                Enums.NodeType.Regular => NodeType.Regular,
-                Enums.NodeType.Unspoiled => NodeType.Unspoiled,
-                Enums.NodeType.Legendary => NodeType.Legendary,
-                Enums.NodeType.Ephemeral => NodeType.Ephemeral,
+                Enums.NodeType.常规 => NodeType.Regular,
+                Enums.NodeType.未知 => NodeType.Unspoiled,
+                Enums.NodeType.传说 => NodeType.Legendary,
+                Enums.NodeType.限时 => NodeType.Ephemeral,
                 _ => false
             }
                 && (   item.IsCrystal && ItemType.Crystals

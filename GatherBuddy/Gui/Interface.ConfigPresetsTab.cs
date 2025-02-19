@@ -193,17 +193,15 @@ namespace GatherBuddy.Gui
 
         public void DrawConfigPresetsTab()
         {
-            using var tab = ImRaii.TabItem("Config Presets");
-
-            ImGuiUtil.HoverTooltip("Configure what actions to use with Auto-Gather.");
-
+            using var tab = ImRaii.TabItem("设置预设");
+            
             if (!tab)
                 return;
 
             var selector = _configPresetsSelector;
             selector.Draw(SelectorWidth);
             ImGui.SameLine();
-            ItemDetailsWindow.Draw("Preset Details", DrawConfigPresetHeader, () =>
+            ItemDetailsWindow.Draw("预设详情", DrawConfigPresetHeader, () =>
             {
                 DrawConfigPreset(selector.EnsureCurrent()!, selector.CurrentIdx == selector.Presets.Count - 1);
             });
@@ -211,20 +209,20 @@ namespace GatherBuddy.Gui
 
         private void DrawConfigPresetHeader()
         {
-            if (ImGui.Button("Export"))
+            if (ImGui.Button("导出"))
             {
                 var current = _configPresetsSelector.Current;
                 if (current == null)
                 {
-                    Notify.Error("No config preset selected.");
+                    Notify.Error("未选中任何设置");
                     return;
                 }
 
                 var text = current.ToBase64String();
                 ImGui.SetClipboardText(text);
-                Notify.Success($"Successfully copied {current.Name} to clipboard.");
+                Notify.Success($"已复制设置预设 {current.Name} 至剪贴板");
             }
-            if (ImGui.Button("Check"))
+            if (ImGui.Button("检查"))
             {
                 ImGui.OpenPopup("Config Presets Checker");
             }
@@ -287,7 +285,7 @@ namespace GatherBuddy.Gui
                 }
 
                 var enabled = preset.Enabled;
-                if (ImGui.Checkbox("Enabled", ref enabled) && enabled != preset.Enabled)
+                if (ImGui.Checkbox("启用", ref enabled) && enabled != preset.Enabled)
                 {
                     preset.Enabled = enabled;
                     selector.Save();

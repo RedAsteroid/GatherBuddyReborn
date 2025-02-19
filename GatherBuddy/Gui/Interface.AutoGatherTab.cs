@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Utility;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Classes;
@@ -179,7 +180,7 @@ public partial class Interface
 
     private void DrawAutoGatherListsLine()
     {
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "Copy current auto-gather list to clipboard.",
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Copy.ToIconString(), IconButtonSize, "复制当前自动采集列表至剪贴板",
                 _autoGatherListsCache.Selector.Current == null, true))
         {
             var list = _autoGatherListsCache.Selector.Current!;
@@ -187,15 +188,15 @@ public partial class Interface
             {
                 var s = new AutoGatherList.Config(list).ToBase64();
                 ImGui.SetClipboardText(s);
-                Communicator.PrintClipboardMessage("Auto-gather list ", list.Name);
+                Communicator.PrintClipboardMessage("自动采集列表 ", list.Name);
             }
             catch (Exception e)
             {
-                Communicator.PrintClipboardMessage("Auto-gather list ", list.Name, e);
+                Communicator.PrintClipboardMessage("自动采集列表 ", list.Name, e);
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("Import from TeamCraft", Vector2.Zero, "Populate list from clipboard contents (TeamCraft format)",
+        if (ImGuiUtil.DrawDisabledButton("从 TeamCraft 导入", Vector2.Zero, "从剪贴板导入 TeamCraft 格式的数据以生成采集列表",
                 _autoGatherListsCache.Selector.Current == null))
         {
             var clipboardText = ImGuiUtil.GetClipboardText();
@@ -240,13 +241,6 @@ public partial class Interface
                 }
             }
         }
-
-        ImGuiComponents.HelpMarker(
-            "If the config option to sort by location is not selected, items are gathered in order of enabled list, then order of item in list.\n"
-          + "You can drag and draw lists to move them.\n"
-          + "You can drag and draw items in a specific list to move them.\n"
-          + "You can drag and draw an item onto a different list from the selector to add it to that list and remove it from the current.\n"
-          + "In the Gather Window, you can hold Control and Right-Click an item to delete it from the list it comes from.");
     }
 
     private void DrawAutoGatherList(AutoGatherList list)
@@ -259,14 +253,14 @@ public partial class Interface
             _plugin.AutoGatherListsManager.ChangeDescription(list, newDesc);
 
         var tmp = list.Enabled;
-        if (ImGui.Checkbox("Enabled##list", ref tmp) && tmp != list.Enabled)
+        if (ImGui.Checkbox("启用##list", ref tmp) && tmp != list.Enabled)
             _plugin.AutoGatherListsManager.ToggleList(list);
 
         ImGui.SameLine();
-        ImGuiUtil.Checkbox("Fallback##list",
-            "Items from fallback lists won't be auto-gathered.\n"
-          + "But if a node doesn't contain any items from regular lists or if you gathered enough of them,\n"
-          + "items from fallback lists would be gathered instead if they could be found in that node.", 
+        ImGuiUtil.Checkbox("备选##list",
+            "正常情况下, 不会去采集备选列表内的任何物品\n"
+          + "仅当当前采集点不包含任意采集列表内所指定的物品, 又或者是采集点内列表所指定物品均已达到数量要求时,\n"
+          + "才会尝试去采集备选列表内的物品.", 
             list.Fallback, (v) => _plugin.AutoGatherListsManager.SetFallback(list, v));
 
         ImGui.NewLine();
@@ -295,13 +289,13 @@ public partial class Interface
                 changeItemIndex = newIdx;
             }
             ImGui.SameLine();
-            ImGui.Text("Inventory: ");
+            ImGui.Text("所持: ");
             var invTotal = _plugin.AutoGatherListsManager.GetInventoryCountForItem(item);
             ImGui.SameLine(0f, ImGui.CalcTextSize($"0000 / ").X - ImGui.CalcTextSize($"{invTotal} / ").X);
             ImGui.Text($"{invTotal} / ");
             ImGui.SameLine(0, 3f);
             var quantity = list.Quantities.TryGetValue(item, out var q) ? (int)q : 1;
-            ImGui.SetNextItemWidth(100f);
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
             if (ImGui.InputInt("##quantity", ref quantity, 1, 10))
                 _plugin.AutoGatherListsManager.ChangeQuantity(list, item, (uint)quantity);
             ImGui.SameLine();
@@ -322,7 +316,7 @@ public partial class Interface
         if (changeIndex >= 0)
             _plugin.AutoGatherListsManager.ChangeItem(list, gatherables[changeItemIndex], changeIndex);
 
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "Add this item at the end of the list", false, true))
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "追加该物品至列表", false, true))
             _plugin.AutoGatherListsManager.AddItem(list, gatherables[_autoGatherListsCache.NewGatherableIdx]);
 
         ImGui.SameLine();
@@ -336,10 +330,7 @@ public partial class Interface
     private void DrawAutoGatherTab()
     {
         using var id  = ImRaii.PushId("AutoGatherLists");
-        using var tab = ImRaii.TabItem("Auto-Gather");
-
-        ImGuiUtil.HoverTooltip(
-            "You read that right! Auto-gather!");
+        using var tab = ImRaii.TabItem("自动采集");
 
         if (!tab)
             return;
@@ -349,7 +340,7 @@ public partial class Interface
         _autoGatherListsCache.Selector.Draw(SelectorWidth);
         ImGui.SameLine();
 
-        ItemDetailsWindow.Draw("List Details", DrawAutoGatherListsLine, () =>
+        ItemDetailsWindow.Draw("列表详情", DrawAutoGatherListsLine, () =>
         {
             if (_autoGatherListsCache.Selector.Current != null)
                 DrawAutoGatherList(_autoGatherListsCache.Selector.Current);

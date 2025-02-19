@@ -18,9 +18,9 @@ public class OceanTimeline
     public IReadOnlyList<OceanRoute> this[OceanArea area]
         => area switch
         {
-            OceanArea.Aldenard => Aldenard,
-            OceanArea.Othard   => Othard,
-            _                  => Array.Empty<OceanRoute>(),
+            OceanArea.近海 => Aldenard,
+            OceanArea.远洋 => Othard,
+            _            => Array.Empty<OceanRoute>(),
         };
 
     public OceanRoute this[OceanArea area, int idx]

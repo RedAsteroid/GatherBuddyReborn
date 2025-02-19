@@ -123,9 +123,9 @@ namespace GatherBuddy.AutoGather
             {
                 uint quest = item.GatheringType switch
                 {
-                    GatheringType.Miner    => 65728,
-                    GatheringType.Botanist => 65729,
-                    _                      => 0,
+                    GatheringType.采矿工 => 65728,
+                    GatheringType.园艺工 => 65729,
+                    _                 => 0,
                 };
                 if (quest > 0 && !QuestManager.IsQuestComplete(quest))
                 {

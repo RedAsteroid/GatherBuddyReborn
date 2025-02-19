@@ -119,7 +119,7 @@ public class GameData
                 .ToFrozenDictionary(group => group.Key, group => group.Select(g => g.RowId).Distinct().ToList());
 
             GatheringNodes = DataManager.GetExcelSheet<GatheringPointBase>()
-                .Where(b => b.GatheringType.RowId < (int)Enums.GatheringType.Spearfishing)
+                .Where(b => b.GatheringType.RowId < (int)Enums.GatheringType.刺鱼)
                 .Select(b => new GatheringNode(this, tmpGatheringPoints, tmpGatheringItemPoint, b))
                 .Where(n => n.Territory.Id > 1 && n.Items.Count > 0)
                 .ToFrozenDictionary(n => n.Id, n => n);
