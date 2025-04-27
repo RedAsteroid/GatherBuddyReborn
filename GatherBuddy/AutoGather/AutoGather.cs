@@ -1,4 +1,4 @@
-﻿using ECommons.Automation.LegacyTaskManager;
+﻿﻿﻿﻿﻿﻿﻿﻿using ECommons.Automation.LegacyTaskManager;
 using GatherBuddy.Plugin;
 using System;
 using System.Linq;
@@ -32,18 +32,18 @@ namespace GatherBuddy.AutoGather
         public AutoGather(GatherBuddy plugin)
         {
             // Initialize the task manager
-            TaskManager                            =  new();
-            TaskManager.ShowDebug                  =  false;
-            _plugin                                =  plugin;
-            _soundHelper                           =  new SoundHelper();
-            _advancedUnstuck                       =  new();
+            TaskManager = new();
+            TaskManager.ShowDebug = false;
+            _plugin = plugin;
+            _soundHelper = new SoundHelper();
+            _advancedUnstuck = new();
         }
 
         private readonly GatherBuddy _plugin;
         private readonly SoundHelper _soundHelper;
         private readonly AdvancedUnstuck _advancedUnstuck;
-        
-        public           TaskManager TaskManager { get; }
+
+        public TaskManager TaskManager { get; }
 
         private bool _enabled { get; set; } = false;
         internal readonly GatheringTracker NodeTracker = new();
@@ -57,7 +57,7 @@ namespace GatherBuddy.AutoGather
                 {
                     TaskManager.Abort();
                     targetInfo = null;
-                    if (VNavmesh_IPCSubscriber.IsEnabled && IsPathGenerating) 
+                    if (VNavmesh_IPCSubscriber.IsEnabled && IsPathGenerating)
                         VNavmesh_IPCSubscriber.Nav_PathfindCancelAll();
                     StopNavigation();
                     AutoStatus = "空闲中...";
@@ -65,7 +65,7 @@ namespace GatherBuddy.AutoGather
                 }
                 else
                 {
-                    RefreshNextTreasureMapAllowance();                    
+                    RefreshNextTreasureMapAllowance();
                     WentHome = true; //Prevents going home right after enabling auto-gather
                 }
 
@@ -85,7 +85,7 @@ namespace GatherBuddy.AutoGather
 
             if (Lifestream_IPCSubscriber.IsEnabled && !Lifestream_IPCSubscriber.IsBusy())
                 Lifestream_IPCSubscriber.ExecuteCommand("auto");
-            else 
+            else
                 GatherBuddy.Log.Warning("未安装或启用 Lifestream");
         }
 
@@ -133,7 +133,17 @@ namespace GatherBuddy.AutoGather
 
             if (FreeInventorySlots == 0)
             {
-                AbortAutoGather("背包已满");
+                if (HasReducibleItems())
+                {
+                    if (IsGathering)
+                        CloseGatheringAddons();
+                    else
+                        DoAetherialReduction();
+                }
+                else
+                {
+                    AbortAutoGather("背包已满");
+                }
                 return;
             }
 
@@ -204,14 +214,22 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (GatherBuddy.Config.AutoGatherConfig.DoMaterialize 
+            if (GatherBuddy.Config.AutoGatherConfig.DoMaterialize
                 && Player.Job is Job.BTN or Job.MIN
-                && !isPathing 
-                && !Svc.Condition[ConditionFlag.Mounted] 
-                && SpiritbondMax > 0)
+                && !isPathing
+                && !Svc.Condition[ConditionFlag.Mounted])
             {
-                DoMateriaExtraction();
-                return;
+                if (SpiritbondMax > 0)
+                {
+                    DoMateriaExtraction();
+                    return;
+                }
+
+                if (FreeInventorySlots < 20 && HasReducibleItems())
+                {
+                    DoAetherialReduction();
+                    return;
+                }
             }
 
             foreach (var (loc, time) in VisitedTimedLocations)
@@ -232,6 +250,12 @@ namespace GatherBuddy.AutoGather
 
                     if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle)
                         GoHome();
+                        
+                    if (HasReducibleItems())
+                    {
+                        DoAetherialReduction();
+                        return;
+                    }
 
                     AutoStatus = "无待采集物品";
                     return;
@@ -310,7 +334,7 @@ namespace GatherBuddy.AutoGather
             }
 
             var forcedAetheryte = ForcedAetherytes.ZonesWithoutAetherytes.Where(z => z.ZoneId == targetInfo.Location.Territory.Id).FirstOrDefault();
-            if (forcedAetheryte.ZoneId != 0 
+            if (forcedAetheryte.ZoneId != 0
                 && (GatherBuddy.GameData.Aetherytes[forcedAetheryte.AetheryteId].Territory.Id == territoryId
                 || forcedAetheryte.AetheryteId == 70 && territoryId == 886)) //The Firmament
             {
@@ -405,7 +429,7 @@ namespace GatherBuddy.AutoGather
             }
 
             Vector3 selectedFarNode;
-            
+
             // only Legendary and Unspoiled show marker
             if (ShouldUseFlag && targetInfo.Item.NodeType is NodeType.传说 or NodeType.未知)
             {
@@ -439,7 +463,7 @@ namespace GatherBuddy.AutoGather
                 }
 
             }
-             
+
             MoveToFarNode(selectedFarNode);
         }
 
@@ -468,7 +492,8 @@ namespace GatherBuddy.AutoGather
             }
             if (gatheringOpen || masterpieceOpen)
             {
-                TaskManager.Enqueue(() => {
+                TaskManager.Enqueue(() =>
+                {
                     if (GatheringAddon is var gathering and not null && gathering->IsReady)
                     {
                         Callback.Fire(&gathering->AtkUnitBase, true, -1);
@@ -490,7 +515,7 @@ namespace GatherBuddy.AutoGather
                         return true;
                     }
 
-                    return !IsGathering;       
+                    return !IsGathering;
                 }, "Wait until Gathering addon is closed or SelectYesno addon pops up");
             }
         }
