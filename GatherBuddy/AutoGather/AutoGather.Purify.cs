@@ -8,22 +8,54 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace GatherBuddy.AutoGather
 {
+
+
     public partial class AutoGather
     {
-        private unsafe bool HasReducibleItems()
+        private bool HasReducibleItems()
         {
-            if (!QuestManager.IsQuestComplete(67633)) // 完成"不再是收藏品"任务
+            if (!GatherBuddy.Config.AutoGatherConfig.DoReduce || Svc.Condition[ConditionFlag.Mounted])
+                return false;
+
+            if (!QuestManager.IsQuestComplete(67633)) // 完成“生命、精选，另一个答案”任务
             {
-                Communicator.PrintError("[GatherBuddy Reborn] 已启用自动精选但相关任务尚未完成。功能已禁用。");
+                GatherBuddy.Config.AutoGatherConfig.DoReduce = false;
+                Communicator.PrintError(
+                    "[GatherBuddyReborn] Aetherial reduction is enabled, but the relevant quest has not been completed yet. The feature has been disabled.");
                 return false;
             }
 
-            var agent = AgentPurify.Instance();
-            return agent != null && agent->ReducibleItems.Count > 0;
+            unsafe
+            {
+                var manager = InventoryManager.Instance();
+                if (manager == null)
+                    return false;
+
+                foreach (var invType in InventoryTypes)
+                {
+                    var container = manager->GetInventoryContainer(invType);
+                    if (container == null || !container->IsLoaded)
+                        continue;
+
+                    for (int i = 0; i < container->Size; i++)
+                    {
+                        var slot = container->GetInventorySlot(i);
+                        if (slot != null
+                         && slot->ItemId != 0
+                         && GatherBuddy.GameData.Gatherables.TryGetValue(slot->ItemId, out var gatherable)
+                         && gatherable.ItemData.AetherialReduce != 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
         }
 
 
-        public bool DoAetherialReduction()
+        public unsafe bool DoAetherialReduction()
         {
             if (Svc.Condition[ConditionFlag.Mounted])
             {
@@ -45,15 +77,16 @@ namespace GatherBuddy.AutoGather
             {
                 if (DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
                 {
-                    GatherBuddy.Log.Warning("DR正在忙碌中。");
                     return true;
                 }
+                EnqueueActionWithDelay(() => ActionManager.Instance()->UseAction(ActionType.GeneralAction, 21));
+                TaskManager.Enqueue(() => !DailyRoutines_IPCSubscriber.StartAutoReduction());
 
-                return DailyRoutines_IPCSubscriber.StartAutoReduction();
+                return true;
             }
             catch (Exception ex)
             {
-                GatherBuddy.Log.Error($"调用DailyRoutines的StartAutoReduction方法时出错: {ex.Message}");
+                GatherBuddy.Log.Error($"调用DailyRoutines时出错: {ex.Message}");
                 Communicator.PrintError($"自动精选失败: {ex.Message}");
                 return false;
             }

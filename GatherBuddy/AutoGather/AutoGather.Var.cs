@@ -40,10 +40,16 @@ namespace GatherBuddy.AutoGather
         public bool IsGathering
             => Dalamud.Conditions[ConditionFlag.Gathering] || Dalamud.Conditions[ConditionFlag.Gathering42];
 
-        public bool?    LastNavigationResult { get; set; } = null;
-        public Vector3 CurrentDestination   { get; private set; } = default;
+        public bool? LastNavigationResult { get; set; } = null;
+        public Vector3 CurrentDestination { get; private set; } = default;
         private ILocation? CurrentFarNodeLocation;
-
+        public static IReadOnlyList<InventoryType> InventoryTypes { get; } =
+        [
+            InventoryType.Inventory1,
+            InventoryType.Inventory2,
+            InventoryType.Inventory3,
+            InventoryType.Inventory4,
+        ];
         public GatheringType JobAsGatheringType
         {
             get
@@ -54,7 +60,7 @@ namespace GatherBuddy.AutoGather
                     case Job.MIN: return GatheringType.采矿工;
                     case Job.BTN: return GatheringType.园艺工;
                     case Job.FSH: return GatheringType.捕鱼人;
-                    default:      return GatheringType.未知;
+                    default: return GatheringType.未知;
                 }
             }
         }
@@ -80,11 +86,11 @@ namespace GatherBuddy.AutoGather
         {
             get
             {
-                var      map     = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap.Instance();
-                var      markers = map->MiniMapGatheringMarkers;
+                var map = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap.Instance();
+                var markers = map->MiniMapGatheringMarkers;
                 if (markers == null)
                     return null;
-                Vector2? result  = null;
+                Vector2? result = null;
                 foreach (var miniMapGatheringMarker in markers)
                 {
                     if (miniMapGatheringMarker.MapMarker.X != 0 && miniMapGatheringMarker.MapMarker.Y != 0)
@@ -125,7 +131,7 @@ namespace GatherBuddy.AutoGather
                 {
                     GatheringType.采矿工 => 65728,
                     GatheringType.园艺工 => 65729,
-                    _                 => 0,
+                    _ => 0,
                 };
                 if (quest > 0 && !QuestManager.IsQuestComplete(quest))
                 {
@@ -163,7 +169,7 @@ namespace GatherBuddy.AutoGather
                 res = (node, node.Times.NextUptime(time));
             }
             //Second priority: location for preferred job.
-            if ((res.Location == null || !res.Time.InRange(time)) && 
+            if ((res.Location == null || !res.Time.InRange(time)) &&
                 GatherBuddy.Config.PreferredGatheringType is GatheringType.采矿工 or GatheringType.园艺工)
             {
                 res = GatherBuddy.UptimeManager.NextUptime(item, GatherBuddy.Config.PreferredGatheringType, time, [.. VisitedTimedLocations.Keys]);
@@ -261,8 +267,8 @@ namespace GatherBuddy.AutoGather
                 case NodeType.传说: return 0;
                 case NodeType.未知: return 1;
                 case NodeType.限时: return 2;
-                case NodeType.常规:   return 9;
-                case NodeType.无:   return 99;
+                case NodeType.常规: return 9;
+                case NodeType.无: return 99;
             }
 
             return 99;
@@ -290,7 +296,7 @@ namespace GatherBuddy.AutoGather
             => PlayerState.Instance()->Attributes[72];
 
         private ConfigPreset MatchConfigPreset(Gatherable? item) => _plugin.Interface.MatchConfigPreset(item);
-}
+    }
 
     public record class GatherInfo(Gatherable Item, GatheringNode? Location, TimeInterval Time)
     {

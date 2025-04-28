@@ -252,7 +252,7 @@ namespace GatherBuddy.AutoGather
                         GoHome();
                         
                     if (HasReducibleItems())
-                    {
+                {
                         DoAetherialReduction();
                         return;
                     }

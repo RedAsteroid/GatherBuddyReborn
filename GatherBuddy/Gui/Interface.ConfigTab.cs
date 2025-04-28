@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿﻿﻿using System;
 using System.Numerics;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Utility;
@@ -86,6 +86,12 @@ public partial class Interface
                 "你需要安装 YesAlready 并开启: Bothers -> MaterializeDialog",
                 GatherBuddy.Config.AutoGatherConfig.DoMaterialize,
                 b => GatherBuddy.Config.AutoGatherConfig.DoMaterialize = b);
+
+        public static void DrawAetherialReduction()
+            => DrawCheckbox("启用精选",
+                "你需要安装Dailyroutines 并开启“自动精选”模块",
+                GatherBuddy.Config.AutoGatherConfig.DoReduce,
+                b => GatherBuddy.Config.AutoGatherConfig.DoReduce = b);
 
         public static void DrawUseFlagBox()
             => DrawCheckbox("禁用地图标记导航",            "是否使用地图标记进行导航（仅限时采集点）",
@@ -701,6 +707,7 @@ public partial class Interface
                 ConfigFunctions.DrawUseFlagBox();
                 ConfigFunctions.DrawForceWalkingBox();
                 ConfigFunctions.DrawMaterialExtraction();
+                ConfigFunctions.DrawAetherialReduction();
                 ConfigFunctions.DrawForceCloseLingeringMasterpieceAddon();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
