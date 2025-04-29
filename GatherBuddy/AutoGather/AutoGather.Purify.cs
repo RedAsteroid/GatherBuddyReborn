@@ -14,14 +14,14 @@ namespace GatherBuddy.AutoGather
     {
         private bool HasReducibleItems()
         {
-            if (!GatherBuddy.Config.AutoGatherConfig.DoReduce || Svc.Condition[ConditionFlag.Mounted])
+            if (!GatherBuddy.Config.AutoGatherConfig.DoReduce)
                 return false;
 
-            if (!QuestManager.IsQuestComplete(67633)) // 完成“生命、精选，另一个答案”任务
+            if (!QuestManager.IsQuestComplete(67633)) // 完成"生命、精选，另一个答案"任务
             {
                 GatherBuddy.Config.AutoGatherConfig.DoReduce = false;
                 Communicator.PrintError(
-                    "[GatherBuddyReborn] Aetherial reduction is enabled, but the relevant quest has not been completed yet. The feature has been disabled.");
+                    "[GatherBuddyReborn] 自动精选已启用，但角色未解锁精选技能。功能已禁用。");
                 return false;
             }
 
@@ -57,6 +57,12 @@ namespace GatherBuddy.AutoGather
 
         public unsafe bool DoAetherialReduction()
         {
+            if (DailyRoutines_IPCSubscriber.IsEnabled && DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
+            {
+                AutoStatus = "正在精选...";
+                return true;
+            }
+
             if (Svc.Condition[ConditionFlag.Mounted])
             {
                 TaskManager.Enqueue(StopNavigation);
@@ -71,16 +77,17 @@ namespace GatherBuddy.AutoGather
                 return false;
             }
 
-            AutoStatus = "正在精选...";
+            var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
 
             try
             {
-                if (DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
-                {
-                    return true;
-                }
+                TaskManager.Enqueue(StopNavigation);
                 EnqueueActionWithDelay(() => ActionManager.Instance()->UseAction(ActionType.GeneralAction, 21));
-                TaskManager.Enqueue(() => !DailyRoutines_IPCSubscriber.StartAutoReduction());
+                TaskManager.DelayNext(500);
+                TaskManager.Enqueue(() => !DailyRoutines_IPCSubscriber.StartAutoReduction(), 3000, true, "启动自动精选");
+                TaskManager.Enqueue(() => !DailyRoutines_IPCSubscriber.IsAutoReductionBusy(), 180000, true, "等待精选完成");
+                TaskManager.DelayNext(delay);
+                TaskManager.DelayNext(1000);
 
                 return true;
             }

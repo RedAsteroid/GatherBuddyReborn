@@ -89,7 +89,7 @@ public partial class Interface
 
         public static void DrawAetherialReduction()
             => DrawCheckbox("启用精选",
-                "你需要安装Dailyroutines 并开启“自动精选”模块",
+                "你需要安装Dailyroutines 并开启“自动精选”模块,注意！！！请不要连续长时间挂机进行灵砂采集，被查概不负责！！！",
                 GatherBuddy.Config.AutoGatherConfig.DoReduce,
                 b => GatherBuddy.Config.AutoGatherConfig.DoReduce = b);
 

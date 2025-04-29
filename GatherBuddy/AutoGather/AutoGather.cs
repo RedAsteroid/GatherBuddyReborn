@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿using ECommons.Automation.LegacyTaskManager;
+﻿﻿using ECommons.Automation.LegacyTaskManager;
 using GatherBuddy.Plugin;
 using System;
 using System.Linq;
@@ -131,6 +131,12 @@ namespace GatherBuddy.AutoGather
             if (CheckForLingeringMasterpieceAddon())
                 return;
 
+            if (DailyRoutines_IPCSubscriber.IsEnabled && DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
+            {
+                AutoStatus = "等待精选完成...";
+                return;
+            }
+
             if (FreeInventorySlots == 0)
             {
                 if (HasReducibleItems())
@@ -248,14 +254,14 @@ namespace GatherBuddy.AutoGather
                         return;
                     }
 
-                    if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle)
-                        GoHome();
-                        
                     if (HasReducibleItems())
-                {
+                    {
                         DoAetherialReduction();
                         return;
                     }
+
+                    if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle)
+                        GoHome();
 
                     AutoStatus = "无待采集物品";
                     return;
@@ -313,6 +319,12 @@ namespace GatherBuddy.AutoGather
             //Idyllshire to The Dravanian Hinterlands
             if (territoryId == 478 && targetInfo.Location.Territory.Id == 399 && Lifestream_IPCSubscriber.IsEnabled)
             {
+                if (DailyRoutines_IPCSubscriber.IsEnabled && DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
+                {
+                    AutoStatus = "等待精选完成...";
+                    return;
+                }
+
                 var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable).OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
                 if (aetheryte != null)
                 {
@@ -346,6 +358,12 @@ namespace GatherBuddy.AutoGather
             }
 
             //At this point, we are definitely going to gather something, so we may go home after that.
+            if (DailyRoutines_IPCSubscriber.IsEnabled && DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
+            {
+                AutoStatus = "等待精选完成...";
+                return;
+            }
+
             if (Lifestream_IPCSubscriber.IsEnabled) Lifestream_IPCSubscriber.Abort();
             WentHome = false;
 
