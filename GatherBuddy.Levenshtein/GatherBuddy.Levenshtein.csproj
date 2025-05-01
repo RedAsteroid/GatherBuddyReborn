@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Dalamud.CN.NET.Sdk/11.2.0">
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <LangVersion>preview</LangVersion>
@@ -21,6 +21,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Configurations>Debug;Release</Configurations>
     <Platforms>x64</Platforms>
+    <Use_DalamudPackager>false</Use_DalamudPackager>
   </PropertyGroup>
 
   <PropertyGroup>

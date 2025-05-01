@@ -82,14 +82,14 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.HonkMode,   b => GatherBuddy.Config.AutoGatherConfig.HonkMode = b);
 
         public static void DrawMaterialExtraction()
-            => DrawCheckbox("启用精炼",
-                "你需要安装 YesAlready 并开启: Bothers -> MaterializeDialog",
+            => DrawCheckbox("自动精制",
+                "你需要安装 Daily Routines 并开启 \"自动精制魔晶石\" 模块",
                 GatherBuddy.Config.AutoGatherConfig.DoMaterialize,
                 b => GatherBuddy.Config.AutoGatherConfig.DoMaterialize = b);
 
         public static void DrawAetherialReduction()
-            => DrawCheckbox("启用精选",
-                "你需要安装Dailyroutines 并开启“自动精选”模块,注意！！！请不要连续长时间挂机进行灵砂采集，被查概不负责！！！",
+            => DrawCheckbox("自动精选",
+                "你需要安装 Daily Routines 并开启 \"自动精选\" 模块",
                 GatherBuddy.Config.AutoGatherConfig.DoReduce,
                 b => GatherBuddy.Config.AutoGatherConfig.DoReduce = b);
 
