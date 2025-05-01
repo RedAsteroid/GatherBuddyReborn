@@ -1,4 +1,4 @@
-﻿using Dalamud.Plugin.Ipc;
+﻿﻿﻿﻿using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Plugin.Services;
 using ECommons.DalamudServices;
@@ -152,6 +152,23 @@ namespace GatherBuddy.Plugin
         [EzIPC("Lifestream.AethernetTeleport", applyPrefix: false)]
         internal static readonly Func<string, bool> AethernetTeleport;
 
+        internal static void Dispose()
+            => IPCSubscriber_Common.DisposeAll(_disposalTokens);
+    }
+
+    internal static class DailyRoutines_IPCSubscriber
+    {
+        private static EzIPCDisposalToken[] _disposalTokens = EzIPC.Init(typeof(DailyRoutines_IPCSubscriber), "DailyRoutines");
+
+        internal static bool IsEnabled
+            => IPCSubscriber_Common.IsReady("DailyRoutines");
+
+        [EzIPC("DailyRoutines.Modules.AutoAetherialReduction.IsBusy", applyPrefix: false)]
+        internal static readonly Func<bool> IsAutoReductionBusy;
+
+        [EzIPC("DailyRoutines.Modules.AutoAetherialReduction.StartReduction", applyPrefix: false)]
+        internal static readonly Func<bool> StartAutoReduction;
+        
         internal static void Dispose()
             => IPCSubscriber_Common.DisposeAll(_disposalTokens);
     }
