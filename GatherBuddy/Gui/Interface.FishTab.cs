@@ -80,12 +80,12 @@ public partial class Interface
         private static readonly NextUptimeColumn  _nextUptimeColumn  = new() { Label = "下次窗口期" };
         private static readonly UptimesColumn     _uptimeColumn      = new() { Label = "概率%" };
         private static readonly BaitColumn        _baitColumn        = new() { Label = "鱼饵..." };
-        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "钓场..." };
+        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "传送点..." };
         private static readonly TypeColumn        _typeColumn        = new() { Label = "采集类型" };
         private static readonly CollectibleColumn _collectibleColumn = new() { Label = "收藏品." };
         private static readonly PatchColumn       _patchColumn       = new() { Label = "版本" };
         private static readonly FolkloreColumn    _folkloreColumn    = new() { Label = "传承录..." };
-        private static readonly BestSpotColumn    _bestSpotColumn    = new() { Label = "传送点..." };
+        private static readonly BestSpotColumn    _bestSpotColumn    = new() { Label = "钓场..." };
         private static readonly BestZoneColumn    _bestZoneColumn    = new() { Label = "地图..." };
         private static readonly ItemIdColumn      _itemIdColumn      = new() { Label = "物品Id" };
         private static readonly FishIdColumn      _fishIdColumn      = new() { Label = "采集Id" };
