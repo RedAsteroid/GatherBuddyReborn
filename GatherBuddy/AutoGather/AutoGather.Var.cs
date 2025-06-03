@@ -9,12 +9,13 @@ using ECommons.ExcelServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using GatherBuddy.Classes;
-using GatherBuddy.CustomInfo;
 using GatherBuddy.Enums;
 using GatherBuddy.Time;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System.Collections.Specialized;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using NodeType = GatherBuddy.Enums.NodeType;
 
 namespace GatherBuddy.AutoGather
 {
@@ -39,9 +40,16 @@ namespace GatherBuddy.AutoGather
         public bool IsGathering
             => Dalamud.Conditions[ConditionFlag.Gathering] || Dalamud.Conditions[ConditionFlag.Gathering42];
 
-        public bool?    LastNavigationResult { get; set; } = null;
-        public Vector3 CurrentDestination   { get; private set; } = default;
-
+        public bool? LastNavigationResult { get; set; } = null;
+        public Vector3 CurrentDestination { get; private set; } = default;
+        private ILocation? CurrentFarNodeLocation;
+        public static IReadOnlyList<InventoryType> InventoryTypes { get; } =
+        [
+            InventoryType.Inventory1,
+            InventoryType.Inventory2,
+            InventoryType.Inventory3,
+            InventoryType.Inventory4,
+        ];
         public GatheringType JobAsGatheringType
         {
             get
@@ -52,7 +60,7 @@ namespace GatherBuddy.AutoGather
                     case Job.MIN: return GatheringType.采矿工;
                     case Job.BTN: return GatheringType.园艺工;
                     case Job.FSH: return GatheringType.捕鱼人;
-                    default:      return GatheringType.未知;
+                    default: return GatheringType.未知;
                 }
             }
         }
@@ -60,32 +68,11 @@ namespace GatherBuddy.AutoGather
         public bool ShouldUseFlag
             => !GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing;
 
-        public unsafe Vector3? MapFlagPosition
-        {
-            get
-            {
-                var map = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap.Instance();
-                if (map == null || map->IsFlagMarkerSet == 0)
-                    return null;
-                if (map->CurrentTerritoryId != Dalamud.ClientState.TerritoryType)
-                    return null;
-
-                var marker             = map->FlagMapMarker;
-                var mapPosition        = new Vector2(marker.XFloat, marker.YFloat);
-                var uncorrectedVector3 = new Vector3(mapPosition.X, 1024, mapPosition.Y);
-                var correctedVector3   = uncorrectedVector3.CorrectForMesh(0.5f);
-                if (uncorrectedVector3 == correctedVector3)
-                    return null;
-
-                if (!correctedVector3.SanityCheck())
-                    return null;
-
-                return correctedVector3;
-            }
-        }
-
         public bool ShouldFly(Vector3 destination)
         {
+            if (Dalamud.Conditions[ConditionFlag.InFlight] || Dalamud.Conditions[ConditionFlag.Diving])
+                return true;
+
             if (GatherBuddy.Config.AutoGatherConfig.ForceWalking || Dalamud.ClientState.LocalPlayer == null)
             {
                 return false;
@@ -99,11 +86,11 @@ namespace GatherBuddy.AutoGather
         {
             get
             {
-                var      map     = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap.Instance();
-                var      markers = map->MiniMapGatheringMarkers;
+                var map = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap.Instance();
+                var markers = map->MiniMapGatheringMarkers;
                 if (markers == null)
                     return null;
-                Vector2? result  = null;
+                Vector2? result = null;
                 foreach (var miniMapGatheringMarker in markers)
                 {
                     if (miniMapGatheringMarker.MapMarker.X != 0 && miniMapGatheringMarker.MapMarker.Y != 0)
@@ -128,25 +115,38 @@ namespace GatherBuddy.AutoGather
         public readonly List<GatherInfo> ItemsToGather = [];
         public readonly Dictionary<ILocation, TimeInterval> VisitedTimedLocations = [];
         public readonly HashSet<Vector3> FarNodesSeenSoFar = [];
-        public readonly LinkedList<Vector3> VisitedNodes = [];
+        public readonly LinkedList<uint> VisitedNodes = [];
         private GatherInfo? targetInfo = null;
+
+        private IEnumerator<Actions.BaseAction?>? ActionSequence;
 
         public void UpdateItemsToGather()
         {
             ItemsToGather.Clear();
-            var activeItems = OrderActiveItems(_plugin.GatherWindowManager.ActiveItems.OfType<Gatherable>().Select(GetBestLocation));
+            var activeItems = OrderActiveItems(_plugin.AutoGatherListsManager.ActiveItems.OfType<Gatherable>().Select(GetBestLocation));
             var RegularItemsToGather = new List<GatherInfo>();
             foreach (var (item, location, time) in activeItems)
             {
+                uint quest = item.GatheringType switch
+                {
+                    GatheringType.采矿工 => 65728,
+                    GatheringType.园艺工 => 65729,
+                    _ => 0,
+                };
+                if (quest > 0 && !QuestManager.IsQuestComplete(quest))
+                {
+                    GatherBuddy.Log.Warning($"{item.Name} was requested but {item.GatheringType} is not unlocked");
+                    continue;
+                }
                 if (InventoryCount(item) >= QuantityTotal(item) || item.IsTreasureMap && InventoryCount(item) > 0)
                     continue;
 
-                if (item.IsTreasureMap && NextTresureMapAllowance >= AdjuctedServerTime.DateTime)
+                if (item.IsTreasureMap && NextTreasureMapAllowance >= AdjustedServerTime.DateTime)
                     continue;
 
                 if (GatherBuddy.UptimeManager.TimedGatherables.Contains(item))
                 {
-                    if (time.InRange(AdjuctedServerTime))
+                    if (time.InRange(AdjustedServerTime))
                         ItemsToGather.Add((item, location, time));
                 }
                 else
@@ -162,22 +162,24 @@ namespace GatherBuddy.AutoGather
         {
             (ILocation? Location, TimeInterval Time) res = default;
             //First priority: selected preferred location.
-            var node = _plugin.GatherWindowManager.GetPreferredLocation(item);
+            var node = _plugin.AutoGatherListsManager.GetPreferredLocation(item);
+            var time = AdjustedServerTime;
             if (node != null && !VisitedTimedLocations.ContainsKey(node))
             {
-                res = (node, node.Times.NextUptime(AdjuctedServerTime));
+                res = (node, node.Times.NextUptime(time));
             }
             //Second priority: location for preferred job.
-            else if (GatherBuddy.Config.PreferredGatheringType is GatheringType.采矿工 or GatheringType.园艺工)
+            if ((res.Location == null || !res.Time.InRange(time)) &&
+                GatherBuddy.Config.PreferredGatheringType is GatheringType.采矿工 or GatheringType.园艺工)
             {
-                res = GatherBuddy.UptimeManager.NextUptime(item, GatherBuddy.Config.PreferredGatheringType, AdjuctedServerTime, [.. VisitedTimedLocations.Keys]);
+                res = GatherBuddy.UptimeManager.NextUptime(item, GatherBuddy.Config.PreferredGatheringType, time, [.. VisitedTimedLocations.Keys]);
             }
             //Otherwise: location for any job.
-            if (res.Location == null)
+            if (res.Location == null || !res.Time.InRange(time))
             {
-                res = GatherBuddy.UptimeManager.NextUptime(item, AdjuctedServerTime, [.. VisitedTimedLocations.Keys]);
+                res = GatherBuddy.UptimeManager.NextUptime(item, time, [.. VisitedTimedLocations.Keys]);
             }
-            return (item, res.Location, res.Time);
+            return (item, (GatheringNode?)res.Location, res.Time);
         }
 
         private IEnumerable<GatherInfo> OrderActiveItems(IEnumerable<GatherInfo> activeItems)
@@ -191,17 +193,29 @@ namespace GatherBuddy.AutoGather
             }
         }
 
+
+        private unsafe T* GetAddon<T>(string name)
+        {
+            var addon = (AtkUnitBase*)Dalamud.GameGui.GetAddonByName(name);
+            if (addon != null && addon->IsFullyLoaded() && addon->IsReady)
+                return (T*)addon;
+            else
+                return null;
+        }
         public unsafe AddonGathering* GatheringAddon
-            => (AddonGathering*)Dalamud.GameGui.GetAddonByName("Gathering");
+            => GetAddon<AddonGathering>("Gathering");
 
         public unsafe AddonGatheringMasterpiece* MasterpieceAddon
-            => (AddonGatheringMasterpiece*)Dalamud.GameGui.GetAddonByName("GatheringMasterpiece");
+            => GetAddon<AddonGatheringMasterpiece>("GatheringMasterpiece");
 
         public unsafe AddonMaterializeDialog* MaterializeAddon
-            => (AddonMaterializeDialog*)Dalamud.GameGui.GetAddonByName("Materialize");
+            => GetAddon<AddonMaterializeDialog>("Materialize");
 
         public unsafe AddonMaterializeDialog* MaterializeDialogAddon
-            => (AddonMaterializeDialog*)Dalamud.GameGui.GetAddonByName("MaterializeDialog");
+            => GetAddon<AddonMaterializeDialog>("MaterializeDialog");
+
+        public unsafe AddonSelectYesno* SelectYesnoAddon
+            => GetAddon<AddonSelectYesno>("SelectYesno");
 
         public IEnumerable<IGatherable> ItemsToGatherInZone
             => ItemsToGather.Where(i => i.Location?.Territory.Id == Dalamud.ClientState.TerritoryType).Select(i => i.Item);
@@ -238,10 +252,10 @@ namespace GatherBuddy.AutoGather
         }
 
         private int InventoryCount(IGatherable gatherable)
-            => _plugin.GatherWindowManager.GetInventoryCountForItem(gatherable);
+            => _plugin.AutoGatherListsManager.GetInventoryCountForItem(gatherable);
 
         private uint QuantityTotal(IGatherable gatherable)
-            => _plugin.GatherWindowManager.GetTotalQuantitiesForItem(gatherable);
+            => _plugin.AutoGatherListsManager.GetTotalQuantitiesForItem(gatherable);
 
         private int GetNodeTypeAsPriority(Gatherable item)
         {
@@ -253,8 +267,8 @@ namespace GatherBuddy.AutoGather
                 case NodeType.传说: return 0;
                 case NodeType.未知: return 1;
                 case NodeType.限时: return 2;
-                case NodeType.常规:   return 9;
-                case NodeType.无:   return 99;
+                case NodeType.常规: return 9;
+                case NodeType.无: return 99;
             }
 
             return 99;
@@ -263,33 +277,35 @@ namespace GatherBuddy.AutoGather
         private static unsafe bool HasGivingLandBuff
             => Dalamud.ClientState.LocalPlayer?.StatusList.Any(s => s.StatusId == 1802) ?? false;
 
-        private static unsafe bool IsGivingLandOffCooldown
-            => ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, Actions.GivingLand.ActionID);
+        public static unsafe bool IsGivingLandOffCooldown
+            => ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, Actions.GivingLand.ActionId);
 
         //Should be near the upper bound to reduce the probability of overcapping.
-        private const int GivingLandYeild = 30;
+        private const int GivingLandYield = 30;
 
-        private static unsafe DateTime NextTresureMapAllowance
+        private static unsafe DateTime NextTreasureMapAllowance
             => FFXIVClientStructs.FFXIV.Client.Game.UI.UIState.Instance()->GetNextMapAllowanceDateTime();
 
         private static unsafe uint FreeInventorySlots
             => InventoryManager.Instance()->GetEmptySlotsInBag();
 
-        private static TimeStamp AdjuctedServerTime
+        private static TimeStamp AdjustedServerTime
             => GatherBuddy.Time.ServerTime.AddSeconds(GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog);
 
         private static unsafe int CharacterGatheringStat
             => PlayerState.Instance()->Attributes[72];
+
+        private ConfigPreset MatchConfigPreset(Gatherable? item) => _plugin.Interface.MatchConfigPreset(item);
     }
 
-    public record class GatherInfo(Gatherable Item, ILocation? Location, TimeInterval Time)
+    public record class GatherInfo(Gatherable Item, GatheringNode? Location, TimeInterval Time)
     {
-        public static implicit operator (Gatherable Item, ILocation? Location, TimeInterval Time)(GatherInfo value)
+        public static implicit operator (Gatherable Item, GatheringNode? Location, TimeInterval Time)(GatherInfo value)
         {
             return (value.Item, value.Location, value.Time);
         }
 
-        public static implicit operator GatherInfo((Gatherable Item, ILocation? Location, TimeInterval Time) value)
+        public static implicit operator GatherInfo((Gatherable Item, GatheringNode? Location, TimeInterval Time) value)
         {
             return new GatherInfo(value.Item, value.Location, value.Time);
         }

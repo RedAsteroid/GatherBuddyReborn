@@ -23,7 +23,7 @@ public partial class Fish
     public SpearfishSpeed    Speed           { get; internal set; } = SpearfishSpeed.Unknown;
     public Fish?             SurfaceSlap     { get; internal set; } = null;
     public string            Guide           { get; internal set; } = string.Empty;
-    public OceanTime         OceanTime       { get; internal set; } = OceanTime.×ÜÊÇ; 
+    public OceanTime         OceanTime       { get; internal set; } = OceanTime.æ—¥è½; 
 
     internal OptionalBool BigFishOverride { get; set; } = null;
 }

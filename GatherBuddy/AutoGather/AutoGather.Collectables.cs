@@ -1,60 +1,66 @@
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using System;
 using System.Linq;
-using GatherBuddy.Plugin;
+using System.Text.RegularExpressions;
 
 namespace GatherBuddy.AutoGather
 {
     public partial class AutoGather
     {
-        private static CollectableRotation? CurrentRotation;
+        private CollectableRotation? CurrentRotation;
 
-        private unsafe class CollectableRotation
+        private unsafe partial class CollectableRotation
         {
-            public CollectableRotation(uint GPToStart)
+            public CollectableRotation(ConfigPreset config)
             {
-                shouldUseFullRotation = Player.Object.CurrentGp >= GPToStart;
+                this.config = config;
+                shouldUseFullRotation = Player.Object.CurrentGp >= config.CollectableActionsMinGP;
             }
 
             private bool shouldUseFullRotation = false;
+            private readonly ConfigPreset config;
 
-            public Actions.BaseAction GetNextAction(AddonGatheringMasterpiece* MasterpieceAddon)
+            [GeneratedRegex(@"\d+")]
+            private static partial Regex NumberRegex();
+
+            public Actions.BaseAction GetNextAction(AddonGatheringMasterpiece* MasterpieceAddon, int itemsLeft)
             {
+                var regex = NumberRegex();
                 int collectability   = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(6)->NodeText.ToString());
                 int currentIntegrity = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(126)->NodeText.ToString());
                 int maxIntegrity     = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(129)->NodeText.ToString());
-                int scourColl        = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(84)->NodeText.ToString().Substring(2));
-                int meticulousColl   = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(108)->NodeText.ToString().Substring(2));
-                int brazenColl       = int.Parse(MasterpieceAddon->AtkUnitBase.GetTextNodeById(93)->NodeText.ToString().Substring(2));
+                int scourColl        = int.Parse(regex.Match(MasterpieceAddon->AtkUnitBase.GetTextNodeById(84)->NodeText.ToString()).Value);
+                int meticulousColl   = int.Parse(regex.Match(MasterpieceAddon->AtkUnitBase.GetTextNodeById(108)->NodeText.ToString()).Value);
+                int brazenColl       = int.Parse(regex.Match(MasterpieceAddon->AtkUnitBase.GetTextNodeById(93)->NodeText.ToString()).Value);
 
                 if (ShouldUseWise(currentIntegrity, maxIntegrity))
                     return Actions.Wise;
 
-                if (collectability >= GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore)
+                if (collectability >= config.CollectableTagetScore)
                 {
-                    if ((shouldUseFullRotation || GatherBuddy.Config.AutoGatherConfig.AlwaysUseSolidAgeCollectables)
-                     && ShouldSolidAgeCollectables(currentIntegrity, maxIntegrity))
+                    if ((shouldUseFullRotation || config.CollectableAlwaysUseSolidAge)
+                     && ShouldSolidAgeCollectables(currentIntegrity, maxIntegrity, itemsLeft))
                         return Actions.SolidAge;
                     else
                         return Actions.Collect;
                 }
 
                 if (currentIntegrity == 1
-                 && GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrity
-                 && collectability >= GatherBuddy.Config.AutoGatherConfig.GatherIfLastIntegrityMinimumCollectibility)
+                 && collectability >= config.CollectableMinScore)
                     return Actions.Collect;
 
                 if (shouldUseFullRotation && NeedScrutiny(collectability, scourColl, meticulousColl, brazenColl) && ShouldUseScrutiny())
                     return Actions.Scrutiny;
 
-                if (meticulousColl + collectability >= GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore
+                if (meticulousColl + collectability >= config.CollectableTagetScore
                  && ShouldUseMeticulous())
                     return Actions.Meticulous;
 
                 if (Player.Status.Any(s => s.StatusId == 3911 /*Collector's High Standard*/) && ShouldUseBrazen())
                     return Actions.Brazen;
 
-                if (scourColl + collectability >= GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore
+                if (scourColl + collectability >= config.CollectableTagetScore
                  && ShouldUseScour())
                     return Actions.Scour;
 
@@ -69,12 +75,12 @@ namespace GatherBuddy.AutoGather
                 if (ShouldUseBrazen())
                     return Actions.Brazen;
 
-                throw new NoColectableActionsExceptions();
+                throw new NoCollectableActionsException();
             }
 
             private bool NeedScrutiny(int collectability, int scourColl, int meticulousColl, int brazenColl)
             {
-                uint collAim = GatherBuddy.Config.AutoGatherConfig.MinimumCollectibilityScore;
+                var collAim = config.CollectableTagetScore;
                 if (scourColl + collectability >= collAim && ShouldUseScour())
                     return false;
                 if (meticulousColl + collectability >= collAim && ShouldUseMeticulous())
@@ -84,75 +90,87 @@ namespace GatherBuddy.AutoGather
 
                 return true;
             }
-            private static bool ShouldUseMeticulous()
+            private bool ShouldUseMeticulous()
             {
                 if (Player.Level < Actions.Meticulous.MinLevel)
                     return false;
                 if (Player.Object.CurrentGp < Actions.Meticulous.GpCost)
                     return false;
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MinimumGP
-                 || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.MaximumGP)
+                if (config.ChooseBestActionsAutomatically)
+                    return true;
+                if (Player.Object.CurrentGp < config.CollectableActions.Meticulous.MinGP
+                 || Player.Object.CurrentGp > config.CollectableActions.Meticulous.MaxGP)
                     return false;
 
-                return GatherBuddy.Config.AutoGatherConfig.MeticulousConfig.UseAction;
+                return config.CollectableActions.Meticulous.Enabled;
             }
 
-            private static bool ShouldUseScour()
+            private bool ShouldUseScour()
             {
                 if (Player.Level < Actions.Brazen.MinLevel)
                     return false;
                 if (Player.Object.CurrentGp < Actions.Brazen.GpCost)
                     return false;
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScourConfig.MinimumGP
-                 || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScourConfig.MaximumGP)
+                if (config.ChooseBestActionsAutomatically)
+                    return true;
+                if (Player.Object.CurrentGp < config.CollectableActions.Scour.MinGP
+                 || Player.Object.CurrentGp > config.CollectableActions.Scour.MaxGP)
                     return false;
 
-                return GatherBuddy.Config.AutoGatherConfig.ScourConfig.UseAction;
+                return config.CollectableActions.Scour.Enabled;
             }
 
-            private static bool ShouldUseBrazen()
+            private bool ShouldUseBrazen()
             {
                 if (Player.Level < Actions.Meticulous.MinLevel)
                     return false;
                 if (Player.Object.CurrentGp < Actions.Meticulous.GpCost)
                     return false;
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MinimumGP
-                 || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.BrazenConfig.MaximumGP)
+                if (config.ChooseBestActionsAutomatically)
+                    return true;
+                if (Player.Object.CurrentGp < config.CollectableActions.Brazen.MinGP
+                 || Player.Object.CurrentGp > config.CollectableActions.Brazen.MaxGP)
                     return false;
 
-                return GatherBuddy.Config.AutoGatherConfig.BrazenConfig.UseAction;
+                return config.CollectableActions.Brazen.Enabled;
             }
 
-            private static bool ShouldUseScrutiny()
+            private bool ShouldUseScrutiny()
             {
                 if (Player.Level < Actions.Scrutiny.MinLevel)
                     return false;
                 if (Player.Object.CurrentGp < Actions.Scrutiny.GpCost)
                     return false;
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MinimumGP
-                 || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.MaximumGP)
+                if (Player.Status.Any(s => s.StatusId == Actions.Scrutiny.EffectId))
                     return false;
-                if (!Player.Status.Any(s => s.StatusId == Actions.Scrutiny.EffectId))
-                    return GatherBuddy.Config.AutoGatherConfig.ScrutinyConfig.UseAction;
+                if (config.ChooseBestActionsAutomatically)
+                    return true;
+                if (Player.Object.CurrentGp < config.CollectableActions.Scrutiny.MinGP
+                 || Player.Object.CurrentGp > config.CollectableActions.Scrutiny.MaxGP)
+                    return false;
 
-                return false;
+                return config.CollectableActions.Scrutiny.Enabled;
             }
 
-            private static bool ShouldSolidAgeCollectables(int integrity, int maxIntegrity)
+            private bool ShouldSolidAgeCollectables(int integrity, int maxIntegrity, int itemsLeft)
             {
-                if (integrity == maxIntegrity)
+                if (integrity > Math.Min(2, maxIntegrity - 1))
+                    return false;
+                if (itemsLeft <= integrity)
                     return false;
                 if (Player.Level < Actions.SolidAge.MinLevel)
                     return false;
                 if (Player.Object.CurrentGp < Actions.SolidAge.GpCost)
                     return false;
-                if (Player.Object.CurrentGp < GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MinimumGP
-                 || Player.Object.CurrentGp > GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.MaximumGP)
-                    return false;
                 if (Player.Status.Any(s => s.StatusId == Actions.SolidAge.EffectId))
                     return false;
+                if (config.ChooseBestActionsAutomatically)
+                    return true;
+                if (Player.Object.CurrentGp < config.CollectableActions.SolidAge.MinGP
+                 || Player.Object.CurrentGp > config.CollectableActions.SolidAge.MaxGP)
+                    return false;
 
-                return GatherBuddy.Config.AutoGatherConfig.SolidAgeCollectablesConfig.UseAction;
+                return config.CollectableActions.SolidAge.Enabled;
             }
         }
     }

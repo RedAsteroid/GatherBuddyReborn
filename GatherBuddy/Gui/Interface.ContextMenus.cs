@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Dalamud.Game;
 using Dalamud.Game.Text.SeStringHandling;
 using GatherBuddy.Alarms;
+using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.GatherHelper;
@@ -109,7 +110,7 @@ public partial class Interface
 
     private static string TeamCraftAddressEnd(FishingSpot s)
         => s.Spearfishing
-            ? TeamCraftAddressEnd("spearfishing-spot", s.SpearfishingSpotData!.GatheringPointBase.Row)
+            ? TeamCraftAddressEnd("spearfishing-spot", s.SpearfishingSpotData!.Value.GatheringPointBase.RowId)
             : TeamCraftAddressEnd("fishing-spot",      s.Id);
 
     private static string GarlandToolsItemAddress(uint itemId)
@@ -159,7 +160,7 @@ public partial class Interface
         {
             try
             {
-                using var request  = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:14500/{addressEnd}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:14500/{addressEnd}");
                 using var response = GatherBuddy.HttpClient.Send(request);
             }
             catch
@@ -203,9 +204,10 @@ public partial class Interface
 
         DrawAddAlarm(item);
         DrawAddToGatherGroup(item);
-        DrawAddToAutoGather(item);
         DrawAddGatherWindow(item);
-        if (ImGui.Selectable("创建列表"))
+        if (item is Gatherable gatherable)
+            DrawAddToAutoGather(gatherable);
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -213,33 +215,33 @@ public partial class Interface
 
     private const string PresetName = "来自可采集物品列表";
 
-    private static void DrawAddToAutoGather(IGatherable item)
+    private void DrawAddToAutoGather(Gatherable item)
     {
-        if (ImGui.Selectable($"添加至自动采集列表"))
+        var current = _autoGatherListsCache.Selector.EnsureCurrent();
+
+        if (ImGui.Selectable("添加至自动采集列表"))
         {
-            // Fetch preset if exists.
-            var preset = _plugin.GatherWindowManager.Presets.FirstOrDefault(p => p.Name == PresetName);
-
-            // Create and add preset if it doesn't exist.
-            preset = preset ?? CreateAndAddPreset(item);
-
-            // Add item to existing preset.
-            _plugin.GatherWindowManager.AddItem(preset, item);
+            if (current == null)
+                CreateAndAddPreset(item);
+            else
+                _plugin.AutoGatherListsManager.AddItem(current, item);
         }
+
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(
+                $"添加 {item.Name[GatherBuddy.Language]} 至 {(current == null ? "一个新的采集窗口预设" : CheckUnnamed(current.Name))}");
     }
 
-    private static GatherWindowPreset CreateAndAddPreset(IGatherable item)
+    private static AutoGatherList CreateAndAddPreset(Gatherable item)
     {
-        var preset = new GatherWindowPreset
+        var preset = new AutoGatherList
         {
             Enabled     = true,
-            Items       = new List<IGatherable> { item },
             Description = AutomaticallyGenerated,
-            Name        = PresetName,
-            Quantities = new Dictionary<uint, uint>(),
+            Name        = PresetName
         };
-        preset.Quantities.TryAdd(item.ItemId, 1);
-        _plugin.GatherWindowManager.AddPreset(preset);
+        preset.Add(item);
+        _plugin.AutoGatherListsManager.AddList(preset);
 
         return preset;
     }
@@ -253,7 +255,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("创建链接"))
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
@@ -271,7 +273,7 @@ public partial class Interface
         if (!popup)
             return;
 
-        if (ImGui.Selectable("创建链接"))
+        if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(bait.Id));
         DrawOpenInGarlandTools(bait.Id);
         DrawOpenInTeamCraft(bait.Id);

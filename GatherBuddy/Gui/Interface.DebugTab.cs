@@ -599,11 +599,11 @@ public partial class Interface
         ImGui.Text($"LastIntegrity: {GatherBuddy.AutoGather.LastIntegrity}");
         ImGui.Text($"LastCollectScore: {GatherBuddy.AutoGather.LastCollectability}");
         ImGui.Text($"IsCordialOnCooldown: {GatherBuddy.AutoGather.IsCordialOnCooldown}");
-        ImGui.Text($"IsFoodBuffUp: {GatherBuddy.AutoGather.IsFoodBuffUp}");
-        ImGui.Text($"IsPotionBuffUp: {GatherBuddy.AutoGather.IsPotionBuffUp}");
+        //ImGui.Text($"IsFoodBuffUp: {GatherBuddy.AutoGather.GetIsFoodBuffUp()}");
+        //ImGui.Text($"IsPotionBuffUp: {GatherBuddy.AutoGather.GetIsPotionBuffUp()}");
         ImGui.Text($"IsManualBuffUp: {GatherBuddy.AutoGather.IsManualBuffUp}");
-        ImGui.Text($"IsSquadronManualBuffUp: {GatherBuddy.AutoGather.IsSquadronManualBuffUp}");
-        ImGui.Text($"IsSquadronPassBuffUp: {GatherBuddy.AutoGather.IsSquadronPassBuffUp}");
+        //ImGui.Text($"IsSquadronManualBuffUp: {GatherBuddy.AutoGather.GetIsSquadronManualBuffUp()}");
+        //ImGui.Text($"IsSquadronPassBuffUp: {GatherBuddy.AutoGather.GetIsSquadronPassBuffUp()}");
         ImGui.Text($"SortingMethodType: {GatherBuddy.Config.AutoGatherConfig.SortingMethod.ToString()}");
 
         if (ImGui.CollapsingHeader("Timed Node Memory"))
@@ -638,7 +638,7 @@ public partial class Interface
             }
         }
 
-        var tr = GatherBuddy.AutoGather.NodeTarcker;
+        var tr = GatherBuddy.AutoGather.NodeTracker;
         if (ImGui.CollapsingHeader("GatheringTracker"))
         {
             var text = new StringBuilder();
@@ -649,9 +649,9 @@ public partial class Interface
                 text.AppendLine($"Touched: {tr.Touched}");
                 text.AppendLine($"HiddenRevealed: {tr.HiddenRevealed}");
                 text.AppendLine($"Integrty: {tr.Integrity}/{tr.MaxIntegrity}");
-                text.Append($"Quick gathering: {(!tr.QuckGatheringAllowed ? "not" : "")} allowed");
-                if (tr.QuckGatheringAllowed) text.Append($", {(!tr.QuckGatheringChecked ? "not" : "")} checked");
-                if (tr.QuckGatheringInProcess) text.Append($", in process");
+                text.Append($"Quick gathering: {(!tr.QuickGatheringAllowed ? "not" : "")} allowed");
+                if (tr.QuickGatheringAllowed) text.Append($", {(!tr.QuickGatheringChecked ? "not" : "")} checked");
+                if (tr.QuickGatheringInProgress) text.Append($", in progress");
                 text.AppendLine();
                 for (var i = 0; i < 8; i++)
                 {

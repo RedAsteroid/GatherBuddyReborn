@@ -2,9 +2,9 @@ namespace GatherBuddy.Enums;
 
 public enum NodeType : byte
 {
-    ÎŞ   = 0xFF,
-    ³£¹æ   = 0,
-    Î´Öª = 1,
-    ÏŞÊ± = 2,
-    ´«Ëµ = 3,
+    æ—   = 0xFF,
+    å¸¸è§„ = 0,
+    æœªçŸ¥ = 1,
+    é™æ—¶ = 2,
+    ä¼ è¯´ = 3,
 };

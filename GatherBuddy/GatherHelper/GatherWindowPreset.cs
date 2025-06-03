@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using GatherBuddy.Alarms;
-using GatherBuddy.Classes;
 using GatherBuddy.GatherGroup;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
@@ -14,12 +13,10 @@ namespace GatherBuddy.GatherHelper;
 
 public class GatherWindowPreset
 {
-    public List<IGatherable>      Items              { get; init; } = new();
-    public Dictionary<uint, uint> Quantities         { get; set; } = new();
-    public Dictionary<uint, uint> PreferredLocations { get; set; } = new();
-    public string                 Name               { get; set; }  = string.Empty;
-    public string                 Description        { get; set; }  = string.Empty;
-    public bool                   Enabled            { get; set; }  = false;
+    public List<IGatherable> Items       { get; init; } = new();
+    public string            Name        { get; set; }  = string.Empty;
+    public string            Description { get; set; }  = string.Empty;
+    public bool              Enabled     { get; set; }  = false;
 
     public GatherWindowPreset Clone()
         => new()
@@ -36,7 +33,6 @@ public class GatherWindowPreset
             return false;
 
         Items.Add(item);
-        Quantities.TryAdd(item.ItemId, 1);
         return true;
     }
 
@@ -45,25 +41,21 @@ public class GatherWindowPreset
 
     public struct Config
     {
-        public const byte CurrentVersion = 3;
+        public const byte CurrentVersion = 1;
 
-        public uint[]        ItemIds;
-        public ObjectType[]  ItemTypes;
-        public Dictionary<uint, uint> Quantities;
-        public Dictionary<uint, uint> PrefferedLocations;
-        public string        Name;
-        public string        Description;
-        public bool          Enabled;
+        public uint[]       ItemIds;
+        public ObjectType[] ItemTypes;
+        public string       Name;
+        public string       Description;
+        public bool         Enabled;
 
         public Config(GatherWindowPreset preset)
         {
-            ItemIds            = preset.Items.Select(i => i.ItemId).ToArray();
-            ItemTypes          = preset.Items.Select(i => i.Type).ToArray();
-            Quantities         = preset.Quantities;
-            PrefferedLocations = preset.PreferredLocations;
-            Name               = preset.Name;
-            Description        = preset.Description;
-            Enabled            = preset.Enabled;
+            ItemIds     = preset.Items.Select(i => i.ItemId).ToArray();
+            ItemTypes   = preset.Items.Select(i => i.Type).ToArray();
+            Name        = preset.Name;
+            Description = preset.Description;
+            Enabled     = preset.Enabled;
         }
 
         internal string ToBase64()
@@ -85,7 +77,7 @@ public class GatherWindowPreset
 
                 var json = Encoding.UTF8.GetString(bytes.AsSpan()[1..]);
                 cfg = JsonConvert.DeserializeObject<Config>(json);
-                if (cfg.ItemIds == null || cfg.ItemTypes == null || cfg.Name == null || cfg.Description == null || cfg.Quantities == null || cfg.PrefferedLocations == null)
+                if (cfg.ItemIds == null || cfg.ItemTypes == null || cfg.Name == null || cfg.Description == null)
                     return false;
 
                 return true;
@@ -115,8 +107,6 @@ public class GatherWindowPreset
                 ObjectType.Fish       => GatherBuddy.GameData.Fishes.TryGetValue(cfg.ItemIds[i], out var item) ? item : null,
                 _                     => null,
             };
-            ret.Quantities = cfg.Quantities;
-            ret.PreferredLocations = cfg.PrefferedLocations ?? new Dictionary<uint, uint>();
             if (gatherable == null)
                 changes = true;
             else if (!ret.Add(gatherable))

@@ -18,6 +18,7 @@ using GatherBuddy.Data;
 using GatherBuddy.Enums;
 using GatherBuddy.FishTimer;
 using GatherBuddy.GatherHelper;
+using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Gui;
 using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
@@ -73,6 +74,7 @@ public partial class GatherBuddy : IDalamudPlugin
     internal readonly LocationManager                LocationManager;
     internal readonly AlarmManager                   AlarmManager;
     internal readonly GatherWindowManager            GatherWindowManager;
+    internal readonly AutoGatherListsManager         AutoGatherListsManager;
     internal readonly WindowSystem                   WindowSystem;
     internal readonly Interface                      Interface;
     internal readonly Executor                       Executor;
@@ -106,10 +108,11 @@ public partial class GatherBuddy : IDalamudPlugin
             CurrentWeather      = new CurrentWeather(Dalamud.SigScanner);
             TugType             = new SeTugType(Dalamud.SigScanner);
             Executor            = new Executor(this);
-            ContextMenu         = new ContextMenu(Dalamud.ContextMenu, Executor);
+            ContextMenu         = new ContextMenu(this, Dalamud.ContextMenu, Executor);
             GatherGroupManager  = GatherGroup.GatherGroupManager.Load();
             LocationManager     = LocationManager.Load();
             AlarmManager        = AlarmManager.Load();
+            AutoGatherListsManager = AutoGatherListsManager.Load();
             GatherWindowManager = GatherWindowManager.Load(AlarmManager);
             AutoGather = new AutoGather.AutoGather(this);
             AlarmManager.ForceEnable();
@@ -155,20 +158,30 @@ public partial class GatherBuddy : IDalamudPlugin
         }
     }
 
+    private int LastObjectsLength;
+    private DateTime LastObjectsScan = DateTime.Now;
     private void Update(IFramework framework)
     {
-        var objs = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
-        foreach (var obj in objs)
-            WorldData.AddLocation(obj.DataId, obj.Position);
+        var prev = LastObjectsLength;
+        LastObjectsLength = Svc.Objects.Length;
+        //Scan objects every 5 secons or when the number of objects change
+        if (prev != LastObjectsLength || (DateTime.Now - LastObjectsScan).TotalSeconds >= 5) 
+        {
+            LastObjectsScan = DateTime.Now;
+            var objs = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
+            foreach (var obj in objs)
+                WorldData.AddLocation(obj.DataId, obj.Position);
+        }
         AutoGather.DoAutoGather();
     }
 
     void IDisposable.Dispose()
     {
+        Dalamud.Framework.Update -= Update;
         FishRecorder?.Dispose();
         ContextMenu?.Dispose();
         UptimeManager?.Dispose();
-        AutoGather.Dispose();
+        AutoGather?.Dispose();
         Ipc?.Dispose();
         //Wotsit?.Dispose();
         if (Interface != null)

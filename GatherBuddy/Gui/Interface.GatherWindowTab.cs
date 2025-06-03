@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Numerics;
-using System.Text.RegularExpressions;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
-using ECommons;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Alarms;
 using GatherBuddy.Config;
 using GatherBuddy.GatherHelper;
@@ -136,70 +131,11 @@ public partial class Interface
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "为当前采集窗口预设创建一个新的闹钟", _gatherWindowCache.Selector.Current == null))
+        if (ImGuiUtil.DrawDisabledButton("创建闹钟", Vector2.Zero, "新建一个对应该采集窗口预设的闹钟", _gatherWindowCache.Selector.Current == null))
         {
             var preset = new AlarmGroup(_gatherWindowCache.Selector.Current!);
             _plugin.AlarmManager.AddGroup(preset);
         }
-
-        if (ImGuiUtil.DrawDisabledButton("从 TeamCraft 导入", Vector2.Zero, "从剪贴板导入 TeamCraft 格式的采集清单",
-                _gatherWindowCache.Selector.Current == null))
-        {
-            var clipboardText = ImGuiUtil.GetClipboardText();
-            if (!string.IsNullOrEmpty(clipboardText))
-            {
-                try
-                {
-                    Dictionary<string, int> items = new Dictionary<string, int>();
-
-                    // Regex pattern
-                    var pattern = @"\b(\d+)x\s(.+)\b";
-                    var matches = Regex.Matches(clipboardText, pattern);
-
-                    // Loop through matches and add them to dictionary
-                    foreach (Match match in matches)
-                    {
-                        var quantity = int.Parse(match.Groups[1].Value);
-                        var itemName = match.Groups[2].Value;
-                        items[itemName] = quantity;
-                    }
-                    
-                    var preset = _gatherWindowCache.Selector.Current;
-
-                    foreach (var item in items)
-                    {
-                        var gatherable =
-                            GatherBuddy.GameData.Gatherables.Values.FirstOrDefault(g => g.Name[Dalamud.ClientState.ClientLanguage] == item.Key);
-                        if (gatherable == null || gatherable.NodeList.Count == 0)
-                            continue;
-
-                        if (preset.Quantities.TryGetValue(gatherable.ItemId, out var quantity))
-                        {
-                            preset.Quantities[gatherable.ItemId] += (uint)item.Value;
-                        }
-                        else
-                        {
-                            preset.Quantities.Add(gatherable.ItemId, (uint)item.Value);
-                        }
-                        preset.Add(gatherable);
-                    }
-                    
-                    if (preset.Enabled)
-                        _plugin.GatherWindowManager.SetActiveItems();
-                }
-                catch (Exception e)
-                {
-                    Communicator.PrintClipboardMessage("导入采集窗口时出错", e.ToString());
-                }
-            }
-        }
-
-        ImGuiComponents.HelpMarker(
-            "如果没有按照刷新时间对采集窗口进行排序，物品会按照启用的预设顺序，然后按照预设中的物品顺序唯一地添加。\n"
-          + "可以在列表中拖动预设来移动它们。\n"
-          + "可以在特定预设中拖动物品来调整顺序。\n"
-          + "可以从选择器中将物品拖到不同的预设上，以将其添加到该预设并从当前预设中移除。\n"
-          + "在采集窗口中，可以按住 Ctrl 并右键单击物品，将其从所属的预设中删除。如果这会移除预设中的最后一个物品，则该预设也会被移除。");
     }
 
     private void DrawGatherWindowPreset(GatherWindowPreset preset)
@@ -226,26 +162,13 @@ public partial class Interface
             using var id    = ImRaii.PushId(i);
             using var group = ImRaii.Group();
             var       item  = preset.Items[i];
-            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "从预设中删除此物品...", false,
+            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "从该预设中删除...", false,
                     true))
                 _plugin.GatherWindowManager.RemoveItem(preset, i--);
 
             ImGui.SameLine();
             if (_gatherGroupCache.GatherableSelector.Draw(item.Name[GatherBuddy.Language], out var newIdx))
                 _plugin.GatherWindowManager.ChangeItem(preset, GatherGroupCache.AllGatherables[newIdx], i);
-            ImGui.SameLine();
-            ImGui.Text("数量: ");
-            var invTotal = _plugin.GatherWindowManager.GetInventoryCountForItem(item);
-            ImGui.SameLine(0f, ImGui.CalcTextSize($"0000 / ").X - ImGui.CalcTextSize($"{invTotal} / ").X);
-            ImGui.Text($"{invTotal} / ");
-            ImGui.SameLine(0, 3f);
-            int quantity = preset.Quantities.TryGetValue(item.ItemId, out var q) ? (int)q : 1;
-            ImGui.SetNextItemWidth(100f);
-            if (ImGui.InputInt("##quantity", ref quantity, 1, 10))
-                _plugin.GatherWindowManager.ChangeQuantity(preset, (uint)quantity, item.ItemId);
-            ImGui.SameLine();
-            if (DrawLocationInput(item, preset.PreferredLocations.TryGetValue(item.ItemId, out var locId) ? GatherBuddy.GameData.GatheringNodes.GetValueOrDefault(locId) : null, out var newLoc))
-                _plugin.GatherWindowManager.ChangePreferredLocation(preset, item, newLoc);
             group.Dispose();
 
             _gatherWindowCache.Selector.CreateDropSource(new GatherWindowDragDropData(preset, item, i), item.Name[GatherBuddy.Language]);
@@ -256,7 +179,7 @@ public partial class Interface
         }
 
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize,
-                "如果此物品还未被加入，则加入到预设的底部",
+                "添加此物品至列表末尾...",
                 preset.Items.Contains(GatherGroupCache.AllGatherables[_gatherWindowCache.NewGatherableIdx]), true))
             _plugin.GatherWindowManager.AddItem(preset, GatherGroupCache.AllGatherables[_gatherWindowCache.NewGatherableIdx]);
 
@@ -268,12 +191,10 @@ public partial class Interface
     private void DrawGatherWindowTab()
     {
         using var id  = ImRaii.PushId("GatherWindow");
-        using var tab = ImRaii.TabItem("自动采集");
+        using var tab = ImRaii.TabItem("采集窗口");
 
         if (!tab)
             return;
-
-        AutoGather.AutoGatherUI.DrawAutoGatherStatus();
 
         _gatherWindowCache.Selector.Draw(SelectorWidth);
         ImGui.SameLine();

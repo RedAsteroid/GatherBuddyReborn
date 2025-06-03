@@ -14,6 +14,7 @@ using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.GatherGroup;
 using GatherBuddy.GatherHelper;
+using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Plugin;
 using OtterGui.Widgets;
 using ImRaii = OtterGui.Raii.ImRaii;
@@ -384,15 +385,22 @@ public partial class Interface
             {
                 var s = group.ToConfig().ToBase64();
                 ImGui.SetClipboardText(s);
-                Communicator.PrintClipboardMessage("Gather Group ", group.Name);
+                Communicator.PrintClipboardMessage("采集组 ", group.Name);
             }
             catch (Exception e)
             {
-                Communicator.PrintClipboardMessage("Gather Group ", group.Name, e);
+                Communicator.PrintClipboardMessage("采集组 ", group.Name, e);
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("创建窗口", Vector2.Zero, "创建当前采集组的采集窗口",
+        if (ImGuiUtil.DrawDisabledButton("创建自动采集列表", Vector2.Zero, "为该采集组新建一个自动采集列表",
+                _gatherGroupCache.Selector.Current == null))
+        {
+            var preset = new AutoGatherList(_gatherGroupCache.Selector.Current!);
+            _plugin.AutoGatherListsManager.AddList(preset);
+        }
+
+        if (ImGuiUtil.DrawDisabledButton("创建采集窗口预设", Vector2.Zero, "为该采集组新建一个采集窗口预设",
                 _gatherGroupCache.Selector.Current == null))
         {
             var preset = new GatherWindowPreset(_gatherGroupCache.Selector.Current!);
@@ -420,19 +428,15 @@ public partial class Interface
 
         ImGui.SameLine();
 
-        ImGuiComponents.HelpMarker("Use /gathergroup [name] [optional:minute offset] to call a group.\n"
-          + "This will /gather the item that is up currently (or [minute offset] eorzea minutes in the future).\n"
-          + "If times for multiple items overlap, the first item from top to bottom will be gathered.");
+        ImGuiComponents.HelpMarker("使用 /gathergroup [name] [可选:延迟 (分钟)] 来执行一个采集组 \n"
+          + "执行后将会采集对应采集组里当前可用或在预设延迟时可用的物品\n"
+          + "如果存在多个可采集物品, 则按照采集组列表内由上到下的优先级顺序执行采集");
     }
 
     private void DrawGatherGroupTab()
     {
         using var id  = ImRaii.PushId("Gather Groups");
         using var tab = ImRaii.TabItem("采集组");
-
-        ImGuiUtil.HoverTooltip(
-            "Do you really need to catch a Dirty Herry from 8PM to 10PM but gather mythril ore otherwise?\n"
-          + "Set up your own gather groups! You can even share them with others!");
 
         if (!tab)
             return;

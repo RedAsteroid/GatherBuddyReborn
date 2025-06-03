@@ -4,16 +4,16 @@ namespace GatherBuddy.Enums;
 
 public enum GatheringType : byte
 {
-    ²É¿ó   = 0,
-    ËéÊ¯   = 1,
-    ·¥Ä¾   = 2,
-    ¸î²Ý   = 3,
-    ´ÌÓã   = 4,
-    Ô°ÒÕ¹¤ = 5,
-    ²É¿ó¹¤ = 6,
-    ²¶ÓãÈË = 7,
-    ¶àÖ°Òµ = 8,
-    Î´Öª   = byte.MaxValue,
+    é‡‡çŸ¿   = 0,
+    ç¢ŽçŸ³   = 1,
+    ä¼æœ¨   = 2,
+    å‰²è‰   = 3,
+    åˆºé±¼   = 4,
+    å›­è‰ºå·¥ = 5,
+    é‡‡çŸ¿å·¥ = 6,
+    æ•é±¼äºº = 7,
+    å¤šèŒä¸š = 8,
+    æœªçŸ¥   = byte.MaxValue,
 };
 
 public static class GatheringTypeExtension
@@ -22,13 +22,13 @@ public static class GatheringTypeExtension
     {
         return type switch
         {
-            GatheringType.²É¿ó   => GatheringType.²É¿ó¹¤,
-            GatheringType.ËéÊ¯   => GatheringType.²É¿ó¹¤,
-            GatheringType.²É¿ó¹¤ => GatheringType.²É¿ó¹¤,
-            GatheringType.·¥Ä¾   => GatheringType.Ô°ÒÕ¹¤,
-            GatheringType.¸î²Ý   => GatheringType.Ô°ÒÕ¹¤,
-            GatheringType.Ô°ÒÕ¹¤ => GatheringType.Ô°ÒÕ¹¤,
-            GatheringType.´ÌÓã   => GatheringType.²¶ÓãÈË,
+            GatheringType.é‡‡çŸ¿   => GatheringType.é‡‡çŸ¿å·¥,
+            GatheringType.ç¢ŽçŸ³   => GatheringType.é‡‡çŸ¿å·¥,
+            GatheringType.é‡‡çŸ¿å·¥ => GatheringType.é‡‡çŸ¿å·¥,
+            GatheringType.ä¼æœ¨   => GatheringType.å›­è‰ºå·¥,
+            GatheringType.å‰²è‰   => GatheringType.å›­è‰ºå·¥,
+            GatheringType.å›­è‰ºå·¥ => GatheringType.å›­è‰ºå·¥,
+            GatheringType.åˆºé±¼   => GatheringType.æ•é±¼äºº,
             _                    => type,
         };
     }
@@ -38,65 +38,65 @@ public static class GatheringTypeExtension
         (type, other) = type < other ? (type, other) : (other, type);
         return type switch
         {
-            GatheringType.²É¿ó => other switch
+            GatheringType.é‡‡çŸ¿ => other switch
             {
-                GatheringType.²É¿ó     => GatheringType.²É¿ó,
-                GatheringType.ËéÊ¯  => GatheringType.²É¿ó¹¤,
-                GatheringType.·¥Ä¾    => GatheringType.¶àÖ°Òµ,
-                GatheringType.¸î²Ý => GatheringType.¶àÖ°Òµ,
-                GatheringType.Ô°ÒÕ¹¤   => GatheringType.¶àÖ°Òµ,
-                GatheringType.²É¿ó¹¤      => GatheringType.²É¿ó¹¤,
-                GatheringType.¶àÖ°Òµ   => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª    => GatheringType.²É¿ó,
+                GatheringType.é‡‡çŸ¿     => GatheringType.é‡‡çŸ¿,
+                GatheringType.ç¢ŽçŸ³  => GatheringType.é‡‡çŸ¿å·¥,
+                GatheringType.ä¼æœ¨    => GatheringType.å¤šèŒä¸š,
+                GatheringType.å‰²è‰ => GatheringType.å¤šèŒä¸š,
+                GatheringType.å›­è‰ºå·¥   => GatheringType.å¤šèŒä¸š,
+                GatheringType.é‡‡çŸ¿å·¥      => GatheringType.é‡‡çŸ¿å·¥,
+                GatheringType.å¤šèŒä¸š   => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥    => GatheringType.é‡‡çŸ¿,
                 _                        => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.ËéÊ¯ => other switch
+            GatheringType.ç¢ŽçŸ³ => other switch
             {
-                GatheringType.ËéÊ¯  => GatheringType.ËéÊ¯,
-                GatheringType.·¥Ä¾    => GatheringType.¶àÖ°Òµ,
-                GatheringType.¸î²Ý => GatheringType.¶àÖ°Òµ,
-                GatheringType.Ô°ÒÕ¹¤   => GatheringType.¶àÖ°Òµ,
-                GatheringType.²É¿ó¹¤      => GatheringType.²É¿ó¹¤,
-                GatheringType.¶àÖ°Òµ   => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª    => GatheringType.ËéÊ¯,
+                GatheringType.ç¢ŽçŸ³  => GatheringType.ç¢ŽçŸ³,
+                GatheringType.ä¼æœ¨    => GatheringType.å¤šèŒä¸š,
+                GatheringType.å‰²è‰ => GatheringType.å¤šèŒä¸š,
+                GatheringType.å›­è‰ºå·¥   => GatheringType.å¤šèŒä¸š,
+                GatheringType.é‡‡çŸ¿å·¥      => GatheringType.é‡‡çŸ¿å·¥,
+                GatheringType.å¤šèŒä¸š   => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥    => GatheringType.ç¢ŽçŸ³,
                 _                        => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.·¥Ä¾ => other switch
+            GatheringType.ä¼æœ¨ => other switch
             {
-                GatheringType.·¥Ä¾    => GatheringType.·¥Ä¾,
-                GatheringType.¸î²Ý => GatheringType.Ô°ÒÕ¹¤,
-                GatheringType.Ô°ÒÕ¹¤   => GatheringType.Ô°ÒÕ¹¤,
-                GatheringType.²É¿ó¹¤      => GatheringType.¶àÖ°Òµ,
-                GatheringType.¶àÖ°Òµ   => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª    => GatheringType.·¥Ä¾,
+                GatheringType.ä¼æœ¨    => GatheringType.ä¼æœ¨,
+                GatheringType.å‰²è‰ => GatheringType.å›­è‰ºå·¥,
+                GatheringType.å›­è‰ºå·¥   => GatheringType.å›­è‰ºå·¥,
+                GatheringType.é‡‡çŸ¿å·¥      => GatheringType.å¤šèŒä¸š,
+                GatheringType.å¤šèŒä¸š   => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥    => GatheringType.ä¼æœ¨,
                 _                        => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.¸î²Ý => other switch
+            GatheringType.å‰²è‰ => other switch
             {
-                GatheringType.¸î²Ý => GatheringType.¸î²Ý,
-                GatheringType.Ô°ÒÕ¹¤   => GatheringType.Ô°ÒÕ¹¤,
-                GatheringType.²É¿ó¹¤      => GatheringType.¶àÖ°Òµ,
-                GatheringType.¶àÖ°Òµ   => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª    => GatheringType.¸î²Ý,
+                GatheringType.å‰²è‰ => GatheringType.å‰²è‰,
+                GatheringType.å›­è‰ºå·¥   => GatheringType.å›­è‰ºå·¥,
+                GatheringType.é‡‡çŸ¿å·¥      => GatheringType.å¤šèŒä¸š,
+                GatheringType.å¤šèŒä¸š   => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥    => GatheringType.å‰²è‰,
                 _                        => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.Ô°ÒÕ¹¤ => other switch
+            GatheringType.å›­è‰ºå·¥ => other switch
             {
-                GatheringType.Ô°ÒÕ¹¤ => GatheringType.Ô°ÒÕ¹¤,
-                GatheringType.²É¿ó¹¤    => GatheringType.¶àÖ°Òµ,
-                GatheringType.¶àÖ°Òµ => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª  => GatheringType.Ô°ÒÕ¹¤,
+                GatheringType.å›­è‰ºå·¥ => GatheringType.å›­è‰ºå·¥,
+                GatheringType.é‡‡çŸ¿å·¥    => GatheringType.å¤šèŒä¸š,
+                GatheringType.å¤šèŒä¸š => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥  => GatheringType.å›­è‰ºå·¥,
                 _                      => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.²É¿ó¹¤ => other switch
+            GatheringType.é‡‡çŸ¿å·¥ => other switch
             {
-                GatheringType.²É¿ó¹¤    => GatheringType.¶àÖ°Òµ,
-                GatheringType.¶àÖ°Òµ => GatheringType.¶àÖ°Òµ,
-                GatheringType.Î´Öª  => GatheringType.²É¿ó¹¤,
+                GatheringType.é‡‡çŸ¿å·¥    => GatheringType.å¤šèŒä¸š,
+                GatheringType.å¤šèŒä¸š => GatheringType.å¤šèŒä¸š,
+                GatheringType.æœªçŸ¥  => GatheringType.é‡‡çŸ¿å·¥,
                 _                      => throw new ArgumentOutOfRangeException(nameof(other), other, null),
             },
-            GatheringType.¶àÖ°Òµ => GatheringType.¶àÖ°Òµ,
-            GatheringType.Î´Öª  => other,
+            GatheringType.å¤šèŒä¸š => GatheringType.å¤šèŒä¸š,
+            GatheringType.æœªçŸ¥  => other,
             _                      => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
