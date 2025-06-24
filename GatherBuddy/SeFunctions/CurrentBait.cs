@@ -1,19 +1,34 @@
 ﻿using Dalamud.Game;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.WKS;
+using GatherBuddy.Plugin;
 
 namespace GatherBuddy.SeFunctions;
 
 public sealed class CurrentBait : SeAddressBase
 {
     public CurrentBait(ISigScanner sigScanner)
-        : base(sigScanner, "3B 05 ?? ?? ?? ?? 75 ?? 80 7E")
+        : base(sigScanner, "8B 0D ?? ?? ?? ?? 3B D9 75")
     {
         Dalamud.Interop.InitializeFromAttributes(this);
     }
 
     public unsafe uint Current
-        => *(uint*)Address;
+    {
+        get 
+        {
+            var territoryId = Dalamud.ClientState.TerritoryType;
+            if (GatherBuddy.GameData.Territories.TryGetValue(territoryId, out var territory) && territory.Data.TerritoryIntendedUse.RowId is 60)
+            {
+                var cosmicManager = WKSManager.Instance();
+                if (cosmicManager != null)
+                    return *(uint*)((byte*)cosmicManager + Offsets.CurrentCosmicBaitOffset);
+            }
+
+            return *(uint*)Address;
+        }
+    }
 
     private delegate byte ExecuteCommandDelegate(int id, int unk1, uint baitId, int unk2, int unk3);
 
@@ -42,7 +57,6 @@ public sealed class CurrentBait : SeAddressBase
 
         if (HasItem(baitId) <= 0)
             return ChangeBaitReturn.NotInInventory;
-
 
         return _executeCommand(701, 4, baitId, 0, 0) == 1 ? ChangeBaitReturn.Success : ChangeBaitReturn.UnknownError;
     }

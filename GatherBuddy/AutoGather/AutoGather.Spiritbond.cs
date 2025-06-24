@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Dalamud.Game.ClientState.Conditions;
 using ECommons.Automation;
 using ECommons.DalamudServices;
@@ -14,6 +16,8 @@ public partial class AutoGather
     {
         get
         {
+            if (!GatherBuddy.Config.AutoGatherConfig.DoMaterialize) return 0;
+
             var inventory = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
             var result    = 0;
             for (var slot = 0; slot < inventory->Size; slot++)
@@ -23,7 +27,7 @@ public partial class AutoGather
                     continue;
 
                 //GatherBuddy.Log.Debug("Slot " + slot + " has " + inventoryItem->Spiritbond + " Spiritbond");
-                if (inventoryItem->Spiritbond == 10000)
+                if (inventoryItem->SpiritbondOrCollectability == 10000)
                 {
                     result++;
                 }
@@ -33,6 +37,7 @@ public partial class AutoGather
         }
     }
 
+    private Random _rng = new();
     unsafe void DoMateriaExtraction()
     {
         if (!QuestManager.IsQuestComplete(66174))
@@ -49,14 +54,17 @@ public partial class AutoGather
             return;
         }
 
+        TaskManager.Enqueue(YesAlready.Lock);
         EnqueueActionWithDelay(() => { if (MaterializeAddon is var addon and not null) Callback.Fire(&addon->AtkUnitBase, true, 2, 0); });
         TaskManager.Enqueue(() => MaterializeDialogAddon != null, 1000);
         EnqueueActionWithDelay(() => { if (MaterializeDialogAddon is var addon and not null) new MaterializeDialog(addon).Materialize(); });
         TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Occupied39]);
+        TaskManager.DelayNext(_rng.Next(500, 2000));
 
         if (SpiritbondMax == 1) 
         {
-            EnqueueActionWithDelay(() => { if (MaterializeAddon is var addon and not null) addon->Close(true); });
+            EnqueueActionWithDelay(() => { if (MaterializeAddon is var addon and not null) Callback.Fire(&addon->AtkUnitBase, true, -1); });
+            TaskManager.Enqueue(YesAlready.Unlock);
         }
     }
 }

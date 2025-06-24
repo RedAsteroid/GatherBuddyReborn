@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -9,6 +9,7 @@ namespace GatherBuddy.AutoGather
     {
         public float                           MountUpDistance               { get; set; } = 15.0f;
         public uint                            AutoGatherMountId             { get; set; } = 1;
+        public bool MoveWhileMounting { get; set; } = false;
         public Dictionary<uint, List<Vector3>> BlacklistedNodesByTerritoryId { get; set; } = new();
 
         [Obsolete] public ActionConfig BYIIConfig    { get; set; } = new(true, 100, uint.MaxValue, new ActionConditions(), new Dictionary<string, object> { { "UseWithCystals", false }, { "MinimumIncrease", 1 } });
@@ -61,6 +62,8 @@ namespace GatherBuddy.AutoGather
         [Obsolete] public ConsumableConfig SquadronPassConfig { get; set; } = new(false, 0, 0, 0);
         public bool DoMaterialize { get; set; } = false;
         public bool DoReduce { get; set; } = false;
+        public bool DoRepair { get; set; } = false;
+        public int RepairThreshold { get; set; } = 50;
         public bool HonkMode { get; set; } = true;
         public SortingType SortingMethod { get; set; } = SortingType.Location;
         public bool GoHomeWhenIdle { get; set; } = true;
@@ -68,9 +71,15 @@ namespace GatherBuddy.AutoGather
         public bool UseSkillsForFallbackItems { get; set; } = false;
         public bool AbandonNodes { get; set; } = false;
         public uint ExecutionDelay { get; set; } = 0;
-        public bool ForceCloseLingeringMasterpieceAddon { get; set; } = false;
         public bool ConfigConversionFixed { get; set; } = false;
         public bool RotationSolverConversionDone { get; set; } = false;
+        public bool CheckRetainers { get; set; } = false;
+        public string LifestreamCommand { get; set; } = "auto";
+        public int SoundPlaybackVolume { get; set; } = 100;
+        public bool FishDataCollection { get; set; } = false;
+        public bool AlwaysGatherMaps { get; set; } = false;
+        public int MaxFishingSpotMinutes { get; set; } = 20;
+        public bool UseNavigation { get; set; } = true;
 
         public enum SortingType
         {

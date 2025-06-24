@@ -74,6 +74,7 @@ public partial class Interface
         public ushort                    UptimePercent;
         public bool                      Unlocked = false;
         public bool                      Collectible;
+        public int                       DoubleHook;
 
         public (ILocation, TimeInterval) Uptime
             => GatherBuddy.UptimeManager.BestLocation(Data);
@@ -251,6 +252,7 @@ public partial class Interface
         {
             Data        = data;
             Collectible = data.ItemData.IsCollectable;
+            DoubleHook  = data.MultiHook;
             Icon        = Icons.DefaultStorage.TextureProvider.GetFromGameIcon(new GameIconLookup(data.ItemData.Icon));
             Territories = string.Join("\n", data.FishingSpots.Select(f => f.Territory.Name).Distinct());
             if (!Territories.Contains("\n"))
@@ -302,6 +304,13 @@ public partial class Interface
                 OceanTime.白昼                      => "Day",
                 _                                  => "Unknown Uptime",
             };
+        }
+
+        private static void PrintName(ExtendedFish fish)
+        {
+            using var border = ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1);
+            using var color  = ImRaii.PushColor(ImGuiCol.Border, ImGui.GetColorU32(ImGuiCol.Text));
+            ImGuiUtil.DrawTextButton(fish.Data.Name[GatherBuddy.Language], Vector2.Zero, 0);
         }
 
         private static void PrintTime(ExtendedFish fish)
@@ -521,10 +530,12 @@ public partial class Interface
             ImGui.Button(fish.Patch);
         }
 
-        public void SetTooltip(Territory territory, Vector2 iconSize, Vector2 smallIconSize, Vector2 weatherIconSize, bool standAlone = true)
+        public void SetTooltip(Territory territory, Vector2 iconSize, Vector2 smallIconSize, Vector2 weatherIconSize, bool printName, bool standAlone = true)
         {
             using var tooltip = standAlone ? ImRaii.Tooltip() : ImRaii.IEndObject.Empty;
             using var style   = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemSpacing * new Vector2(1f, 1.5f));
+            if (printName)
+                PrintName(this);
             PrintTime(this);
             PrintWeather(this, weatherIconSize);
             PrintBait(this, territory, iconSize, smallIconSize);

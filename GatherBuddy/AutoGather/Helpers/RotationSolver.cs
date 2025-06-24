@@ -10,7 +10,6 @@ using Actions = GatherBuddy.AutoGather.AutoGather.Actions;
 using ItemSlot = GatherBuddy.AutoGather.GatheringTracker.ItemSlot;
 using ECommons.ExcelServices;
 using ECommons;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.CustomInfo;
 
 namespace GatherBuddy.AutoGather.Helpers
@@ -452,8 +451,8 @@ namespace GatherBuddy.AutoGather.Helpers
 
                 var canUseGiving = (isCrystal || GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown)
                     && state.Global.PlayerLevel >= Actions.GivingLand.MinLevel;
-                //Aim to have 200 GP 10 seconds before The Giving Land is off cooldown
-                var keepGP = canUseGiving ? Actions.GivingLand.GpCost - Math.Max((int)((givingCooldown - 10) * state.Global.GPRegenPerTick / 3), 0) : 0;
+                //Aim for 200 GP 10s before The Giving Land is off cooldown (2s/gather, 2s close; 1s/Bountiful is not accounted for, covered by 10s buffer).
+                var keepGP = canUseGiving ? Actions.GivingLand.GpCost - Math.Max((int)((givingCooldown - 10 - state.Integrity * 2 - 2) * state.Global.GPRegenPerTick / 3), 0) : 0;
                 //If Bountiful bonus is +1, we may consider using Tidings
                 if (fillerYield <= 1000 && state.Global.PlayerLevel >= Actions.Tidings.MinLevel) keepGP = Math.Max(keepGP, Actions.Tidings.GpCost);
                 var overcapGP = bestSimulatedYield > fillerYield ? (int)state.Global.MaxGP - KeepGPBelowMaxMinus : 0;
@@ -519,7 +518,7 @@ namespace GatherBuddy.AutoGather.Helpers
             var basePerception = WorldData.IlvConvertTable[(int)glvl].BasePerception;
             if (basePerception == 0) return 0;
 
-            var score = (uint)Math.Min(150, 100 * CharacterPerceptionStat / basePerception);
+            var score = (uint)Math.Min(150, 100 * DiscipleOfLand.Perception / basePerception);
             if (score >= 100) return (score - 100) * (60 - 35) / (150 - 100) + 35;
             if (score >=  80) return (score -  80) * (35 - 15) / (100 -  80) + 15;
             if (score >=  70) return (score -  70) * (15 - 10) / ( 80 -  70) + 10;
@@ -527,7 +526,5 @@ namespace GatherBuddy.AutoGather.Helpers
 
             return 0;
         }
-
-        private static unsafe int CharacterPerceptionStat => PlayerState.Instance()->Attributes[73];
     }
 }

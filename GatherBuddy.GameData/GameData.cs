@@ -36,14 +36,15 @@ public class GameData
     public FrozenDictionary<uint, Weather> Weathers           { get; } = FrozenDictionary<uint, Weather>.Empty;
     public Territory[]                     WeatherTerritories { get; } = [];
 
-    public Dictionary<uint, Territory>           Territories           { get; } = [];
-    public FrozenDictionary<uint, Aetheryte>     Aetherytes            { get; } = FrozenDictionary<uint, Aetheryte>.Empty;
-    public FrozenDictionary<uint, Gatherable>    Gatherables           { get; } = FrozenDictionary<uint, Gatherable>.Empty;
-    public FrozenDictionary<uint, Gatherable>    GatherablesByGatherId { get; } = FrozenDictionary<uint, Gatherable>.Empty;
-    public FrozenDictionary<uint, GatheringNode> GatheringNodes        { get; } = FrozenDictionary<uint, GatheringNode>.Empty;
-    public FrozenDictionary<uint, Bait>          Bait                  { get; } = FrozenDictionary<uint, Bait>.Empty;
-    public FrozenDictionary<uint, Fish>          Fishes                { get; } = FrozenDictionary<uint, Fish>.Empty;
-    public FrozenDictionary<uint, FishingSpot>   FishingSpots          { get; } = FrozenDictionary<uint, FishingSpot>.Empty;
+    public Dictionary<uint, Territory>             Territories           { get; } = [];
+    public FrozenDictionary<uint, Aetheryte>       Aetherytes            { get; } = FrozenDictionary<uint, Aetheryte>.Empty;
+    public FrozenDictionary<uint, Gatherable>      Gatherables           { get; } = FrozenDictionary<uint, Gatherable>.Empty;
+    public FrozenDictionary<uint, Gatherable>      GatherablesByGatherId { get; } = FrozenDictionary<uint, Gatherable>.Empty;
+    public FrozenDictionary<uint, GatheringNode>   GatheringNodes        { get; } = FrozenDictionary<uint, GatheringNode>.Empty;
+    public FrozenDictionary<uint, Bait>            Bait                  { get; } = FrozenDictionary<uint, Bait>.Empty;
+    public FrozenDictionary<uint, Fish>            Fishes                { get; } = FrozenDictionary<uint, Fish>.Empty;
+    public FrozenDictionary<uint, FishingSpot>     FishingSpots          { get; } = FrozenDictionary<uint, FishingSpot>.Empty;
+    public FrozenDictionary<ushort, CosmicMission> CosmicFishingMissions { get; } = FrozenDictionary<ushort, CosmicMission>.Empty;
     public Dictionary<uint, List<Vector3>> WorldCoords           { get; init; } = new();
 
     public IReadOnlyList<OceanRoute> OceanRoutes   { get; } = Array.Empty<OceanRoute>();
@@ -84,7 +85,7 @@ public class GameData
                 .ToFrozenDictionary(w => (byte)w.RowId, w => new CumulativeWeatherRates(this, w));
 
             WeatherTerritories = DataManager.GetExcelSheet<TerritoryType>()
-                .Where(t => t.PCSearch && t.WeatherRate != 0)
+                .Where(t => t.PCSearch && t.WeatherRate.RowId != 0)
                 .Select(t => FindOrAddTerritory(t))
                 .Where(t => t is { WeatherRates.Rates.Length: > 1 })
                 .OfType<Territory>()
@@ -99,14 +100,18 @@ public class GameData
                 .ToFrozenDictionary(a => a.RowId, a => new Aetheryte(this, a));
             Log.Verbose("Collected {NumAetherytes} different aetherytes.", Aetherytes.Count);
             ForcedAetherytes.ApplyMissingAetherytes(this);
+            if (Aetherytes.Count is 0)
+                throw new Exception("Could not fetch any aetherytes, this is certainly an error, terminating.");
 
             Gatherables = DataManager.GetExcelSheet<GatheringItem>()
-                .Where(g => g.Item.RowId != 0 && g.Item.RowId < 1000000)
-                .GroupBy(g => g.Item)
+                .Where(g => g.Item.RowId != 0 && g.Item.RowId < 1000000 && g.Item.TryGetValue<Item>(out var i) && !i.Name.IsEmpty)
+                .GroupBy(g => g.Item.RowId)
                 .Select(group => group.First())
                 .ToFrozenDictionary(g => g.Item.RowId, g => new Gatherable(this, g));
             GatherablesByGatherId = Gatherables.Values.ToFrozenDictionary(g => g.GatheringId, g => g);
             Log.Verbose("Collected {NumGatherables} different gatherable items.", Gatherables.Count);
+            if (Gatherables.Count is 0)
+                throw new Exception("Could not fetch any gatherables, this is certainly an error, terminating.");
 
             // Create GatheringItemPoint dictionary.
             var tmpGatheringItemPoint = DataManager.GetSubrowExcelSheet<GatheringItemPoint>().SelectMany(g => g)
@@ -124,11 +129,22 @@ public class GameData
                 .Where(n => n.Territory.Id > 1 && n.Items.Count > 0)
                 .ToFrozenDictionary(n => n.Id, n => n);
             Log.Verbose("Collected {NumGatheringNodes} different gathering nodes", GatheringNodes.Count);
+            if (GatheringNodes.Count is 0)
+                throw new Exception("Could not fetch any gathering nodes, this is certainly an error, terminating.");
+
+            CosmicFishingMissions = DataManager.GetExcelSheet<WKSMissionUnit>()
+                .Where(m => m.Unknown0.ByteLength > 0 && m.Unknown1 is 19)
+                .ToFrozenDictionary(m => (ushort)m.RowId, m => new CosmicMission(m));
+            Log.Verbose("Collected {NumCosmicMissions} different cosmic fishing missions.", CosmicFishingMissions.Count);
 
             Bait = DataManager.GetExcelSheet<Item>()
                 .Where(i => i.ItemSearchCategory.RowId == Structs.Bait.FishingTackleRow)
+                .Concat(DataManager.GetExcelSheet<WKSItemInfo>().Where(i => i.Unknown3 is 5)
+                    .Select(i => DataManager.GetExcelSheet<Item>().GetRow(i.Unknown0))) // Unknown3 is WKSItemSubCategory, Unknown 0 is ItemId.
                 .ToFrozenDictionary(b => b.RowId, b => new Bait(b));
             Log.Verbose("Collected {NumBaits} different types of bait.", Bait.Count);
+            if (Bait.Count is 0)
+                throw new Exception("Could not fetch any bait, this is certainly an error, terminating.");
 
             var catchData = DataManager.GetExcelSheet<FishingNoteInfo>();
             Fishes = DataManager.GetExcelSheet<FishParameter>()
@@ -141,6 +157,9 @@ public class GameData
                 .Select(group => group.First())
                 .ToFrozenDictionary(f => f.ItemId, f => f);
             Log.Verbose("Collected {NumFishes} different types of fish.", Fishes.Count);
+            if (Fishes.Count is 0)
+                throw new Exception("Could not fetch any fish, this is certainly an error, terminating.");
+
             Data.Fish.Apply(this);
 
             FishingSpots = DataManager.GetExcelSheet<FishingSpotRow>()
@@ -153,6 +172,8 @@ public class GameData
                 .Where(f => f.Territory.Id != 0)
                 .ToFrozenDictionary(f => f.Id, f => f);
             Log.Verbose("Collected {NumFishingSpots} different fishing spots.", FishingSpots.Count);
+            if (FishingSpots.Count is 0)
+                throw new Exception("Could not fetch any fishing spots, this is certainly an error, terminating.");
 
             HiddenMaps.Apply(this);
             ForcedAetherytes.Apply(this);

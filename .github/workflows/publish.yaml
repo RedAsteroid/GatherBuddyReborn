@@ -8,6 +8,8 @@ jobs:
     permissions:
       contents: write
     runs-on: windows-latest
+    env:
+      REPO_NAME: ${{ github.repository }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,11 +21,11 @@ jobs:
           $tag = "${{ github.ref }}" -replace 'refs/tags/', ''
 
           "tag=$tag" | Out-File -Append -FilePath $Env:GITHUB_ENV
-          
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Download Dalamud Latest
         run: |
@@ -44,4 +46,3 @@ jobs:
         with:
           files: ./build/GatherbuddyReborn.zip
           token: ${{ secrets.GITHUB_TOKEN }}
-

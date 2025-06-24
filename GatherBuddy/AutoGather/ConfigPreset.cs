@@ -30,6 +30,7 @@ namespace GatherBuddy.AutoGather
         public int CollectableMinGP { get => collectableMinGP; set => collectableMinGP = Math.Max(0, Math.Min(MaxGP, value)); }
         public int CollectableActionsMinGP { get => collectableActionsMinGP; set => collectableActionsMinGP = Math.Max(0, Math.Min(MaxGP, value)); }
         public bool CollectableAlwaysUseSolidAge { get; set; } = true;
+        public bool CollectableManualScores { get; set; } = false;
         public int CollectableTagetScore { get => collectableTagetScore; set => collectableTagetScore = Math.Max(0, Math.Min(MaxCollectability, value)); }
         public int CollectableMinScore { get => collectableMinScore; set => collectableMinScore = Math.Max(0, Math.Min(MaxCollectability, value)); }
         public bool ChooseBestActionsAutomatically { get; set; } = false;
@@ -92,9 +93,10 @@ namespace GatherBuddy.AutoGather
         }
         public record class ItemTypeRec
         {
-            public bool Crystals { get; set; } = true;
+            public bool Crystals     { get; set; } = true;
             public bool Collectables { get; set; } = true;
-            public bool Other { get; set; } = true;
+            public bool Other        { get; set; } = true;
+            public bool Fish         { get; set; } = true;
         }
         public record class NodeTypeRec
         {
@@ -217,6 +219,9 @@ namespace GatherBuddy.AutoGather
                 && (   item.IsCrystal && ItemType.Crystals
                 || item.ItemData.IsCollectable && ItemType.Collectables
                 || !item.IsCrystal && !item.ItemData.IsCollectable && ItemType.Other);
+
+        public bool Match(Fish fish)
+            => Enabled && ItemType.Fish;
 
         public string ToBase64String()
         {

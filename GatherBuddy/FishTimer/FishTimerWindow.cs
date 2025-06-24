@@ -8,13 +8,15 @@ using GatherBuddy.Gui;
 using GatherBuddy.SeFunctions;
 using ImGuiNET;
 using OtterGui;
+using OtterGui.Extensions;
 using OtterGui.Raii;
+using OtterGui.Text;
 using FishingSpot = GatherBuddy.Classes.FishingSpot;
 using TimeStamp = GatherBuddy.Time.TimeStamp;
 
 namespace GatherBuddy.FishTimer;
 
-public partial class FishTimerWindow : Window
+public partial class FishTimerWindow : Window, IDisposable
 {
     private const ImGuiWindowFlags EditFlags =
         ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar;
@@ -33,25 +35,39 @@ public partial class FishTimerWindow : Window
     private readonly ImRaii.Style _style       = new();
 
     private float   _lineHeight;
-    private Vector2 _iconSize    = Vector2.Zero;
-    private Vector2 _itemSpacing = Vector2.Zero;
-    private Vector2 _windowPos   = Vector2.Zero;
-    private Vector2 _windowSize  = Vector2.Zero;
-    private float   _textMargin  = 5 * ImGuiHelpers.GlobalScale;
+    private Vector2 _iconSize        = Vector2.Zero;
+    private Vector2 _originalSpacing = Vector2.Zero;
+    private Vector2 _itemSpacing     = Vector2.Zero;
+    private Vector2 _windowPos       = Vector2.Zero;
+    private Vector2 _windowSize      = Vector2.Zero;
+    private float   _textMargin      = 5 * ImGuiHelpers.GlobalScale;
     private float   _textLines;
     private float   _maxListHeight;
     private float   _listHeight;
     private int     _milliseconds;
+    private int     _lureTime = int.MinValue;
     private string? _spotName;
 
 
     public FishTimerWindow(FishRecorder recorder)
         : base("##FishingTimer")
     {
-        _recorder          = recorder;
-        IsOpen             = GatherBuddy.Config.ShowFishTimer;
-        Namespace          = "FishingTimer";
-        RespectCloseHotkey = false;
+        _recorder          =  recorder;
+        IsOpen             =  GatherBuddy.Config.ShowFishTimer;
+        Namespace          =  "FishingTimer";
+        RespectCloseHotkey =  false;
+        _recorder.UsedLure += OnLure;
+    }
+
+    public void Dispose()
+    {
+        _recorder.UsedLure -= OnLure;
+    }
+
+    private void OnLure()
+    {
+        _lureTime = _milliseconds;
+        UpdateFish();
     }
 
     private static float Rounding
@@ -86,7 +102,7 @@ public partial class FishTimerWindow : Window
             return;
 
         var diff  = _windowPos.X + _iconSize.X + 2 + (_windowSize.X - _iconSize.X) * _milliseconds / GatherBuddy.Config.FishTimerScale;
-        var start = new Vector2(diff, _windowPos.Y + _textLines);
+        var start = new Vector2(diff, _windowPos.Y + _textLines - 1);
         var end   = new Vector2(diff, _windowPos.Y + _listHeight - 2 * ImGuiHelpers.GlobalScale);
         ImGui.GetWindowDrawList()
             .AddLine(start, end, ColorId.FishTimerProgress.Value(), 3 * ImGuiHelpers.GlobalScale);
@@ -104,7 +120,7 @@ public partial class FishTimerWindow : Window
         var scale     = Vector2.UnitX * ImGuiHelpers.GlobalScale;
         for (byte i = 1; i <= GatherBuddy.Config.ShowSecondIntervals; ++i)
         {
-            var start = baseLine + new Vector2(increment * i, _textLines);
+            var start = baseLine + new Vector2(increment * i, _textLines - 1);
             var end   = start with { Y = baseLine.Y + _listHeight - 2 * ImGuiHelpers.GlobalScale };
             drawList.AddLine(start - scale, end - scale, 0x80000000, ImGuiHelpers.GlobalScale);
             drawList.AddLine(start,         end,         0xFFFFFFFF, ImGuiHelpers.GlobalScale);
@@ -142,16 +158,16 @@ public partial class FishTimerWindow : Window
         }
     }
 
-    private string EllipsifyString(string text, float maxWidth)
+    private string EllipsifyString(ReadOnlySpan<char> text, float maxWidth)
     {
-        if (ImGui.CalcTextSize(text).X < maxWidth)
-            return text;
+        if (ImUtf8.CalcTextSize(text).X < maxWidth)
+            return new string(text);
 
-        maxWidth -= ImGui.CalcTextSize("...").X;
+        maxWidth -= ImUtf8.CalcTextSize("...").X;
         var length = Math.Max(text.Length - 3, 0);
         while (length-- > 0)
         {
-            if (ImGui.CalcTextSize(text, 0, length).X < maxWidth)
+            if (ImUtf8.CalcTextSize(text, false, length).X < maxWidth)
                 return $"{text[..length]}...";
         }
 
@@ -163,8 +179,14 @@ public partial class FishTimerWindow : Window
         if (spot == null)
             return "Unknown";
 
+        var name = spot.Name.AsSpan();
+        if (name.EndsWith(')'))
+        {
+            if (name.Length > 8 && name[^7] is '(')
+                name = name[..^8];
+        }
         var maxWidth = _windowSize.X - ImGui.CalcTextSize("100.0").X - 2 * _textMargin;
-        return EllipsifyString(spot.Name, maxWidth);
+        return EllipsifyString(name, maxWidth);
     }
 
     private void SetSpot(FishingSpot? spot)
@@ -176,12 +198,14 @@ public partial class FishTimerWindow : Window
             // Recalculated and cached on the first draw.
             _spotName = null;
             UpdateFish();
+            _lureTime = int.MinValue;
         }
         else if (newMilliseconds < _milliseconds
               || GatherBuddy.EventFramework.FishingState is FishingState.None or FishingState.PoleReady
               && GatherBuddy.Time.ServerTime >= _nextUptimeChange)
         {
             UpdateFish();
+            _lureTime = int.MinValue;
         }
 
         _milliseconds = spot == null ? 0 : newMilliseconds;
@@ -191,7 +215,7 @@ public partial class FishTimerWindow : Window
     {
         if (_spot == null)
         {
-            _availableFish = Array.Empty<FishCache>();
+            _availableFish = [];
         }
         else
         {
@@ -214,7 +238,8 @@ public partial class FishTimerWindow : Window
 
     public override void PreDraw()
     {
-        _itemSpacing = new Vector2(0, ImGuiHelpers.GlobalScale);
+        _originalSpacing = ImGui.GetStyle().ItemSpacing;
+        _itemSpacing     = new Vector2(0, ImGuiHelpers.GlobalScale);
         _style.Push(ImGuiStyleVar.ItemSpacing,   _itemSpacing);
         _style.Push(ImGuiStyleVar.WindowPadding, Vector2.Zero);
         _lineHeight = ImGui.GetFrameHeight();
@@ -277,6 +302,10 @@ public partial class FishTimerWindow : Window
 
             DrawTextHeader(_recorder.Record.Bait.Name + baitString, _spotName, _milliseconds);
             DrawSecondLines();
+            foreach (var (fish, i) in _availableFish.WithIndex())
+                fish.DrawBackground(this, i);
+
+            DrawLureBox();
             foreach (var fish in _availableFish)
                 fish.Draw(this);
 
@@ -284,5 +313,43 @@ public partial class FishTimerWindow : Window
         }
 
         _style.Push(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+    }
+
+    private static void DrawHatchedRect(Vector2 from, Vector2 to, float thickness)
+    {
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.AddRectFilled(from, to, 0x80000000);
+        drawList.PushClipRect(from, to);
+        var height        = to.Y - from.Y;
+        var angle         = to.X - from.X;
+        var block         = (int)((height + angle) / thickness);
+        var halfThickness = thickness / 2;
+        var start         = @from with { Y = from.Y + halfThickness };
+        var end           = to with { Y = from.Y + halfThickness - angle };
+        var color         = ColorId.FishTimerLureNoCatch.Value();
+        for (var i = 0; i < block; ++i)
+        {
+            drawList.AddQuadFilled(start, start with {Y = start.Y - halfThickness }, end, end with {Y = end.Y + halfThickness}, color);
+            start.Y += thickness;
+            end.Y   += thickness;
+        }
+        drawList.PopClipRect();
+        drawList.AddRect(from, to, color);
+    }
+
+    private void DrawLureBox()
+    {
+        if (_lureTime < 0)
+            return;
+
+        var startX = _windowPos.X + _iconSize.X + 2 + (_windowSize.X - _iconSize.X) * _lureTime / GatherBuddy.Config.FishTimerScale;
+        var endX = _windowPos.X
+          + _iconSize.X
+          + 2
+          + (_windowSize.X - _iconSize.X) * (_lureTime + FishRecorder.DeadLureTiming) / GatherBuddy.Config.FishTimerScale;
+        var topY    = _windowPos.Y + _textLines - 1;
+        var bottomY = _windowPos.Y + _listHeight - 2 * ImGuiHelpers.GlobalScale;
+
+        DrawHatchedRect(new Vector2(startX, topY), new Vector2(endX, bottomY), 10 * ImGuiHelpers.GlobalScale);
     }
 }

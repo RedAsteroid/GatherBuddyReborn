@@ -46,6 +46,7 @@ public static partial class Fish
             .Time(540, 660);
         data.Apply(44347, Patch.Crossroads) // Cloudsail
             .Bait(data, 43853)
+            .Lure(Enums.Lure.Ambitious)
             .Bite(data, HookSet.Powerful, BiteType.Strong);
         data.Apply(44334, Patch.Crossroads) // Oily Ropefish
             .Bait(data, 28634)
@@ -60,6 +61,9 @@ public static partial class Fish
             .Bait(data, 28634)
             .Bite(data, HookSet.Precise, BiteType.Weak);
         data.Apply(44338, Patch.Crossroads) // Cenote Oyster
+            .Bait(data, 28634)
+            .Bite(data, HookSet.Precise, BiteType.Weak);
+        data.Apply(44335, Patch.Crossroads) // Yak Awak Core
             .Bait(data, 28634)
             .Bite(data, HookSet.Precise, BiteType.Weak);
     }

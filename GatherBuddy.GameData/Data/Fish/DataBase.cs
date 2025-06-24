@@ -277,6 +277,26 @@ public static partial class Fish
         return fish;
     }
 
+    private static Classes.Fish? MultiHook(this Classes.Fish? fish, int value)
+    {
+        if (fish == null)
+            return null;
+
+        fish.MultiHook = value;
+        return fish;
+    }
+
+    private static Classes.Fish? Mission(this Classes.Fish? fish, GameData data, ushort value)
+    {
+        if (fish == null)
+            return null;
+
+        fish.CosmicMission = data.CosmicFishingMissions.TryGetValue(value, out var mission)
+            ? mission
+            : throw new Exception($"Could not find cosmic fishing mission {value}.");
+        return fish;
+    }
+
     private static Classes.Fish? Ocean(this Classes.Fish? fish, params OceanTime[] times)
     {
         if (fish == null)
@@ -344,8 +364,9 @@ public static partial class Fish
         data.ApplyGrowingLight();
         data.ApplyDawntrail();
         data.ApplyCrossroads();
+        data.ApplySeekersOfEternity();
         data.ApplyMooches();
-        //DumpUnknown(Patch.Crossroads, data.Fishes.Values);
+        //DumpUnknown(Patch.SeekersOfEternity, data.Fishes.Values);
     }
 
     public static void DumpUnknown(Patch patch, IEnumerable<Classes.Fish> fish, [CallerFilePath] string? directory = null)
@@ -365,7 +386,12 @@ public static partial class Fish
             w.WriteLine($"    private static void Apply{patch}(this GameData data)");
             w.WriteLine("    {");
             foreach (var f in fish.Where(f => f.Patch is Patch.Unknown && f.InLog).OrderBy(f => f.IsSpearFish).ThenBy(f => f.ItemId))
-                w.WriteLine($"        data.Apply({f.ItemId}, Patch.{patch}); // {f.Name.English}");
+            {
+                w.WriteLine($"        data.Apply({f.ItemId}, Patch.{patch}) // {f.Name.English}");
+                w.WriteLine("            .Bait(data)");
+                w.WriteLine("            .Bite(data, HookSet.Unknown, BiteType.Unknown);");
+            }
+
             w.WriteLine("    }");
             w.WriteLine("    // @formatter:on");
             w.WriteLine("}");

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿using System;
+﻿using System;
 using System.Numerics;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Utility;
@@ -77,9 +77,86 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.AbandonNodes, 
                 b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
 
+        public static void DrawCheckRetainersBox()
+        {
+            DrawCheckbox("Check Retainer Inventories", "Use Allagan Tools to check retainer inventories when doing inventory calculations",
+                GatherBuddy.Config.AutoGatherConfig.CheckRetainers, b => GatherBuddy.Config.AutoGatherConfig.CheckRetainers = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new("InventoryTools", "Allagan Tools")]);
+        }
+
+        public static void DrawHonkVolumeSlider()
+        {
+            ImGui.SetNextItemWidth(150);
+            var volume = GatherBuddy.Config.AutoGatherConfig.SoundPlaybackVolume;
+            if (ImGui.DragInt("Playback Volume", ref volume, 1, 0, 100))
+            {
+                if (volume < 0)
+                    volume = 0;
+                else if (volume > 100)
+                    volume = 100;
+                GatherBuddy.Config.AutoGatherConfig.SoundPlaybackVolume = volume;
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip(
+                "The volume of the sound played when auto-gathering shuts down because your list is complete.\nHold CTRL and click to enter custom value");
+        }
+
         public static void DrawHonkModeBox()
             => DrawCheckbox("采集完成时播放音效", "完成列表采集后结束自动采集并播放音效",
                 GatherBuddy.Config.AutoGatherConfig.HonkMode,   b => GatherBuddy.Config.AutoGatherConfig.HonkMode = b);
+
+        public static void DrawRepairBox()
+            => DrawCheckbox("Repair gear when needed",        "Repair gear when it is almost broken",
+                GatherBuddy.Config.AutoGatherConfig.DoRepair, b => GatherBuddy.Config.AutoGatherConfig.DoRepair = b);
+
+        public static void DrawRepairThreshold()
+        {
+            var tmp = GatherBuddy.Config.AutoGatherConfig.RepairThreshold;
+            if (ImGui.DragInt("Repair Threshold", ref tmp, 1, 1, 100))
+            {
+                GatherBuddy.Config.AutoGatherConfig.RepairThreshold = tmp;
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip("The percentage of durability at which you will repair your gear.");
+        }
+
+        public static void DrawFishingSpotMinutes()
+        {
+            var tmp = GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes;
+            if (ImGui.DragInt("Max Fishing Spot Minutes", ref tmp, 1, 1, 40))
+            {
+                GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes = tmp;
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip("The maximum number of minutes you will fish at a fishing spot.");
+        }
+
+        public static void DrawLifestreamCommandTextInput()
+        {
+            var tmp = GatherBuddy.Config.AutoGatherConfig.LifestreamCommand;
+            if (ImGui.InputText("Lifestream Command", ref tmp, 100))
+            {
+                if (string.IsNullOrEmpty(tmp))
+                    tmp = "auto";
+                GatherBuddy.Config.AutoGatherConfig.LifestreamCommand = tmp;
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip(
+                "The command used when idling or done gathering. DO NOT include '/li'\nBe careful when changing this, GBR does not validate this command!");
+        }
+
+        public static void DrawFishCollectionBox()
+            => DrawCheckbox("Opt-in to fishing data collection",
+                "With this enabled, whenever you catch a fish the data for that fish will be uploaded to a remote server\n"
+              + "The purpose of this data collection is to allow for a usable auto-fishing feature to be built\n"
+              + "No personal information about you or your character will be collected, only data relevant to the caught fish\n"
+              + "You can opt-out again at any time by simply disabling this checkbox.", GatherBuddy.Config.AutoGatherConfig.FishDataCollection,
+                b => GatherBuddy.Config.AutoGatherConfig.FishDataCollection = b);
 
         public static void DrawMaterialExtraction()
             => DrawCheckbox("自动精制",
@@ -89,7 +166,7 @@ public partial class Interface
 
         public static void DrawAetherialReduction()
             => DrawCheckbox("自动精选",
-                "你需要安装 Daily Routines 并开启 \"自动精选\" 模块",
+                "Automatically perform Aetherial Reduction when idling or the inventory is full",
                 GatherBuddy.Config.AutoGatherConfig.DoReduce,
                 b => GatherBuddy.Config.AutoGatherConfig.DoReduce = b);
 
@@ -133,16 +210,11 @@ public partial class Interface
 
             ImGuiUtil.HoverTooltip("使用任一技能前需要等待的时间");
         }
-      
-        public static void DrawForceCloseLingeringMasterpieceAddon()
-            => DrawCheckbox(
-                "强制关闭 收藏品采集 界面 (可能会致使游戏崩溃)",
-                "当自动采集过程中由于 BUG 导致 收藏品采集 界面未能被正确关闭时, 若此项被启用, 则会尝试强制关闭这一界面",
-                GatherBuddy.Config.AutoGatherConfig.ForceCloseLingeringMasterpieceAddon,
-                b => GatherBuddy.Config.AutoGatherConfig.ForceCloseLingeringMasterpieceAddon = b);
 
         public static void DrawUseGivingLandOnCooldown()
-            => DrawCheckbox("当 大地的恩惠 冷却完成后，采集任意水晶", "当大地的恩惠可用时，在任意普通采集点上随机采集水晶，不管当前的目标物品是什么。", GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown,
+            => DrawCheckbox("当 大地的恩惠 冷却完成时, 优先采集任意水晶",
+                "当大地的恩惠可用时，在任意普通采集点上随机采集水晶，不管当前的目标物品是什么",
+                GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown,
                 b => GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown = b);
 
         public static void DrawMountUpDistance()
@@ -156,6 +228,12 @@ public partial class Interface
 
             ImGuiUtil.HoverTooltip("你将会上坐骑来移动到下一个采集点的距离。");
         }
+
+        public static void DrawMoveWhileMounting()
+            => DrawCheckbox("召唤坐骑时便开始寻路",
+                "当读条召唤坐骑时便直接开始寻路",
+                GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting,
+                b => GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting = b);
 
         public static void DrawAntiStuckCooldown()
         {
@@ -172,6 +250,10 @@ public partial class Interface
         public static void DrawForceWalkingBox()
             => DrawCheckbox("强制行走",                      "强制以行走替代骑乘前往采集点。",
                 GatherBuddy.Config.AutoGatherConfig.ForceWalking, b => GatherBuddy.Config.AutoGatherConfig.ForceWalking = b);
+
+        public static void DrawUseNavigationBox()
+            => DrawCheckbox("Use vnavmesh Navigation",             "Use vnavmesh Navigation to move your character automatically",
+                GatherBuddy.Config.AutoGatherConfig.UseNavigation, b => GatherBuddy.Config.AutoGatherConfig.UseNavigation = b);
 
         public static void DrawStuckThreshold()
         {
@@ -482,6 +564,16 @@ public partial class Interface
                 "阻止弹出显示你捕获的鱼以及它的大小、数量和质量的弹窗。",
                 GatherBuddy.Config.HideFishSizePopup, b => GatherBuddy.Config.HideFishSizePopup = b);
 
+        public static void DrawCollectableHintPopupBox()
+            => DrawCheckbox("Show Collectable Hints",
+                "Show if a fish is collectable in the fish timer window.",
+                GatherBuddy.Config.ShowCollectableHints, b => GatherBuddy.Config.ShowCollectableHints = b);
+
+        public static void DrawDoubleHookHintPopupBox()
+            => DrawCheckbox("Show Multi Hook Hints",
+                "Show if a fish can be double or triple hooked in Cosmic Exploration.", // TODO: add ocean fishing when implemented.
+                GatherBuddy.Config.ShowMultiHookHints, b => GatherBuddy.Config.ShowMultiHookHints = b);
+
 
         // Spearfishing Helper
         public static void DrawSpearfishHelperBox()
@@ -672,7 +764,12 @@ public partial class Interface
               + "- {Item} 物品链接。",
                 GatherBuddy.Config.IdentifiedGatherableFormat, Configuration.DefaultIdentifiedGatherableFormat,
                 s => GatherBuddy.Config.IdentifiedGatherableFormat = s);
+
+        public static void DrawAlwaysMapsBox()
+            => DrawCheckbox("Always gather maps when available",      "GBR will always grab maps first if it sees one in a node",
+                GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps, b => GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps = b);
     }
+
 
     private void DrawConfigTab()
     {
@@ -691,13 +788,18 @@ public partial class Interface
             if (ImGui.TreeNodeEx("通用##autoGeneral"))
             {
                 ConfigFunctions.DrawHonkModeBox();
+                ConfigFunctions.DrawHonkVolumeSlider();
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
+                ConfigFunctions.DrawMoveWhileMounting();
                 ConfigFunctions.DrawSortingMethodCombo();
                 ConfigFunctions.DrawUseGivingLandOnCooldown();
                 ConfigFunctions.DrawGoHomeBox();
                 ConfigFunctions.DrawUseSkillsForFallabckBox();
                 ConfigFunctions.DrawAbandonNodesBox();
+                ConfigFunctions.DrawCheckRetainersBox();
+                ConfigFunctions.DrawFishCollectionBox();
+                ConfigFunctions.DrawAlwaysMapsBox();
                 ImGui.TreePop();
             }
 
@@ -705,10 +807,18 @@ public partial class Interface
             {
                 ConfigFunctions.DrawAutoGatherBox();
                 ConfigFunctions.DrawUseFlagBox();
+                ConfigFunctions.DrawUseNavigationBox();
                 ConfigFunctions.DrawForceWalkingBox();
+                ConfigFunctions.DrawRepairBox();
+                if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
+                {
+                    ConfigFunctions.DrawRepairThreshold();
+                }
+
+                ConfigFunctions.DrawFishingSpotMinutes();
                 ConfigFunctions.DrawMaterialExtraction();
                 ConfigFunctions.DrawAetherialReduction();
-                ConfigFunctions.DrawForceCloseLingeringMasterpieceAddon();
+                ConfigFunctions.DrawLifestreamCommandTextInput();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
                 ConfigFunctions.DrawTimedNodePrecog();
@@ -794,6 +904,8 @@ public partial class Interface
                 ConfigFunctions.DrawFishTimerScale();
                 ConfigFunctions.DrawFishTimerIntervals();
                 ConfigFunctions.DrawHideFishPopupBox();
+                ConfigFunctions.DrawCollectableHintPopupBox();
+                ConfigFunctions.DrawDoubleHookHintPopupBox();
                 ImGui.TreePop();
             }
 

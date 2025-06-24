@@ -6,9 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface;
-using Dalamud.Interface.Components;
-using Dalamud.Interface.Utility;
-using GatherBuddy.Alarms;
+using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
@@ -18,6 +16,9 @@ using ImGuiNET;
 using OtterGui;
 using OtterGui.Widgets;
 using ImRaii = OtterGui.Raii.ImRaii;
+using ECommons.ImGuiMethods;
+using ECommons;
+using GatherBuddy.Interfaces;
 
 namespace GatherBuddy.Gui;
 
@@ -25,15 +26,15 @@ public partial class Interface
 {
     private class AutoGatherListsDragDropData
     {
-        public AutoGatherList     list;
-        public Gatherable         Item;
-        public int                ItemIdx;
+        public AutoGatherList list;
+        public IGatherable    Item;
+        public int            ItemIdx;
 
-        public AutoGatherListsDragDropData(AutoGatherList list, Gatherable item, int idx)
+        public AutoGatherListsDragDropData(AutoGatherList list, IGatherable item, int idx)
         {
-            this.list  = list;
-            Item    = item;
-            ItemIdx = idx;
+            this.list = list;
+            Item      = item;
+            ItemIdx   = idx;
         }
     }
 
@@ -63,10 +64,11 @@ public partial class Interface
 
             protected override bool OnAdd(string name)
             {
-                _plugin.AutoGatherListsManager.AddList(new AutoGatherList()
+                var list = new AutoGatherList()
                 {
                     Name = name,
-                });
+                };
+                _plugin.AutoGatherListsManager.AddList(list);
                 return true;
             }
 
@@ -120,12 +122,12 @@ public partial class Interface
 
         public readonly AutoGatherListSelector Selector = new();
 
-        public ReadOnlyCollection<Gatherable> AllGatherables { get; private set; }
-        public ReadOnlyCollection<Gatherable> FilteredGatherables { get; private set; }
-        public ClippedSelectableCombo<Gatherable> GatherableSelector { get; private set; }
-        private HashSet<Gatherable> ExcludedGatherables = [];
+        public  ReadOnlyCollection<IGatherable>     AllGatherables      { get; private set; }
+        public  ReadOnlyCollection<IGatherable>     FilteredGatherables { get; private set; }
+        public  ClippedSelectableCombo<IGatherable> GatherableSelector  { get; private set; }
+        private HashSet<IGatherable>                ExcludedGatherables = [];
 
-        public void SetExcludedGatherbales(IEnumerable<Gatherable> exclude)
+        public void SetExcludedGatherbales(IEnumerable<IGatherable> exclude)
         {
             var excludeSet = exclude.ToHashSet();
             if (!ExcludedGatherables.SetEquals(excludeSet))
@@ -135,23 +137,27 @@ public partial class Interface
             }
         }
 
-        private static ReadOnlyCollection<Gatherable> GenAllGatherables()
-            => GatherBuddy.GameData.Gatherables.Values
-            .Where(g => g.NodeList.SelectMany(l => l.WorldPositions.Values).SelectMany(p => p).Any())
-            .OrderBy(g => g.Name[GatherBuddy.Language])
-            .ToArray()
-            .AsReadOnly();
+        private static ReadOnlyCollection<IGatherable> GenAllGatherables()
+        {
+            List<IGatherable> gatherables = new();
+            gatherables.AddRange(GatherBuddy.GameData.Gatherables.Values
+                .Where(g => g.NodeList.SelectMany(l => l.WorldPositions.Values).SelectMany(p => p).Any()));
+            gatherables.AddRange(GatherBuddy.GameData.Fishes.Values);
+            var orderedEnumerable = gatherables.OrderBy(g => g.Name[GatherBuddy.Language]);
+            return orderedEnumerable.ToList().AsReadOnly();
+        }
 
         [MemberNotNull(nameof(FilteredGatherables)), MemberNotNull(nameof(GatherableSelector)), MemberNotNull(nameof(AllGatherables))]
-        private void UpdateGatherables() => UpdateGatherables(AllGatherables = GenAllGatherables(), []);
+        private void UpdateGatherables()
+            => UpdateGatherables(AllGatherables = GenAllGatherables(), []);
 
         [MemberNotNull(nameof(FilteredGatherables)), MemberNotNull(nameof(GatherableSelector))]
-        private void UpdateGatherables(ReadOnlyCollection<Gatherable> newGatherables, HashSet<Gatherable> newExcluded)
+        private void UpdateGatherables(ReadOnlyCollection<IGatherable> newGatherables, HashSet<IGatherable> newExcluded)
         {
             while (NewGatherableIdx > 0)
             {
                 var item = FilteredGatherables![NewGatherableIdx];
-                var idx = newGatherables.IndexOf(item);
+                var idx  = newGatherables.IndexOf(item);
                 if (idx < 0)
                     NewGatherableIdx--;
                 else
@@ -160,9 +166,10 @@ public partial class Interface
                     break;
                 }
             }
+
             FilteredGatherables = newGatherables;
             ExcludedGatherables = newExcluded;
-            GatherableSelector = new("GatherablesSelector", string.Empty, 250, FilteredGatherables, g => g.Name[GatherBuddy.Language]);
+            GatherableSelector  = new("GatherablesSelector", string.Empty, 250, FilteredGatherables, g => g.Name[GatherBuddy.Language]);
         }
 
         public void Dispose()
@@ -176,7 +183,9 @@ public partial class Interface
     }
 
     private readonly AutoGatherListsCache _autoGatherListsCache;
-    public AutoGatherList? CurrentAutoGatherList => _autoGatherListsCache.Selector.EnsureCurrent();
+
+    public AutoGatherList? CurrentAutoGatherList
+        => _autoGatherListsCache.Selector.EnsureCurrent();
 
     private void DrawAutoGatherListsLine()
     {
@@ -196,7 +205,46 @@ public partial class Interface
             }
         }
 
-        if (ImGuiUtil.DrawDisabledButton("从 TeamCraft 导入", Vector2.Zero, "从剪贴板导入 TeamCraft 格式的数据以生成采集列表",
+        if (GatherBuddy.AutoGather.ArtisanExporter.ArtisanAssemblyEnabled)
+        {
+            if (ImGuiUtil.DrawDisabledButton("从 Artisan 导入", Vector2.Zero,
+                    "导入 Artisan 的材料清单至 GBR 中",
+                    !GatherBuddy.AutoGather.ArtisanExporter.ArtisanAssemblyEnabled))
+            {
+                ImGui.OpenPopup($"artisanImport");
+            }
+
+            if (ImGui.BeginPopup($"artisanImport"))
+            {
+                var lists = GatherBuddy.AutoGather.ArtisanExporter.GetArtisanListNames();
+
+                float rowHeight       = ImGui.GetTextLineHeightWithSpacing();
+                float totalListHeight = lists.Count * rowHeight;
+                float totalListWidth  = lists.Max(n => ImGui.CalcTextSize(n.Value).X) + 40;
+
+                float maxHeight   = ImGui.GetIO().DisplaySize.Y * 0.4f;
+                float childHeight = Math.Min(totalListHeight, maxHeight);
+
+                if (ImGui.BeginChild("ArtisanListsChild", new Vector2(totalListWidth, childHeight), true))
+                {
+                    foreach (var kvp in lists)
+                    {
+                        if (ImGui.Selectable($"{kvp.Value}##{kvp.Key}"))
+                        {
+                            Communicator.Print($"正在从 Artisan 导入 '{kvp.Value}'...");
+                            GatherBuddy.AutoGather.ArtisanExporter.StartArtisanImport(kvp);
+                        }
+
+                        ImGuiUtil.HoverTooltip($"{kvp.Value} ({kvp.Key})\n(点击以导入至新的自动采集列表中)");
+                    }
+                }
+
+                ImGui.EndChild();
+                ImGui.EndPopup();
+            }
+        }
+
+        if (ImGuiUtil.DrawDisabledButton("Import from TeamCraft", Vector2.Zero, "Populate list from clipboard contents (TeamCraft format)",
                 _autoGatherListsCache.Selector.Current == null))
         {
             var clipboardText = ImGuiUtil.GetClipboardText();
@@ -217,7 +265,7 @@ public partial class Interface
                         var itemName = match.Groups[2].Value;
                         items[itemName] = quantity;
                     }
-                    
+
                     var list = _autoGatherListsCache.Selector.Current!;
 
                     foreach (var (itemName, quantity) in items)
@@ -241,6 +289,16 @@ public partial class Interface
                 }
             }
         }
+
+        ImGui.SetCursorPosX(ImGui.GetWindowSize().X - 50);
+        const string agHelpText =
+            "若未启用按位置排序配置选项，物品将按启用列表顺序及列表内项目顺序进行收集。\n"
+          + "可通过拖拽操作调整列表顺序。\n"
+          + "可在特定列表内拖拽项目调整其顺序。\n"
+          + "可将选择器中的项目拖拽至其他列表实现跨列表转移。\n"
+          + "在收集窗口中，Ctrl + 右键点击项目可将其从所属列表中删除。";
+
+        ImGuiEx.InfoMarker(agHelpText,                    null, FontAwesomeIcon.InfoCircle.ToIconString(), false);
     }
 
     private void DrawAutoGatherList(AutoGatherList list)
@@ -259,7 +317,7 @@ public partial class Interface
         ImGui.SameLine();
         ImGuiUtil.Checkbox("备选##list",
             "正常情况下, 不会去采集备选列表内的任何物品\n"
-          + "仅当当前采集点不包含任意采集列表内所指定的物品, 又或者是采集点内列表所指定物品均已达到数量要求时,\n"
+          + "仅当目标采集点不包含任意采集列表内所指定的物品, 又或者是采集点内列表所指定物品均已达到数量要求时,\n"
           + "才会尝试去采集备选列表内的物品.", 
             list.Fallback, (v) => _plugin.AutoGatherListsManager.SetFallback(list, v));
 
@@ -271,7 +329,7 @@ public partial class Interface
 
         _autoGatherListsCache.SetExcludedGatherbales(list.Items.OfType<Gatherable>());
         var gatherables = _autoGatherListsCache.FilteredGatherables;
-        var selector = _autoGatherListsCache.GatherableSelector;
+        var selector    = _autoGatherListsCache.GatherableSelector;
         int changeIndex = -1, changeItemIndex = -1, deleteIndex = -1;
 
         for (var i = 0; i < list.Items.Count; ++i)
@@ -279,28 +337,35 @@ public partial class Interface
             var       item  = list.Items[i];
             using var id    = ImRaii.PushId((int)item.ItemId);
             using var group = ImRaii.Group();
-            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "Delete this item from the list", false, true))
+            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), IconButtonSize, "Delete this item from the list", false,
+                    true))
                 deleteIndex = i;
+            ImGui.SameLine();
+
+            var enabled = list.EnabledItems[item];
+            if (ImGui.Checkbox($"##{item.ItemId}", ref enabled))
+                _plugin.AutoGatherListsManager.ChangeEnabled(list, item, enabled);
 
             ImGui.SameLine();
             if (selector.Draw(item.Name[GatherBuddy.Language], out var newIdx))
             {
-                changeIndex = i;
+                changeIndex     = i;
                 changeItemIndex = newIdx;
             }
+
             ImGui.SameLine();
             ImGui.Text("所持: ");
-            var invTotal = _plugin.AutoGatherListsManager.GetInventoryCountForItem(item);
+            var invTotal = item.GetInventoryCount();
             ImGui.SameLine(0f, ImGui.CalcTextSize($"0000 / ").X - ImGui.CalcTextSize($"{invTotal} / ").X);
             ImGui.Text($"{invTotal} / ");
             ImGui.SameLine(0, 3f);
             var quantity = list.Quantities.TryGetValue(item, out var q) ? (int)q : 1;
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(150f * Scale);
             if (ImGui.InputInt("##quantity", ref quantity, 1, 10))
                 _plugin.AutoGatherListsManager.ChangeQuantity(list, item, (uint)quantity);
             ImGui.SameLine();
             if (DrawLocationInput(item, list.PreferredLocations.GetValueOrDefault(item), out var newLoc))
-                _plugin.AutoGatherListsManager.ChangePreferredLocation(list, item, newLoc as GatheringNode);
+                _plugin.AutoGatherListsManager.ChangePreferredLocation(list, item, newLoc);
             group.Dispose();
 
             _autoGatherListsCache.Selector.CreateDropSource(new AutoGatherListsDragDropData(list, item, i), item.Name[GatherBuddy.Language]);
@@ -316,7 +381,8 @@ public partial class Interface
         if (changeIndex >= 0)
             _plugin.AutoGatherListsManager.ChangeItem(list, gatherables[changeItemIndex], changeIndex);
 
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "追加该物品至列表", false, true))
+        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "追加该物品至列表", false,
+                true))
             _plugin.AutoGatherListsManager.AddItem(list, gatherables[_autoGatherListsCache.NewGatherableIdx]);
 
         ImGui.SameLine();

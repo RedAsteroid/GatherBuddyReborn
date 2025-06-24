@@ -70,17 +70,15 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
 
     public FishingSpot(GameData data, FishingSpotRow spot)
     {
-        _data     = spot;
-        Territory = data.FindOrAddTerritory(FishingSpotTerritoryHacks(data, spot)) ?? Territory.Invalid;
-        Name      = MultiString.ParseSeStringLumina(spot.PlaceName.ValueNullable?.Name);
-
+        _data          = spot;
+        Territory      = data.FindOrAddTerritory(FishingSpotTerritoryHacks(data, spot)) ?? Territory.Invalid;
+        Name           = FishingSpotNameHacks(data, spot);
         IntegralXCoord = Maps.MarkerToMap(spot.X, Territory.SizeFactor);
         IntegralYCoord = Maps.MarkerToMap(spot.Z, Territory.SizeFactor);
         ClosestAetheryte = Territory.Aetherytes.Count > 0
             ? Territory.Aetherytes.ArgMin(a => a.WorldDistance(Territory.Id, IntegralXCoord, IntegralYCoord))
             : null;
-        Radius = (ushort)(spot.Radius / 7);
-
+        Radius           = (ushort)(spot.Radius / 7);
         DefaultXCoord    = IntegralXCoord;
         DefaultYCoord    = IntegralYCoord;
         DefaultAetheryte = ClosestAetheryte;
@@ -125,15 +123,33 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
         => spot.RowId switch
         {
             10_000 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(759), // the rows in between are no longer used diadem objects
-            10_017 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_018 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_019 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_020 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_021 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_022 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_023 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_024 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            10_025 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
-            _      => spot.TerritoryType.Value,
+            > 10_016 and < 10_026 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
+            > 10_025 and < 10_031 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1073),
+            > 10_030 and < 10_040 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
+            > 10_042 and < 10_094 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
+            10_096 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
+            _ => spot.TerritoryType.ValueNullable,
         };
+
+    private static string FishingSpotNameHacks(GameData data, FishingSpotRow spot)
+    {
+        var name = MultiString.ParseSeStringLumina(spot.PlaceName.ValueNullable?.Name);
+        switch (spot.RowId)
+        {
+            case > 10_042 and < 10_094:
+                var missionRow = spot.RowId - 10_043 + 451;
+                if (missionRow > 495)
+                {
+                    if (missionRow > 499)
+                        missionRow += 42;
+                    else
+                        missionRow += 12;
+                }
+
+                return name + $" ({missionRow:D5})";
+            case 10_096: return name + " (00544)";
+        }
+
+        return name;
+    }
 }
