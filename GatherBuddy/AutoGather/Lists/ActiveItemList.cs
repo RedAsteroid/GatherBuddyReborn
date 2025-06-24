@@ -97,14 +97,14 @@ namespace GatherBuddy.AutoGather.Lists
             _gatheredSomething = true;
             // In almost all cases, the target is the first item in the list, so it's O(1).
             var x = _gatherableItems.FirstOrDefault(x => x.Node.WorldPositions.ContainsKey(target.DataId));
-            if (x != default && x.Time != TimeInterval.Always && x.Node?.NodeType is NodeType.Legendary or NodeType.Unspoiled)
+            if (x != default && x.Time != TimeInterval.Always && x.Node?.NodeType is NodeType.传说 or NodeType.未知)
                 _visitedTimedNodes[x.Node] = x.Time;
         }
 
         internal void DebugMarkVisited(GatherTarget x)
         {
             _gatheredSomething = true;
-            if (x.Time != TimeInterval.Always && x.Node.NodeType is NodeType.Legendary or NodeType.Unspoiled)
+            if (x.Time != TimeInterval.Always && x.Node.NodeType is NodeType.传说 or NodeType.未知)
                 _visitedTimedNodes[x.Node] = x.Time;
         }
 
@@ -169,8 +169,8 @@ namespace GatherBuddy.AutoGather.Lists
                 // Remove nodes with a level higher than the player can gather.
                 .Where(info => info.Node.GatheringType.ToGroup() switch
                 {
-                    GatheringType.Miner    => info.Node.Level <= minerLevel,
-                    GatheringType.Botanist => info.Node.Level <= botanistLevel,
+                    GatheringType.采矿工    => info.Node.Level <= minerLevel,
+                    GatheringType.园艺工 => info.Node.Level <= botanistLevel,
                     _                      => false
                 })
                 // Remove nodes that are not up.
@@ -247,8 +247,8 @@ namespace GatherBuddy.AutoGather.Lists
         private bool RequiresHomeWorld((Gatherable Item, uint Quantity) valueTuple)
         {
             var item = valueTuple.Item1;
-            return item.NodeType == NodeType.Legendary
-             || item.NodeType == NodeType.Unspoiled
+            return item.NodeType == NodeType.传说
+             || item.NodeType == NodeType.未知
              || item.NodeList.Any(nl => nl.Territory.Id is 901 or 929 or 939); // The Diadem
         }
 
@@ -275,11 +275,11 @@ namespace GatherBuddy.AutoGather.Lists
         {
             return item.NodeType switch
             {
-                NodeType.Legendary => 0,
-                NodeType.Unspoiled => 1,
-                NodeType.Ephemeral => 2,
-                NodeType.Regular   => 9,
-                _                  => 99,
+                NodeType.传说 => 0,
+                NodeType.未知 => 1,
+                NodeType.限时 => 2,
+                NodeType.常规 => 9,
+                _           => 99,
             };
         }
 

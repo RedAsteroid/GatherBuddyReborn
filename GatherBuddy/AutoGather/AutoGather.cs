@@ -78,7 +78,7 @@ namespace GatherBuddy.AutoGather
             {
                 _activeItemList.MarkVisited(targetNode);
 
-                if (gatherTarget.Gatherable?.NodeType is NodeType.Regular or NodeType.Ephemeral
+                if (gatherTarget.Gatherable?.NodeType is NodeType.常规 or NodeType.限时
                  && VisitedNodes.Last?.Value != targetNode.DataId
                  && gatherTarget.Node?.WorldPositions.ContainsKey(targetNode.DataId) == true)
                 {
@@ -257,12 +257,6 @@ namespace GatherBuddy.AutoGather
 
             YesAlready.Unlock(); // Clean up lock that may have been left behind by cancelled tasks
 
-            if (DailyRoutines_IPCSubscriber.IsEnabled && DailyRoutines_IPCSubscriber.IsAutoReductionBusy())
-            {
-                AutoStatus = "等待精选完成...";
-                return;
-            }
-
             if (FreeInventorySlots == 0)
             {
                 if (HasReducibleItems())
@@ -417,7 +411,7 @@ namespace GatherBuddy.AutoGather
             Waiting = false;
 
             if (next.Any(n => n.Item.ItemData.IsCollectable
-                 && !CheckCollectablesUnlocked(n.Fish != null ? GatheringType.Fisher : n.Gatherable!.GatheringType.ToGroup())))
+                 && !CheckCollectablesUnlocked(n.Fish != null ? GatheringType.捕鱼人 : n.Gatherable!.GatheringType.ToGroup())))
             {
                 AbortAutoGather();
                 return;
@@ -690,7 +684,7 @@ namespace GatherBuddy.AutoGather
                 .Where(o => o.IsTargetable)
                 .MinBy(o => Vector3.Distance(Player.Position, o.Position));
 
-            if (ActivateGatheringBuffs(next.First().Gatherable.NodeType is NodeType.Unspoiled or NodeType.Legendary))
+            if (ActivateGatheringBuffs(next.First().Gatherable.NodeType is NodeType.未知 or NodeType.传说))
                 return;
 
             if (closestTargetableNode != null)
@@ -857,10 +851,10 @@ namespace GatherBuddy.AutoGather
         {
             var level = gatheringType switch
             {
-                GatheringType.Miner    => DiscipleOfLand.MinerLevel,
-                GatheringType.Botanist => DiscipleOfLand.BotanistLevel,
-                GatheringType.Fisher   => DiscipleOfLand.FisherLevel,
-                GatheringType.Multiple => Math.Max(DiscipleOfLand.MinerLevel, DiscipleOfLand.BotanistLevel),
+                GatheringType.采矿工    => DiscipleOfLand.MinerLevel,
+                GatheringType.园艺工 => DiscipleOfLand.BotanistLevel,
+                GatheringType.捕鱼人   => DiscipleOfLand.FisherLevel,
+                GatheringType.多职业 => Math.Max(DiscipleOfLand.MinerLevel, DiscipleOfLand.BotanistLevel),
                 _                      => 0
             };
             if (level < Actions.Collect.MinLevel)
@@ -871,9 +865,9 @@ namespace GatherBuddy.AutoGather
 
             var questId = gatheringType switch
             {
-                GatheringType.Miner    => Actions.Collect.QuestIds.Miner,
-                GatheringType.Botanist => Actions.Collect.QuestIds.Botanist,
-                _                      => 0u
+                GatheringType.采矿工 => Actions.Collect.QuestIds.Miner,
+                GatheringType.园艺工 => Actions.Collect.QuestIds.Botanist,
+                _                 => 0u
             };
 
             if (questId != 0 && !QuestManager.IsQuestComplete(questId))

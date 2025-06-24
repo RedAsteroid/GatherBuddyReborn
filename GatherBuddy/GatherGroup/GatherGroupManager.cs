@@ -248,17 +248,6 @@ public class GatherGroupManager
             }
 
             changes |= manager.SetDefaults();
-            if (changes)
-            {
-                Dalamud.Notifications.AddNotification(new Notification()
-                {
-                    Title = "GatherBuddy Error",
-                    Content =
-                        "Failed to load some gather groups. See the plugin log for more details. This is not saved, if it keeps happening you need to manually change an Gather Group to cause a save.",
-                    MinimizedText = "Failed to load gather groups.",
-                    Type          = NotificationType.Error,
-                });
-            }
         }
         catch (Exception e)
         {

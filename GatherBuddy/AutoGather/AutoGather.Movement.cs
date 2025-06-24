@@ -140,7 +140,7 @@ namespace GatherBuddy.AutoGather
                         }
 
                         if (vSeparation < 3)                        
-                            if (targetItem.GatheringType.ToGroup() != JobAsGatheringType && targetItem.GatheringType != GatheringType.Multiple) {
+                            if (targetItem.GatheringType.ToGroup() != JobAsGatheringType && targetItem.GatheringType != GatheringType.多职业) {
                                 if (ChangeGearSet(targetItem.GatheringType.ToGroup(), 0)){
                                     EnqueueNodeInteraction(gameObject, targetItem);
                                 } else {

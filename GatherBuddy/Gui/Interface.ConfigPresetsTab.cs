@@ -228,10 +228,9 @@ namespace GatherBuddy.Gui
             if (!tab)
                 return;
 
-            var selector = _configPresetsSelector;
-            selector.Draw(SelectorWidth);
+            _configPresetsSelector.Draw(SelectorWidth);
             ImGui.SameLine();
-                () => { DrawConfigPreset(selector.EnsureCurrent()!, selector.CurrentIdx == selector.Presets.Count - 1); });
+            DrawConfigPreset(_configPresetsSelector.EnsureCurrent()!, _configPresetsSelector.CurrentIdx == _configPresetsSelector.Presets.Count - 1);
         }
 
         private void DrawConfigPresetHeader()
