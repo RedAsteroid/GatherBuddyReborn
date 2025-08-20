@@ -118,7 +118,8 @@ namespace GatherBuddy.AutoGather
 
         private void ProcessArgs(Span<AtkValue> values)
         {
-            if (values.Length != 114)
+            // TODO: 国服 7.25 临时修改
+            if (values.Length != 113)
                 return;
 
             var n = 0; //Node type 2=logging 3=quarrying 4=harvesting 5=mining; 0 after revisit
@@ -161,10 +162,10 @@ namespace GatherBuddy.AutoGather
 
             for (var i = 0; i < 8; i++)
             {
-                n = 6 + i * 11 + 0; //Enabled 1=true or false when perception requirements are not met
+                n = 5 + i * 11 + 0; //Enabled 1=true or false when perception requirements are not met
                 Enabled[1 << i] = values[n].Type != ValueType.Bool || values[n].Bool != false;
 
-                n = 6 + i * 11 + 1; //Item ID
+                n = 5 + i * 11 + 1; //Item ID
                 if (values[n].Type == ValueType.UInt)
                     ItemsIds[i] = values[n].UInt;
                 else
@@ -175,7 +176,7 @@ namespace GatherBuddy.AutoGather
                 //n = 6 + i * 11 + 2; //Icon ID
                 //n = 6 + i * 11 + 3; //Name
                 //n = 6 + i * 11 + 4; //Unknown (false)
-                n = 6 + i * 11 + 5; //Flags: 4=bonus 2=?always set? 1=show required perception text
+                n = 5 + i * 11 + 5; //Flags: 4=bonus 2=?always set? 1=show required perception text
                 if (values[n].Type == ValueType.UInt)
                     Bonus[1 << i] = (values[n].UInt & 4) != 0;
                 else
@@ -192,13 +193,13 @@ namespace GatherBuddy.AutoGather
                     LogUnexpectedValue(values, n);
 
                 //n = 6 + i * 11 + 8; //Stars
-                n = 6 + i * 11 + 9; //The Giving Land buff (+? quantity)
+                n = 5 + i * 11 + 9; //The Giving Land buff (+? quantity)
                 if (values[n].Type == ValueType.Bool)
                     RandomYield[1 << i] = values[n].Bool;
                 else
                     LogUnexpectedValue(values, n);
 
-                n = 6 + i * 11 + 10; //2=collectable
+                n = 5 + i * 11 + 10; //2=collectable
                 if (values[n].Type == ValueType.UInt && values[n].UInt is 0 or 2)
                     Collectable[1 << i] = values[n].UInt == 2;
                 else
@@ -209,7 +210,7 @@ namespace GatherBuddy.AutoGather
             //n = 96; //Text "Unknown"
             //n = 97; //Slot gathered on previous node (setup only)
             //n = 98; //Unknown (0)
-            n = 99; //Array of 8-bit flags ?_rare_?_hidden
+            n = 98; //Array of 8-bit flags ?_rare_?_hidden
             if (values[n].Type == ValueType.UInt)
                 Flags = new(unchecked((int)values[n].UInt));
             else
@@ -221,32 +222,32 @@ namespace GatherBuddy.AutoGather
             //n = 103; //Normal bonus text
             //n = 104; //Hidden bonus text
             //n = 105; //1 if hidden bonus is shown
-            n = 106; //bool quick gathering allowed
+            n = 105; //bool quick gathering allowed
             if (values[n].Type == ValueType.Bool)
                 QuickGatheringAllowed = values[n].Bool;
             else
                 LogUnexpectedValue(values, n);
 
-            n = 107; //bool quick gathering checked
+            n = 106; //bool quick gathering checked
             if (values[n].Type == ValueType.Bool)
                 QuickGatheringChecked = values[n].Bool;
             else
                 LogUnexpectedValue(values, n);
 
-            n = 108; //bool quick gathering in progress
+            n = 107; //bool quick gathering in progress
             if (values[n].Type == ValueType.Bool)
                 QuickGatheringInProgress = values[n].Bool;
             else
                 LogUnexpectedValue(values, n);
 
             //n = 109; //Last selected slot
-            n = 110; //Integrity
+            n = 109; //Integrity
             if (values[n].Type == ValueType.UInt)
                 Integrity = unchecked((int)values[n].UInt);
             else
                 LogUnexpectedValue(values, n);
 
-            n = 111; //Max integrity
+            n = 110; //Max integrity
             if (values[n].Type == ValueType.UInt)
                 MaxIntegrity = unchecked((int)values[n].UInt);
             else
