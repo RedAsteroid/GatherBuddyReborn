@@ -2,7 +2,7 @@
 using Dalamud.Interface.Utility.Raii;
 using GatherBuddy.AutoGather;
 using GatherBuddy.Config;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 using OtterGui;
@@ -353,16 +353,33 @@ namespace GatherBuddy.Gui
                 var useGlv = preset.ItemLevel.UseGlv;
                 using var box = ImRaii.ListBox("##ConfigPresetListbox",
                     new Vector2(-1.5f * ImGui.GetStyle().ItemSpacing.X, ImGui.GetFrameHeightWithSpacing() * 3 + ItemSpacing.Y));
-                Span<int> ilvl = [preset.ItemLevel.Min, preset.ItemLevel.Max];
-                ImGui.SetNextItemWidth(SetInputWidth);
-                if (ImGui.DragInt2("物品品级下限与上限", ref ilvl[0], 0.2f, 1, useGlv ? ConfigPreset.MaxGvl : ConfigPreset.MaxLevel))
+
+                var min = preset.ItemLevel.Min;
+                var max = preset.ItemLevel.Max;
+                var editDone = false;
+
+                var halfWidth = (SetInputWidth - ImGui.GetStyle().ItemSpacing.X) / 2;
+
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MinItemLvl", ref min, 0.2f, 1, useGlv ? ConfigPreset.MaxGvl : ConfigPreset.MaxLevel))
                 {
-                    state.ChangingMin    = preset.ItemLevel.Min != ilvl[0];
-                    preset.ItemLevel.Min = ilvl[0];
-                    preset.ItemLevel.Max = ilvl[1];
+                    state.ChangingMin = true;
+                    preset.ItemLevel.Min = min;
+                }
+                
+                editDone = ImGui.IsItemDeactivatedAfterEdit();
+
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MaxItemLvl", ref max, 0.2f, 1, useGlv ? ConfigPreset.MaxGvl : ConfigPreset.MaxLevel))
+                {
+                    state.ChangingMin = false;
+                    preset.ItemLevel.Max = max;
                 }
 
-                if (ImGui.IsItemDeactivatedAfterEdit())
+                editDone = editDone || ImGui.IsItemDeactivatedAfterEdit();
+
+                if (editDone)
                 {
                     if (preset.ItemLevel.Min > preset.ItemLevel.Max)
                     {
@@ -376,6 +393,9 @@ namespace GatherBuddy.Gui
                 }
 
                 ImGui.SameLine();
+                ImGui.TextUnformatted("最小与最大物品");
+
+                ImGui.SameLine();
                 if (ImGui.RadioButton("等级", !useGlv))
                     useGlv = false;
                 ImGuiUtil.HoverTooltip("采集日志和采集窗口中显示的等级");
@@ -385,7 +405,6 @@ namespace GatherBuddy.Gui
                 ImGuiUtil.HoverTooltip("采集等级（隐藏属性）。用于区分不同层级的传说采集点");
                 if (useGlv != preset.ItemLevel.UseGlv)
                 {
-                    int min, max;
                     if (useGlv)
                     {
                         min = GatherBuddy.GameData.Gatherables.Values
@@ -582,6 +601,8 @@ namespace GatherBuddy.Gui
 
             ref var state = ref _configPresetsUIState;
 
+            var halfWidth = (SetInputWidth - ImGui.GetStyle().ItemSpacing.X) / 2;
+
             if (ImGuiUtil.Checkbox("启用", "", action.Enabled, x => action.Enabled = x))
                 save();
             if (!action.Enabled)
@@ -596,15 +617,28 @@ namespace GatherBuddy.Gui
 
             if (!hideGP)
             {
-                Span<int> gp = [action.MinGP, action.MaxGP];
-                if (ImGui.DragInt2("GP 下限与上限", ref gp[0], 1, 0, ConfigPreset.MaxGP))
-                {
-                    state.ChangingMin = action.MinGP != gp[0];
-                    action.MinGP      = gp[0];
-                    action.MaxGP      = gp[1];
-                }
+                var min = action.MinGP;
+                var max = action.MaxGP;
+                var editDone = false;
 
-                if (ImGui.IsItemDeactivatedAfterEdit())
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MinGP", ref min, 1, 0, ConfigPreset.MaxGP))
+                {
+                    state.ChangingMin = true;
+                    action.MinGP = min;
+                }
+                editDone = ImGui.IsItemDeactivatedAfterEdit();
+
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MaxGP", ref max, 1, 0, ConfigPreset.MaxGP))
+                {
+                    state.ChangingMin = false;
+                    action.MaxGP = max;
+                }
+                editDone = editDone || ImGui.IsItemDeactivatedAfterEdit();
+
+                if (editDone)
                 {
                     if (action.MinGP > action.MaxGP)
                     {
@@ -616,19 +650,36 @@ namespace GatherBuddy.Gui
 
                     save();
                 }
+                ImGui.SameLine(0, ImGui.GetStyle().ItemInnerSpacing.X);
+                ImGui.TextUnformatted("Minimum and maximum GP");
             }
 
             if (action is ConfigPreset.ActionConfigBoon action3)
             {
-                Span<int> chance = [action3.MinBoonChance, action3.MaxBoonChance];
-                if (ImGui.DragInt2("额外获得率 下限与上限", ref chance[0], 0.2f, 0, 100))
+                var min = action3.MinBoonChance;
+                var max = action3.MaxBoonChance;
+                var editDone = false;
+
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MinBoonChance", ref min, 0.2f, 0, 100))
                 {
-                    state.ChangingMin     = action3.MinBoonChance != chance[0];
-                    action3.MinBoonChance = chance[0];
-                    action3.MaxBoonChance = chance[1];
+                    state.ChangingMin = true;
+                    action3.MinBoonChance = min;
                 }
 
-                if (ImGui.IsItemDeactivatedAfterEdit())
+                editDone = ImGui.IsItemDeactivatedAfterEdit();
+
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(halfWidth);
+                if (ImGui.DragInt("##MaxBoonChance", ref max, 0.2f, 0, 100))
+                {
+                    state.ChangingMin = false;
+                    action3.MaxBoonChance = max;
+                }
+
+                editDone = editDone || ImGui.IsItemDeactivatedAfterEdit();
+
+                if (editDone)
                 {
                     if (action3.MinBoonChance > action3.MaxBoonChance)
                     {
@@ -640,11 +691,15 @@ namespace GatherBuddy.Gui
 
                     save();
                 }
+
+                ImGui.SameLine(0, ImGui.GetStyle().ItemInnerSpacing.X);
+                ImGui.TextUnformatted("Minimum and maximum boon chance");
             }
 
             if (action is ConfigPreset.ActionConfigIntegrity action4)
             {
                 var tmp = action4.MinIntegrity;
+                ImGui.SetNextItemWidth(SetInputWidth);
                 if (ImGui.DragInt("采集点耐久下限与上限", ref tmp, 0.1f, 1, ConfigPreset.MaxIntegrity))
                     action4.MinIntegrity = tmp;
                 if (ImGui.IsItemDeactivatedAfterEdit())
@@ -654,6 +709,7 @@ namespace GatherBuddy.Gui
             if (action is ConfigPreset.ActionConfigYieldBonus action5)
             {
                 var tmp = action5.MinYieldBonus;
+                ImGui.SetNextItemWidth(SetInputWidth);
                 if (ImGui.DragInt("最小产量加成", ref tmp, 0.1f, 1, 3))
                     action5.MinYieldBonus = tmp;
                 if (ImGui.IsItemDeactivatedAfterEdit())
@@ -663,6 +719,7 @@ namespace GatherBuddy.Gui
             if (action is ConfigPreset.ActionConfigYieldTotal action6)
             {
                 var tmp = action6.MinYieldTotal;
+                ImGui.SetNextItemWidth(SetInputWidth); 
                 if (ImGui.DragInt("最小总产量", ref tmp, 0.1f, 1, 30))
                     action6.MinYieldTotal = tmp;
                 if (ImGui.IsItemDeactivatedAfterEdit())

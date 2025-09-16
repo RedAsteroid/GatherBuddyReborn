@@ -1,4 +1,5 @@
-﻿using Dalamud.Game.ClientState.Conditions;
+﻿using System;
+using Dalamud.Game.ClientState.Conditions;
 using ECommons.ExcelServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -15,7 +16,9 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
+using ECommons;
 using ECommons.MathHelpers;
+using GatherBuddy.AutoGather.AtkReaders;
 
 namespace GatherBuddy.AutoGather
 {
@@ -38,7 +41,7 @@ namespace GatherBuddy.AutoGather
         }
 
         public bool IsGathering
-            => Dalamud.Conditions[ConditionFlag.Gathering] || Dalamud.Conditions[ConditionFlag.Gathering42];
+            => Dalamud.Conditions[ConditionFlag.Gathering] || Dalamud.Conditions[ConditionFlag.ExecutingGatheringAction];
 
         public bool IsFishing
             => Dalamud.Conditions[ConditionFlag.Fishing];
@@ -48,6 +51,16 @@ namespace GatherBuddy.AutoGather
         public  Angle      CurrentRotation      { get; private set; } = default;
         private ILocation? CurrentFarNodeLocation;
         public bool LureSuccess { get; private set; } = false;
+
+        public unsafe GatheringReader? GatheringWindowReader
+            => GenericHelpers.TryGetAddonByName("Gathering", out AtkUnitBase* addon)
+                ? new GatheringReader(addon)
+                : null;
+
+        public unsafe GatheringMasterpieceReader? MasterpieceReader
+            => GenericHelpers.TryGetAddonByName("GatheringMasterpiece", out AtkUnitBase* add)
+                ? new GatheringMasterpieceReader(add)
+                : null;
 
         public static IReadOnlyList<InventoryType> InventoryTypes { get; } =
         [
@@ -117,7 +130,7 @@ namespace GatherBuddy.AutoGather
         public  string      AutoStatus { get; private set; } = "等待中";
         public  int         LastCollectability = 0;
         public  int         LastIntegrity      = 0;
-        private BitVector32 LuckUsed;
+        private bool LuckUsed;
         private bool        WentHome;
 
         internal IEnumerable<GatherTarget> ItemsToGather
@@ -133,7 +146,7 @@ namespace GatherBuddy.AutoGather
 
         private static unsafe T* GetAddon<T>(string name) where T : unmanaged
         {
-            var addon = (AtkUnitBase*)Dalamud.GameGui.GetAddonByName(name);
+            var addon = (AtkUnitBase*)(nint)Dalamud.GameGui.GetAddonByName(name);
             if (addon != null && addon->IsFullyLoaded() && addon->IsReady)
                 return (T*)addon;
             else
@@ -189,8 +202,8 @@ namespace GatherBuddy.AutoGather
                  || Dalamud.Conditions[ConditionFlag.Occupied]
                  || Dalamud.Conditions[ConditionFlag.Occupied39]
                  || Dalamud.Conditions[ConditionFlag.Unconscious]
-                 || Dalamud.Conditions[ConditionFlag.Gathering42]
-                 || Dalamud.Conditions[ConditionFlag.Unknown57] // Mounting up
+                 || Dalamud.Conditions[ConditionFlag.ExecutingGatheringAction]
+                 || Dalamud.Conditions[ConditionFlag.Mounting] // Mounting up
                     //Node is open? Fades off shortly after closing the node, can't use items (but can mount) while it's set
                  || Dalamud.Conditions[85] && !Dalamud.Conditions[ConditionFlag.Gathering]
                  || Dalamud.ClientState.LocalPlayer.IsDead

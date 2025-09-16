@@ -4,15 +4,16 @@ using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.Enums;
 using GatherBuddy.Time;
-using ImGuiNET;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using GatherBuddy.Models;
+using Dalamud.Bindings.ImGui;
 using OtterGui.Text;
 using static GatherBuddy.Gui.Interface;
 using ImRaii = OtterGui.Raii.ImRaii;
+using FishingSpot = GatherBuddy.Classes.FishingSpot;
+using Effects = GatherBuddy.Models.Effects;
 
 namespace GatherBuddy.FishTimer;
 
@@ -125,7 +126,7 @@ public partial class FishTimerWindow
             // Some non-spectral ocean fish have weather restrictions, but this is not handled.
             var hasWeatherRestriction = fish.FishRestrictions.HasFlag(FishRestrictions.Weather) && !fish.OceanFish;
             if (GatherBuddy.Time.ServerTime < uptime.Start
-             && (!flags.HasFlag(Effects.FishEyes) || fish.IsBigFish || hasWeatherRestriction))
+             && (!flags.HasFlag(Effects.FishEyes) || fish.IsLegendary || hasWeatherRestriction || fish.Patch < Patch.Endwalker))
                 Unavailable = true;
             if (fish.Snagging == Snagging.Required && !flags.HasFlag(Effects.Snagging))
                 Unavailable = true;
@@ -166,7 +167,7 @@ public partial class FishTimerWindow
             {
                 var begin = new Vector2(pos.X + areaStart, pos.Y);
                 var end   = new Vector2(pos.X + areaEnd,   pos.Y + height);
-                ptr.AddRectFilled(begin, end, 0x40000000, 0);
+                ptr.AddRectFilled(begin, end, 0x40000000, 0, ImDrawFlags.None);
             }
 
             // Draw marker lines only if they are useful.
@@ -193,7 +194,7 @@ public partial class FishTimerWindow
             pos.Y += i * ImGui.GetFrameHeightWithSpacing();
             var size = window._windowSize with { Y = ImGui.GetFrameHeight() };
             // Background
-            ImGui.GetWindowDrawList().AddRectFilled(pos, pos + size, _color.Value(), 0);
+            ImGui.GetWindowDrawList().AddRectFilled(pos, pos + size, _color.Value(), 0, ImDrawFlags.None);
 
             // Markers and highlights.
             pos.X  += window._iconSize.X;
@@ -216,7 +217,7 @@ public partial class FishTimerWindow
 
             // Icon
             if (_icon.TryGetWrap(out var wrap, out _))
-                ImGui.Image(wrap.ImGuiHandle, window._iconSize);
+                ImGui.Image(wrap.Handle, window._iconSize);
             else
                 ImGui.Dummy(window._iconSize);
 
@@ -228,7 +229,7 @@ public partial class FishTimerWindow
             var       clipRectMin = ImGui.GetCursorScreenPos();
             var       clipRectMax = clipRectMin + ImGui.GetContentRegionAvail();
             var       collectible = _fish.Collectible && GatherBuddy.Config.ShowCollectableHints;
-            var       multiHook   = _fish.DoubleHook > 1 && GatherBuddy.Config.ShowMultiHookHints;
+            var       multiHook   = _fish.MultiHookLower > 1 && GatherBuddy.Config.ShowMultiHookHints;
             if (collectible)
                 clipRectMax.X -= window._iconSize.X;
             if (multiHook)
@@ -257,7 +258,7 @@ public partial class FishTimerWindow
             {
                 ImGui.SameLine(window._windowSize.X - window._iconSize.X);
 
-                var hookIcon = _fish.DoubleHook switch
+                var hookIcon = _fish.MultiHookLower switch
                 {
                     2 => DoubleHookIcon,
                     3 => TripleHookIcon,
@@ -267,13 +268,25 @@ public partial class FishTimerWindow
 
                 if (hookIcon?.TryGetWrap(out var wrap2, out _) ?? false)
                 {
-                    ImGui.Image(wrap2.ImGuiHandle, window._iconSize);
+                    ImGui.Image(wrap2.Handle, window._iconSize);
                     if (ImGui.IsItemHovered())
                     {
                         using var tooltip = ImRaii.Tooltip();
                         window._style.Push(ImGuiStyleVar.ItemSpacing, window._originalSpacing);
-                        ImUtf8.Text($"Double Hook for {_fish.DoubleHook} fish.");
-                        ImUtf8.Text($"Triple Hook for {2 * _fish.DoubleHook - 1} fish.");
+                        
+                        if (_fish.MutliHookUpper == _fish.MultiHookLower)
+                        {
+                            ImUtf8.Text($"Double Hook for {_fish.MultiHookLower} fish{(_fish.Points > 0 ? $" worth {_fish.Points * _fish.MultiHookLower} points" : "")}");
+                            ImUtf8.Text($"Triple Hook for {2 * _fish.MultiHookLower - 1} fish{(_fish.Points > 0 ? $" worth {_fish.Points * (2 * _fish.MultiHookLower - 1)} points" : "")}");
+                        }
+                        else
+                        {
+                            ImUtf8.Text($"Double Hook for {_fish.MultiHookLower}-{_fish.MutliHookUpper} fish" +
+                                $"{(_fish.Points > 0 ? $" worth between {_fish.Points * _fish.MultiHookLower} and {_fish.Points * _fish.MutliHookUpper} points" : "")}");
+                            ImUtf8.Text($"Triple Hook for {2 * _fish.MultiHookLower - 1}-{2 * _fish.MutliHookUpper - 1} fish" +
+                                $"{(_fish.Points > 0 ? $" worth between {_fish.Points * (2 * _fish.MultiHookLower - 1)} and {_fish.Points * (2 * _fish.MutliHookUpper - 1)} points" : "")}");
+                        }
+
                         window._style.Pop();
                     }
                 }
@@ -292,7 +305,7 @@ public partial class FishTimerWindow
 
                 ImGui.SameLine(window._windowSize.X - window._iconSize.X - (multiHook ? window._iconSize.X : 0));
                 if (CollectableIcon.TryGetWrap(out var wrap3, out _))
-                    ImGui.Image(wrap3.ImGuiHandle, window._iconSize, Vector2.Zero, Vector2.One, tint);
+                    ImGui.Image(wrap3.Handle, window._iconSize, Vector2.Zero, Vector2.One, tint);
                 else
                     ImGui.Dummy(window._iconSize);
             }

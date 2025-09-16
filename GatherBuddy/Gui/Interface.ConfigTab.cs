@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Utility;
+using ECommons.DalamudServices;
 using ECommons.ImGuiMethods;
 using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
 using GatherBuddy.Config;
-using ImGuiNET;
+using GatherBuddy.Enums;
+using GatherBuddy.FishTimer;
 using OtterGui;
 using OtterGui.Widgets;
 using FishRecord = GatherBuddy.FishTimer.FishRecord;
@@ -133,6 +136,14 @@ public partial class Interface
             }
 
             ImGuiUtil.HoverTooltip("The maximum number of minutes you will fish at a fishing spot.");
+        }
+
+        public static void DrawAutoretainerBox()
+        {
+            DrawCheckbox("Wait for AutoRetainer Multi-mode", "Pause GBR automatically when AutoRetainer has retainers to process during Multi-mode",
+                GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode, b => GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new ImGuiEx.RequiredPluginInfo("AutoRetainer")]);
         }
 
         public static void DrawLifestreamCommandTextInput()
@@ -469,7 +480,7 @@ public partial class Interface
         {
             var cur = (int)current;
             ImGui.SetNextItemWidth(90 * ImGuiHelpers.GlobalScale);
-            if (ImGui.Combo(label, ref cur, AlarmCache.SoundIdNames))
+            if (ImGui.Combo(new ImU8String(label), ref cur, AlarmCache.SoundIdNames))
                 setter((Sounds)cur);
             ImGuiUtil.HoverTooltip(description);
         }
@@ -518,6 +529,11 @@ public partial class Interface
                 "在你的计算机上存储捕鱼记录。这对于捕鱼计时器窗口的咬钩计时是必要的。",
                 GatherBuddy.Config.StoreFishRecords, b => GatherBuddy.Config.StoreFishRecords = b);
 
+        public static void DrawShowLocalTimeInRecordsBox()
+            => DrawCheckbox("Use Local Time in Records",
+                "When displaying timestamps in the Fish Records Tab, use local time instead of Unix time.",
+                GatherBuddy.Config.UseUnixTimeFishRecords, b => GatherBuddy.Config.UseUnixTimeFishRecords = b);
+        
         public static void DrawFishTimerScale()
         {
             var value = GatherBuddy.Config.FishTimerScale / 1000f;
@@ -558,6 +574,24 @@ public partial class Interface
             GatherBuddy.Config.ShowSecondIntervals = newValue;
             GatherBuddy.Config.Save();
         }
+        
+        public static void DrawFishTimerIntervalsRounding()
+        {
+            var value = GatherBuddy.Config.SecondIntervalsRounding;
+            ImGui.SetNextItemWidth(SetInputWidth);
+            var ret = ImGui.DragInt("Fish Timer Interval Rounding", ref value, 0.01f, 0, 3);
+            ImGuiUtil.HoverTooltip("Round the displayed second value to this number of digits past the decimal. \n"
+                + "Set to 0 to display only whole numbers.");
+            if (!ret)
+                return;
+
+            var newValue = (byte)Math.Clamp(value, 0, 3);
+            if (newValue == GatherBuddy.Config.SecondIntervalsRounding)
+                return;
+
+            GatherBuddy.Config.SecondIntervalsRounding = newValue;
+            GatherBuddy.Config.Save();
+        }
 
         public static void DrawHideFishPopupBox()
             => DrawCheckbox("隐藏捕获弹窗",
@@ -573,7 +607,29 @@ public partial class Interface
             => DrawCheckbox("Show Multi Hook Hints",
                 "Show if a fish can be double or triple hooked in Cosmic Exploration.", // TODO: add ocean fishing when implemented.
                 GatherBuddy.Config.ShowMultiHookHints, b => GatherBuddy.Config.ShowMultiHookHints = b);
-
+        
+        
+        // Fish Stats Window
+        public static void DrawEnableFishStats()
+            => DrawCheckbox("Enable Fish Stats",
+                "New tab for aggregating and reporting fish stats based on local records. Currently in testing.",
+                GatherBuddy.Config.EnableFishStats, b => GatherBuddy.Config.EnableFishStats = b);
+        public static void DrawEnableReportTime()  
+            => DrawCheckbox("Copy Time Stats when reporting.",
+                "When copying the report, add min and max times to the report.",
+                GatherBuddy.Config.EnableReportTime, b => GatherBuddy.Config.EnableReportTime = b);
+        public static void DrawEnableReportSize()  
+            => DrawCheckbox("Copy Sizes Stats when reporting.",
+                "When copying the report, add min and max sizes to the report.",
+                GatherBuddy.Config.EnableReportSize, b => GatherBuddy.Config.EnableReportSize = b);
+        public static void DrawEnableReportMulti() 
+            => DrawCheckbox("Copy Multi Hook Stats when reporting.",
+                "When copying the report, add stats about multi-hook yields to the report.",
+                GatherBuddy.Config.EnableReportMulti, b => GatherBuddy.Config.EnableReportMulti = b);
+        public static void DrawEnableGraphs()      
+            => DrawCheckbox("Enable Graphs.",
+                "When viewing a fishing spot, enable visualization of fish report data. Extreme Testing!",
+                GatherBuddy.Config.EnableFishStatsGraphs, b => GatherBuddy.Config.EnableFishStatsGraphs = b);
 
         // Spearfishing Helper
         public static void DrawSpearfishHelperBox()
@@ -810,6 +866,7 @@ public partial class Interface
                 ConfigFunctions.DrawUseNavigationBox();
                 ConfigFunctions.DrawForceWalkingBox();
                 ConfigFunctions.DrawRepairBox();
+                ConfigFunctions.DrawAutoretainerBox();
                 if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
                 {
                     ConfigFunctions.DrawRepairThreshold();
@@ -895,6 +952,7 @@ public partial class Interface
             if (ImGui.TreeNodeEx("钓鱼窗口"))
             {
                 ConfigFunctions.DrawKeepRecordsBox();
+                ConfigFunctions.DrawShowLocalTimeInRecordsBox();
                 ConfigFunctions.DrawFishTimerBox();
                 ConfigFunctions.DrawFishTimerEditBox();
                 ConfigFunctions.DrawFishTimerClickthroughBox();
@@ -903,9 +961,20 @@ public partial class Interface
                 ConfigFunctions.DrawFishTimerUptimesBox();
                 ConfigFunctions.DrawFishTimerScale();
                 ConfigFunctions.DrawFishTimerIntervals();
+                ConfigFunctions.DrawFishTimerIntervalsRounding();
                 ConfigFunctions.DrawHideFishPopupBox();
                 ConfigFunctions.DrawCollectableHintPopupBox();
                 ConfigFunctions.DrawDoubleHookHintPopupBox();
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNodeEx("钓鱼数据 [测试]"))
+            {
+                ConfigFunctions.DrawEnableFishStats();
+                ConfigFunctions.DrawEnableReportTime();
+                ConfigFunctions.DrawEnableReportSize();
+                ConfigFunctions.DrawEnableReportMulti();
+                ConfigFunctions.DrawEnableGraphs();
                 ImGui.TreePop();
             }
 

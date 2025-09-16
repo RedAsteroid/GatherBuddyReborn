@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Interface.Utility;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using GatherBuddy.Time;
-using ImGuiNET;
 using Functions = GatherBuddy.Plugin.Functions;
 using ImRaii = OtterGui.Raii.ImRaii;
 
@@ -67,6 +66,7 @@ public partial class Interface : Window, IDisposable
         DrawConfigPresetsTab();
         DrawLocationsTab();
         DrawRecordTab();
+        DrawStatsPageTab();
         DrawDebugTab();
     }
 

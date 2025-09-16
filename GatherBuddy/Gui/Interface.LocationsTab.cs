@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using GatherBuddy.Classes;
@@ -10,7 +11,6 @@ using GatherBuddy.Config;
 using GatherBuddy.Enums;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Structs;
-using ImGuiNET;
 using OtterGui;
 using OtterGui.Table;
 using OtterGui.Widgets;
@@ -28,6 +28,7 @@ public partial class Interface
         private static float _coordColumnWidth;
         private static float _radiusColumnWidth;
         private static float _typeColumnWidth;
+        private static float _levelColumnWidth;
 
         protected override void PreDraw()
         {
@@ -39,18 +40,20 @@ public partial class Interface
             _aetheryteColumnWidth = GatherBuddy.GameData.Aetherytes.Values.Max(a => TextWidth(a.Name)) / ImGuiHelpers.GlobalScale;
             _coordColumnWidth     = TextWidth("X-Coord") / ImGuiHelpers.GlobalScale + Table.ArrowWidth;
             _radiusColumnWidth    = TextWidth("Radius") / ImGuiHelpers.GlobalScale + Table.ArrowWidth;
+            _levelColumnWidth    = TextWidth("Level") / ImGuiHelpers.GlobalScale + Table.ArrowWidth;
             _typeColumnWidth      = Enum.GetValues<GatheringType>().Max(t => TextWidth(t.ToString())) / ImGuiHelpers.GlobalScale;
         }
 
         private static readonly NameColumn      _nameColumn      = new() { Label = "名称" };
         private static readonly TypeColumn      _typeColumn      = new() { Label = "类型" };
-        private static readonly TerritoryColumn _territoryColumn = new() { Label = "地图" };
+        private static readonly TerritoryColumn _territoryColumn = new() { Label = "区域" };
+        private static readonly LevelColumn     _levelColumn     = new() { Label = "等级" };
         private static readonly AetheryteColumn _aetheryteColumn = new() { Label = "传送点" };
-        private static readonly XCoordColumn    _xCoordColumn    = new() { Label = "X-坐标" };
-        private static readonly YCoordColumn    _yCoordColumn    = new() { Label = "Y-坐标" };
-        private static readonly RadiusColumn    _radiusColumn    = new() { Label = "Radius" };
-        private static readonly MarkerColumn    _markerColumn    = new() { Label = "Markers" };
-        private static readonly ItemColumn      _itemColumn      = new() { Label = "Items" };
+        private static readonly XCoordColumn    _xCoordColumn    = new() { Label = "X坐标" };
+        private static readonly YCoordColumn    _yCoordColumn    = new() { Label = "Y坐标" };
+        private static readonly RadiusColumn    _radiusColumn    = new() { Label = "半径" };
+        private static readonly MarkerColumn    _markerColumn    = new() { Label = "标记" };
+        private static readonly ItemColumn      _itemColumn      = new() { Label = "物品" };
 
         private sealed class NameColumn : ColumnString<ILocation>
         {
@@ -126,6 +129,21 @@ public partial class Interface
 
             public override float Width
                 => _territoryColumnWidth * ImGuiHelpers.GlobalScale;
+
+            public override void DrawColumn(ILocation item, int _)
+            {
+                ImGui.AlignTextToFramePadding();
+                base.DrawColumn(item, _);
+            }
+        }
+
+        private sealed class LevelColumn() : ColumnNumber<ILocation>(ComparisonMethod.LessEqual)
+        {
+            public override int ToValue(ILocation item)
+                => (item as GatheringNode)?.Level ?? 1;
+
+            public override float Width
+                => _levelColumnWidth * ImGuiHelpers.GlobalScale;
 
             public override void DrawColumn(ILocation item, int _)
             {
@@ -353,7 +371,7 @@ public partial class Interface
 
         public LocationTable()
             : base("##LocationTable", _plugin.LocationManager.AllLocations, _nameColumn,
-                _typeColumn, _aetheryteColumn, _xCoordColumn, _yCoordColumn, _radiusColumn, _markerColumn, _territoryColumn, _itemColumn)
+                _typeColumn, _aetheryteColumn, _xCoordColumn, _yCoordColumn, _radiusColumn, _markerColumn, _territoryColumn, _levelColumn, _itemColumn)
         { }
     }
 

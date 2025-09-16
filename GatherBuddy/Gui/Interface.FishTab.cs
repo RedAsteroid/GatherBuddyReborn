@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using GatherBuddy.Classes;
@@ -10,7 +11,6 @@ using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
 using GatherBuddy.Structs;
-using ImGuiNET;
 using OtterGui;
 using OtterGui.Table;
 using ImRaii = OtterGui.Raii.ImRaii;
@@ -146,8 +146,13 @@ public partial class Interface
                 using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ItemSpacing / 2);
                 ImGuiUtil.HoverIcon(item.Icon, LineIconSize);
                 ImGui.SameLine();
-                var selected = ImGui.Selectable(item.Data.Name[GatherBuddy.Language]);
-                var hovered  = ImGui.IsItemHovered();
+                bool selected;
+                using (item.Data.HasOverridenData ? ImRaii.PushColor(ImGuiCol.Text, ColorId.CustomFishData.Value()) : null)
+                {
+                    selected = ImGui.Selectable(item.Data.Name[GatherBuddy.Language]);
+                }
+
+                var hovered = ImGui.IsItemHovered();
                 _plugin.Interface.CreateContextMenu(item.Data);
 
                 if (selected)

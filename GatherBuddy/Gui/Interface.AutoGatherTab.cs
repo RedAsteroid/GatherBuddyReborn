@@ -12,7 +12,7 @@ using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Plugin;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using OtterGui;
 using OtterGui.Widgets;
 using ImRaii = OtterGui.Raii.ImRaii;
@@ -139,13 +139,19 @@ public partial class Interface
 
         private static ReadOnlyCollection<IGatherable> GenAllGatherables()
         {
-            List<IGatherable> gatherables = new();
-            gatherables.AddRange(GatherBuddy.GameData.Gatherables.Values
-                .Where(g => g.NodeList.SelectMany(l => l.WorldPositions.Values).SelectMany(p => p).Any()));
-            gatherables.AddRange(GatherBuddy.GameData.Fishes.Values);
-            var orderedEnumerable = gatherables.OrderBy(g => g.Name[GatherBuddy.Language]);
-            return orderedEnumerable.ToList().AsReadOnly();
+            var all = GatherBuddy.GameData.Gatherables.Values
+                .Where(g => g.NodeList.SelectMany(l => l.WorldPositions.Values)
+                    .SelectMany(p => p).Any())
+                .Cast<IGatherable>()
+                .Concat(GatherBuddy.GameData.Fishes.Values)
+                .GroupBy(g => g.ItemId)
+                .Select(g => g.First())
+                .OrderBy(g => g.Name[GatherBuddy.Language])
+                .ToList()
+                .AsReadOnly();
+            return all;
         }
+
 
         [MemberNotNull(nameof(FilteredGatherables)), MemberNotNull(nameof(GatherableSelector)), MemberNotNull(nameof(AllGatherables))]
         private void UpdateGatherables()
@@ -384,6 +390,14 @@ public partial class Interface
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(), IconButtonSize, "追加该物品至列表", false,
                 true))
             _plugin.AutoGatherListsManager.AddItem(list, gatherables[_autoGatherListsCache.NewGatherableIdx]);
+
+        ImGui.SameLine();
+        var allEnabled = list.Items.All(i => list.EnabledItems[i]);
+        if (ImGui.Checkbox("##AllEnabled", ref allEnabled))
+        {
+            list.Items.Each(i => _plugin.AutoGatherListsManager.ChangeEnabled(list, i, allEnabled));
+        }
+        ImGuiUtil.HoverTooltip((allEnabled ? "Disable" : "Enable" ) + " all items in the list");
 
         ImGui.SameLine();
         if (selector.Draw(_autoGatherListsCache.NewGatherableIdx, out var idx))
