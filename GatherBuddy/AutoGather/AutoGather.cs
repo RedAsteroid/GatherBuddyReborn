@@ -209,7 +209,7 @@ namespace GatherBuddy.AutoGather
                     _activeItemList.MarkVisited(targetNode);
                     var gatherable = gatherTarget.Value.Gatherable;
                     var node = gatherTarget.Value.Node;
-                    if (gatherable != null && (gatherable.NodeType == NodeType.Regular || gatherable.NodeType == NodeType.Ephemeral)
+                    if (gatherable != null && (gatherable.NodeType == NodeType.常规 || gatherable.NodeType == NodeType.限时)
                         && (VisitedNodes.Last?.Value != targetNode.DataId)
                         && node != null && node.WorldPositions.ContainsKey(targetNode.DataId))
                     {
