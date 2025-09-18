@@ -146,6 +146,31 @@ public partial class Interface
             OpenInTeamCraftLocal(TeamCraftAddressEnd("item", itemId));
     }
 
+    private static void DrawOpenInFFMomola(IGatherable item)
+    {
+        if (item.ItemId == 0)
+            return;
+
+        var (location, _) = GatherBuddy.UptimeManager.BestLocation(item);
+        if (location is not FishingSpot spot)
+            return;
+
+        if (ImGui.Selectable("查询鱼糕"))
+        {
+            try
+            {
+                var spotType = spot.Spearfishing ? "spearfishing" : "fishing";
+                var spotId = spot.Spearfishing ? spot.SpearfishingSpotData!.Value.GatheringPointBase.RowId : spot.Id;
+                var url = $"https://fish.ffmomola.com/ng/#/wiki/{spotType}/spot/{spotId}/fish/{item.ItemId}";
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception e)
+            {
+                GatherBuddy.Log.Error($"无法打开鱼糕:\n{e.Message}");
+            }
+        }
+    }
+
     private static void OpenInTeamCraftWeb(string addressEnd)
     {
         Process.Start(new ProcessStartInfo($"https://ffxivteamcraft.com/{addressEnd}")
@@ -208,6 +233,7 @@ public partial class Interface
         DrawAddToAutoGather(item);
         if (ImGui.Selectable("创建物品链接"))
             Communicator.Print(SeString.CreateItemLink(item.ItemId));
+        DrawOpenInFFMomola(item);
         DrawOpenInGarlandTools(item.ItemId);
         DrawOpenInTeamCraft(item.ItemId);
     }
