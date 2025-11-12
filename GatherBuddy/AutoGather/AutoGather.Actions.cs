@@ -81,7 +81,7 @@ namespace GatherBuddy.AutoGather
         {
             if (!CheckConditions(Actions.TwelvesBounty, config.TwelvesBounty, slot.Item, slot))
                 return false;
-            if (slot.Item.GetInventoryCount() > 9999 - 3 - slot.Yield - (slot.HasGivingLandBuff ? GivingLandYield : 0))
+            if (slot.Item.GetInventoryCount() > 9999 - 3)
                 return false;
 
             return true;
@@ -198,18 +198,19 @@ namespace GatherBuddy.AutoGather
 
         private void HandleWaiting(GatherTarget target, ConfigPreset config)
         {
-            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                return;
-
-            if (target.Fish?.Lure == Lure.Ambitious && !LureSuccess)
-            {
-                EnqueueActionWithDelay(() => UseAction(Actions.AmbitiousLure));
-            }
-
-            if (target.Fish?.Lure == Lure.Modest && !LureSuccess)
-            {
-                EnqueueActionWithDelay(() => UseAction(Actions.ModestLure));
-            }
+            // Old fishing logic - disabled in favor of AutoHook integration
+            // if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+            //     return;
+            //
+            // if (target.Fish?.Lure == Lure.Ambitious && !LureSuccess)
+            // {
+            //     EnqueueActionWithDelay(() => UseAction(Actions.AmbitiousLure));
+            // }
+            //
+            // if (target.Fish?.Lure == Lure.Modest && !LureSuccess)
+            // {
+            //     EnqueueActionWithDelay(() => UseAction(Actions.ModestLure));
+            // }
         }
 
         private void HandleReady(GatherTarget target, ConfigPreset config)
@@ -258,21 +259,22 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
+            // Old fishing logic - disabled in favor of AutoHook integration
             // if (NeedsSurfaceSlap(target))
             //     EnqueueActionWithDelay(() => UseAction(Actions.SurfaceSlap));
             // else if (NeedsIdenticalCast(target))
             //     EnqueueActionWithDelay(() => UseAction(Actions.IdenticalCast));
-
-            if (Player.Status.All(s => !Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
-                EnqueueActionWithDelay(() => UseAction(Actions.CollectorsGlove));
-            else if (Player.Status.Any(s => s is { StatusId: 2778, Param: >= 3 }))
-                EnqueueActionWithDelay(() => UseAction(Actions.ThaliaksFavor));
-            else if (target.Fish?.Snagging == Snagging.Required)
-                EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
-            else if ((target.Fish?.ItemData.IsCollectable ?? false) && !HasPatienceStatus())
-                EnqueueActionWithDelay(() => UseAction(GetCorrectPatienceAction()!));
-            else
-                EnqueueActionWithDelay(() => UseAction(Actions.Cast));
+            //
+            // if (Player.Status.All(s => !Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+            //     EnqueueActionWithDelay(() => UseAction(Actions.CollectorsGlove));
+            // else if (Player.Status.Any(s => s is { StatusId: 2778, Param: >= 3 }))
+            //     EnqueueActionWithDelay(() => UseAction(Actions.ThaliaksFavor));
+            // else if (target.Fish?.Snagging == Snagging.Required)
+            //     EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
+            // else if ((target.Fish?.ItemData.IsCollectable ?? false) && !HasPatienceStatus())
+            //     EnqueueActionWithDelay(() => UseAction(GetCorrectPatienceAction()!));
+            // else
+            //     EnqueueActionWithDelay(() => UseAction(Actions.Cast));
         }
 
         private bool NeedsIdenticalCast(GatherTarget target)
@@ -442,6 +444,8 @@ namespace GatherBuddy.AutoGather
                 {
                     if (ShouldUseWise(GatheringWindowReader.IntegrityRemaining, GatheringWindowReader.IntegrityMax))
                         EnqueueActionWithDelay(() => UseAction(Actions.Wise));
+                    else if (ShouldUseTwelvesBounty(slot, config))
+                        EnqueueActionWithDelay(() => UseAction(Actions.TwelvesBounty));
                     else if (ShouldUseGift2(slot, config))
                         EnqueueActionWithDelay(() => UseAction(Actions.Gift2));
                     else if (ShouldUseGift1(slot, config))
@@ -452,8 +456,6 @@ namespace GatherBuddy.AutoGather
                         EnqueueActionWithDelay(() => UseAction(Actions.SolidAge));
                     else if (ShouldUseGivingLand(slot, configPreset))
                         EnqueueActionWithDelay(() => UseAction(Actions.GivingLand));
-                    else if (ShouldUseTwelvesBounty(slot, config))
-                        EnqueueActionWithDelay(() => UseAction(Actions.TwelvesBounty));
                     else if (ShouldUseKingII(slot, config))
                         EnqueueActionWithDelay(() => UseAction(Actions.Yield2));
                     else if (ShouldUseKingI(slot, config))
