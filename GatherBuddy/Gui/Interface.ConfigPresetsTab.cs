@@ -140,16 +140,18 @@ namespace GatherBuddy.Gui
 
             private void Load()
             {
-                List<ConfigPreset>? items = null;
-
-                var file = Plugin.Functions.ObtainSaveFile(FileName);
-                if (file != null && file.Exists)
+                try
                 {
-                    var text = File.ReadAllText(file.FullName);
-                    items = JsonConvert.DeserializeObject<List<ConfigPreset>>(text);
-                }
+                    List<ConfigPreset>? items = null;
 
-                if (items != null && items.Count > 0)
+                    var file = Plugin.Functions.ObtainSaveFile(FileName);
+                    if (file != null && file.Exists)
+                    {
+                        var text = File.ReadAllText(file.FullName);
+                        items = JsonConvert.DeserializeObject<List<ConfigPreset>>(text);
+                    }
+
+                    if (items != null && items.Count > 0)
                 {
                     foreach (var item in items)
                     {
@@ -162,11 +164,15 @@ namespace GatherBuddy.Gui
                     if (GatherBuddy.Config.AutoGatherConfig != null)
                     {
                         Items.Add(GatherBuddy.Config.AutoGatherConfig.ConvertToPreset());
-                        Items[0].ChooseBestActionsAutomatically = true;
-                        Save();
-                        GatherBuddy.Config.AutoGatherConfig.ConfigConversionFixed        = true;
-                        GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone = true;
-                        GatherBuddy.Config.Save();
+                        var firstItem = Items.FirstOrDefault();
+                        if (firstItem != null)
+                        {
+                            firstItem.ChooseBestActionsAutomatically = true;
+                            Save();
+                            GatherBuddy.Config.AutoGatherConfig.ConfigConversionFixed        = true;
+                            GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone = true;
+                            GatherBuddy.Config.Save();
+                        }
                     }
                     else
                     {
@@ -174,22 +180,30 @@ namespace GatherBuddy.Gui
                     }
                 }
 
-                if (Items.Count > 0)
+                var lastItem = Items.LastOrDefault();
+                if (lastItem != null)
                 {
-                    Items[Items.Count - 1] = Items[Items.Count - 1].MakeDefault();
+                    var idx = Items.IndexOf(lastItem);
+                    Items[idx] = lastItem.MakeDefault();
                 }
 
-                if (GatherBuddy.Config.AutoGatherConfig != null && !GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone && Items.Count > 0)
+                if (GatherBuddy.Config.AutoGatherConfig != null && !GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone)
                 {
-                    Items[Items.Count - 1].ChooseBestActionsAutomatically            = true;
-                    GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone = true;
-                    Save();
-                    GatherBuddy.Config.Save();
+                    var last = Items.LastOrDefault();
+                    if (last != null)
+                    {
+                        last.ChooseBestActionsAutomatically = true;
+                        GatherBuddy.Config.AutoGatherConfig.RotationSolverConversionDone = true;
+                        Save();
+                        GatherBuddy.Config.Save();
+                    }
                 }
 
-                if (GatherBuddy.Config.AutoGatherConfig != null && !GatherBuddy.Config.AutoGatherConfig.ConfigConversionFixed && Items.Count > 0)
+                if (GatherBuddy.Config.AutoGatherConfig != null && !GatherBuddy.Config.AutoGatherConfig.ConfigConversionFixed)
                 {
-                    var def = Items[Items.Count - 1];
+                    var def = Items.LastOrDefault();
+                    if (def == null)
+                        return;
                     fixAction(def.GatherableActions.Bountiful);
                     fixAction(def.GatherableActions.Yield1);
                     fixAction(def.GatherableActions.Yield2);
@@ -211,25 +225,60 @@ namespace GatherBuddy.Gui
                     GatherBuddy.Config.Save();
                 }
 
-                void fixAction(ConfigPreset.ActionConfig action)
+                    void fixAction(ConfigPreset.ActionConfig action)
+                    {
+                        if (action.MaxGP == 0)
+                            action.MaxGP = ConfigPreset.MaxGP;
+                    }
+                }
+                catch (Exception ex)
                 {
-                    if (action.MaxGP == 0)
-                        action.MaxGP = ConfigPreset.MaxGP;
+                    GatherBuddy.Log.Error($"Error loading config presets, creating default: {ex}");
+                    Items.Clear();
+                    try
+                    {
+                        Items.Add(new ConfigPreset { Name = "Default" });
+                        var fallbackItem = Items.LastOrDefault();
+                        if (fallbackItem != null)
+                        {
+                            var idx = Items.IndexOf(fallbackItem);
+                            Items[idx] = fallbackItem.MakeDefault();
+                        }
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        GatherBuddy.Log.Error($"Critical error creating default preset: {fallbackEx}");
+                    }
                 }
             }
+        }
 
             public ConfigPreset Match(Gatherable? item)
             {
+                var defaultPreset = Items.LastOrDefault();
+                if (defaultPreset == null)
+                {
+                    defaultPreset = new ConfigPreset { Name = "Default" }.MakeDefault();
+                    Items.Add(defaultPreset);
+                    return defaultPreset;
+                }
                 return item == null
-                    ? Items[Items.Count - 1]
-                    : Items.SkipLast(1).Where(i => i.Match(item)).FirstOrDefault(Items[Items.Count - 1]);
+                    ? defaultPreset
+                    : Items.SkipLast(1).Where(i => i.Match(item)).FirstOrDefault(defaultPreset);
             }
 
             public ConfigPreset Match(Fish? item)
             {
+                var defaultPreset = Items.LastOrDefault();
+                if (defaultPreset == null)
+                {
+                    defaultPreset = new ConfigPreset { Name = "Default" }.MakeDefault();
+                    Items.Add(defaultPreset);
+                    return defaultPreset;
+                }
                 return item == null
-                    ? Items[Items.Count - 1]
-                    : Items.SkipLast(1).Where(i => i.Match(item)).FirstOrDefault(Items[Items.Count - 1]);
+                    ? defaultPreset
+                    : Items.SkipLast(1).Where(i => i.Match(item)).FirstOrDefault(defaultPreset);
             }
         }
 
@@ -292,6 +341,7 @@ namespace GatherBuddy.Gui
                         ImGui.TableHeadersRow();
 
                         var crystals = CrystalTypes
+                            .Where(x => GatherBuddy.GameData.Gatherables.ContainsKey(x.id))
                             .Select(x => ("", x.name, GatherBuddy.GameData.Gatherables[x.id]));
                         var items = _plugin.AutoGatherListsManager.Lists
                             .Where(x => x.Enabled && !x.Fallback)
