@@ -11,6 +11,8 @@ using FishingSpotRow = Lumina.Excel.Sheets.FishingSpot;
 
 namespace GatherBuddy.Classes;
 
+public record SpawnRequirement(Fish RequiredFish, int Count);
+
 public class FishingSpot : IComparable<FishingSpot>, ILocation
 {
     public const uint SpearfishingIdOffset = 1u << 31;
@@ -62,6 +64,13 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
 
     public bool Spearfishing
         => _data is SpearfishingNotebook;
+    
+    public bool IsShadowNode
+        => _data is SpearfishingNotebook sn && sn.IsShadowNode;
+    
+    public FishingSpot? ParentNode { get; set; }
+    
+    public List<SpawnRequirement> SpawnRequirements { get; init; } = new();
 
     public Dictionary<uint, List<Vector3>> WorldPositions { get; internal set; } = new();
 
@@ -109,6 +118,20 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
         DefaultYCoord    = IntegralYCoord;
         DefaultAetheryte = ClosestAetheryte;
         DefaultRadius    = Radius;
+        
+        if (spot.GatheringPointBase.ValueNullable != null)
+        {
+            var gatheringPoints = data.DataManager.GetExcelSheet<GatheringPoint>()
+                .Where(gp => gp.GatheringPointBase.RowId == spot.GatheringPointBase.RowId);
+            
+            foreach (var gp in gatheringPoints)
+            {
+                if (data.WorldCoords.TryGetValue(gp.RowId, out var coords))
+                {
+                    WorldPositions[gp.RowId] = coords;
+                }
+            }
+        }
 
         Items = spot.GatheringPointBase.ValueNullable?.Item.Where(i => i.RowId > 0)
                 .Select(i => data.Fishes.Values.FirstOrDefault(f => f.IsSpearFish && f.FishId == i.RowId))

@@ -53,7 +53,7 @@ namespace GatherBuddy.AutoGather
             _plugin                      =  plugin;
             _soundHelper                 =  new SoundHelper();
             _advancedUnstuck             =  new();
-            _activeItemList              =  new ActiveItemList(plugin.AutoGatherListsManager);
+            _activeItemList              =  new ActiveItemList(plugin.AutoGatherListsManager, this);
             ArtisanExporter              =  new Reflection.ArtisanExporter(plugin.AutoGatherListsManager);
             Svc.Chat.CheckMessageHandled += OnMessageHandled;
             //Svc.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Gathering", OnGatheringFinalize);
@@ -153,6 +153,8 @@ namespace GatherBuddy.AutoGather
                     _lastUmbralWeather = 0;
                     _hasGatheredUmbralThisSession = false;
                     _autoRetainerWasEnabledBeforeDiadem = false;
+                    
+                    ClearSpearfishingSessionData();
                     
                     if (_autoRetainerMultiModeEnabled && AutoRetainer.IsEnabled)
                     {
@@ -397,6 +399,15 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
+            if (IsGathering && Player.Job == Job.FSH && _activeItemList.ShouldUpdateWhileFishing())
+            {
+                Svc.Log.Information($"[AutoGather] Timed/weather fish available - quitting fishing to pursue new target");
+                CleanupAutoHook();
+                QueueQuitFishingTasks();
+                _activeItemList.ForceRefresh();
+                return;
+            }
+
             if (_activeItemList.GetNextOrDefault(new List<uint>()).Any(g => g.Fish != null)
              && !GatherBuddy.Config.AutoGatherConfig.FishDataCollection)
             {
@@ -428,6 +439,30 @@ namespace GatherBuddy.AutoGather
                 var fish = _activeItemList.GetNextOrDefault(new List<uint>()).Where(g => g.Fish != null);
                 if (fish.Any() && Player.Job == Job.FSH)
                 {
+                    var isSpearfishing = fish.First().Fish?.IsSpearFish == true;
+                    
+                    if (isSpearfishing)
+                    {
+                        _wasGatheringSpearfish = true;
+                        
+                        var currentFishId = fish.First().Fish?.ItemId ?? 0;
+                        var targetFishId = _currentAutoHookTarget?.Fish?.ItemId ?? 0;
+                        var now = DateTime.Now;
+                        
+                        if (!_currentAutoHookTarget.HasValue || targetFishId != currentFishId)
+                        {
+                            SetupAutoHookForFishing(fish.First());
+                            _lastAutoHookSetupTime = now;
+                            _autoHookSetupComplete = false;
+                        }
+                        else if (!_autoHookSetupComplete && (now - _lastAutoHookSetupTime).TotalSeconds >= 1.0)
+                        {
+                            SetupAutoHookForFishing(fish.First());
+                            _lastAutoHookSetupTime = now;
+                        }
+                        return;
+                    }
+                    
                     if (GatherBuddy.Config.AutoGatherConfig.UseNavigation)
                     {
                         var pathGenerating = IsPathGenerating;
@@ -479,6 +514,14 @@ namespace GatherBuddy.AutoGather
                 }
             }
 
+            if (_wasGatheringSpearfish)
+            {
+                Svc.Log.Debug("[AutoGather] Finished spearfishing, updating catches");
+                _wasGatheringSpearfish = false;
+                UpdateSpearfishingCatches();
+                _activeItemList.ForceRefresh();
+            }
+            
             ActionSequence             = null;
             CurrentCollectableRotation = null;
 
@@ -720,6 +763,12 @@ namespace GatherBuddy.AutoGather
                     }
                     else if (!Lifestream.IsBusy())
                     {
+                        if (Dalamud.Conditions[ConditionFlag.Gathering])
+                        {
+                            AutoStatus = "Closing gathering window before teleport...";
+                            CloseGatheringAddons();
+                            return;
+                        }
                         AutoStatus = "Teleporting...";
                         StopNavigation();
                         string name = string.Empty;
@@ -940,6 +989,13 @@ namespace GatherBuddy.AutoGather
                     }
                 }
 
+                if (Dalamud.Conditions[ConditionFlag.Gathering])
+                {
+                    AutoStatus = "Closing gathering window before teleport...";
+                    CloseGatheringAddons();
+                    return;
+                }
+
                 AutoStatus = "Teleporting...";
                 StopNavigation();
 
@@ -993,6 +1049,12 @@ namespace GatherBuddy.AutoGather
 
             if (next.First().Fish != null)
             {
+                if (next.First().FishingSpot?.Spearfishing == true)
+                {
+                    DoNodeMovement(next, config);
+                    return;
+                }
+                
                 DoFishMovement(next);
                 return;
             }
@@ -1356,11 +1418,11 @@ namespace GatherBuddy.AutoGather
             }
 
             var allPositions = next.Where(n => n.Location.Territory.Id == Player.Territory)
-                .SelectMany(ne => ne.Node?.WorldPositions
-                        .ExceptBy(VisitedNodes, n => n.Key)
+                .SelectMany(ne => (ne.Node?.WorldPositions ?? ne.FishingSpot?.WorldPositions)
+                        ?.ExceptBy(VisitedNodes, n => n.Key)
                         .SelectMany(w => w.Value)
                         .Where(v => !IsBlacklisted(v))
-                 ?? []).Select(s => s)
+                 ?? [])
                 .ToHashSet();
 
             var visibleNodes = Svc.Objects
@@ -1371,15 +1433,29 @@ namespace GatherBuddy.AutoGather
                 .Where(o => o.IsTargetable)
                 .MinBy(o => Vector3.Distance(Player.Position, o.Position));
 
-            if (ActivateGatheringBuffs(next.First().Gatherable.NodeType is NodeType.Unspoiled or NodeType.Legendary))
-                return;
+            var isSpearfishing = next.First().Fish?.IsSpearFish == true;
+            if (!isSpearfishing)
+            {
+                var isTimedNode = next.First().Gatherable?.NodeType is NodeType.Unspoiled or NodeType.Legendary;
+                if (ActivateGatheringBuffs(isTimedNode))
+                    return;
+            }
 
             if (closestTargetableNode != null)
             {
                 AutoStatus = "Moving to node...";
-                var targetItem = next.First(ti => ti.Node != null && ti.Node.WorldPositions.ContainsKey(closestTargetableNode.DataId))
-                    .Gatherable;
-                MoveToCloseNode(closestTargetableNode, targetItem, config);
+                var targetGather = next.First(ti => 
+                    (ti.Node != null && ti.Node.WorldPositions.ContainsKey(closestTargetableNode.DataId)) ||
+                    (ti.FishingSpot != null && ti.FishingSpot.WorldPositions.ContainsKey(closestTargetableNode.DataId)));
+                
+                if (targetGather.Gatherable != null)
+                {
+                    MoveToCloseNode(closestTargetableNode, targetGather.Gatherable, config);
+                }
+                else if (targetGather.Fish != null)
+                {
+                    MoveToCloseSpearfishingNode(closestTargetableNode, targetGather.Fish);
+                }
                 return;
             }
 

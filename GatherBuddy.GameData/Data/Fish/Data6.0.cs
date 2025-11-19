@@ -399,7 +399,7 @@ public static partial class Fish
             .Spear     (data, SpearfishSize.Small, SpearfishSpeed.ExtremelySlow);
         data.Apply     (36535, Patch.Endwalker) // Tebqeyiq Smelt
             .Spear     (data, SpearfishSize.Small, SpearfishSpeed.SuperFast)
-            .Predators (data, 0, (36531, 10), (36546, 2), (36547, 3));
+            .Predators (data, 0, (36531, 7), (36546, 2), (36547, 3));
         data.Apply     (36536, Patch.Endwalker) // Shallows Cod
             .Spear     (data, SpearfishSize.Average, SpearfishSpeed.VerySlow);
         data.Apply     (36537, Patch.Endwalker) // Meyhane Reveler
@@ -422,7 +422,7 @@ public static partial class Fish
             .Spear     (data, SpearfishSize.Large, SpearfishSpeed.Average);
         data.Apply     (36546, Patch.Endwalker) // Xiphactinus
             .Spear     (data, SpearfishSize.Large, SpearfishSpeed.Average)
-            .Predators (data, 0, (36531, 10));
+            .Predators (data, 0, (36531, 7));
         data.Apply     (36547, Patch.Endwalker) // Dusky Shark
             .Spear     (data, SpearfishSize.Large, SpearfishSpeed.Fast);
         data.Apply     (36548, Patch.Endwalker) // Coffer Shell

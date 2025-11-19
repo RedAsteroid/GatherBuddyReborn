@@ -251,7 +251,6 @@ namespace GatherBuddy.Gui
                     }
                 }
             }
-        }
 
             public ConfigPreset Match(Gatherable? item)
             {

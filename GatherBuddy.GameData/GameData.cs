@@ -187,6 +187,8 @@ public class GameData
             if (FishingSpots.Count is 0)
                 throw new Exception("Could not fetch any fishing spots, this is certainly an error, terminating.");
 
+            Data.SpearfishingData.Apply(this);
+
             HiddenMaps.Apply(this);
             ForcedAetherytes.Apply(this);
             UmbralNodes.Apply(this);

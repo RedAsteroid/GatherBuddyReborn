@@ -48,15 +48,39 @@ public partial class AutoGather
         if (_currentAutoHookTarget?.Fish?.ItemId == target.Fish.ItemId 
             && _currentAutoHookPresetName != null)
         {
-            AutoHook.SetPluginState?.Invoke(true);
-            Svc.Log.Debug($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
+            if (target.Fish.IsSpearFish)
+            {
+                AutoHook.SetAutoGigState?.Invoke(true);
+            }
+            else
+            {
+                AutoHook.SetPluginState?.Invoke(true);
+            }
+            Svc.Log.Verbose($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
             return;
         }
 
         try
         {
-            var fishName = target.Fish.Name[GatherBuddy.Language];
-            var fishId = target.Fish.ItemId;
+            // For shadow nodes, check if this fish has a shadow spot with unmet requirements
+            var presetFish = target.Fish;
+            var shadowSpot = target.Fish.FishingSpots.FirstOrDefault(fs => fs.IsShadowNode);
+            
+            if (shadowSpot != null && shadowSpot.SpawnRequirements.Any())
+            {
+                if (!AreSpawnRequirementsMet(shadowSpot))
+                {
+                    presetFish = shadowSpot.SpawnRequirements.First().RequiredFish;
+                    Svc.Log.Debug($"[AutoGather] Shadow requirements not met for {target.Fish.Name[GatherBuddy.Language]}, using prerequisite fish {presetFish.Name[GatherBuddy.Language]} for preset");
+                }
+                else
+                {
+                    Svc.Log.Debug($"[AutoGather] Shadow requirements met for {target.Fish.Name[GatherBuddy.Language]}, using target fish for preset");
+                }
+            }
+            
+            var fishName = presetFish.Name[GatherBuddy.Language];
+            var fishId = presetFish.ItemId;
             string? presetName = null;
             bool isUserPreset = false;
 
@@ -79,13 +103,21 @@ public partial class AutoGather
 
             if (presetName == null)
             {
-                var fishList = new[] { target.Fish };
+                var fishList = new[] { presetFish };
                 presetName = $"GBR_{fishName.Replace(" ", "")}_{DateTime.Now:HHmmss}";
                 
                 Svc.Log.Information($"[AutoGather] Creating AutoHook preset '{presetName}' for {fishName}");
                 
-                var gbrPreset = MatchConfigPreset(target.Fish);
-                var success = AutoHookService.ExportPresetToAutoHook(presetName, fishList, gbrPreset);
+                bool success;
+                if (presetFish.IsSpearFish)
+                {
+                    success = AutoHookService.ExportSpearfishingPresetToAutoHook(presetName, fishList);
+                }
+                else
+                {
+                    var gbrPreset = MatchConfigPreset(presetFish);
+                    success = AutoHookService.ExportPresetToAutoHook(presetName, fishList, gbrPreset);
+                }
                 
                 if (!success)
                 {
@@ -100,7 +132,32 @@ public partial class AutoGather
             _currentAutoHookPresetName = presetName;
             _isCurrentPresetUserOwned = isUserPreset;
             
-            AutoHook.SetPluginState?.Invoke(true);
+            if (target.Fish.IsSpearFish)
+            {
+                if (AutoHook.SetAutoGigState == null)
+                {
+                    Svc.Log.Error("[AutoGather] SetAutoGigState IPC is null!");
+                }
+                else
+                {
+                    AutoHook.SetAutoGigState.Invoke(true);
+                    _autoHookSetupComplete = true;
+                    Svc.Log.Information("[AutoGather] Called SetAutoGigState(true) via IPC");
+                }
+            }
+            else
+            {
+                if (AutoHook.SetPluginState == null)
+                {
+                    Svc.Log.Error("[AutoGather] SetPluginState IPC is null!");
+                }
+                else
+                {
+                    AutoHook.SetPluginState.Invoke(true);
+                    _autoHookSetupComplete = true;
+                    Svc.Log.Information("[AutoGather] AutoHook enabled for fishing");
+                }
+            }
             
             var presetType = isUserPreset ? "user" : "generated";
             Svc.Log.Information($"[AutoGather] AutoHook preset '{presetName}' ({presetType}) for {fishName} selected and activated successfully");
@@ -133,11 +190,19 @@ public partial class AutoGather
             }
             
             AutoHook.SetPluginState?.Invoke(false);
-            Svc.Log.Debug("[AutoGather] AutoHook disabled");
+            AutoHook.SetAutoGigState?.Invoke(false);
+            Svc.Log.Debug("[AutoGather] AutoHook/AutoGig disabled");
+            
+            if (_currentAutoHookTarget.HasValue && _currentAutoHookTarget.Value.Fish?.IsSpearFish == true)
+            {
+                Svc.Log.Debug("[AutoGather] Calling UpdateSpearfishingCatches from CleanupAutoHook");
+                UpdateSpearfishingCatches();
+            }
             
             _currentAutoHookTarget = null;
             _currentAutoHookPresetName = null;
             _isCurrentPresetUserOwned = false;
+            _autoHookSetupComplete = false;
         }
         catch (Exception ex)
         {

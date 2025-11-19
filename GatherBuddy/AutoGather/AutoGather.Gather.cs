@@ -54,6 +54,58 @@ namespace GatherBuddy.AutoGather
             });
         }
 
+        private unsafe void EnqueueSpearfishingNodeInteraction(IGameObject gameObject, Classes.Fish targetFish)
+        {
+            var targetSystem = TargetSystem.Instance();
+            if (targetSystem == null)
+                return;
+
+            var fishForSnapshot = targetFish;
+            if (fishForSnapshot != null)
+            {
+                var shadowSpot = fishForSnapshot.FishingSpots.FirstOrDefault(fs => fs.IsShadowNode);
+                var actualFishToGather = fishForSnapshot;
+                bool gatheringPrerequisites = false;
+                
+                if (shadowSpot != null && shadowSpot.SpawnRequirements.Any())
+                {
+                    var requirementFish = shadowSpot.SpawnRequirements.Select(r => r.RequiredFish).ToList();
+                    SnapshotSpearfishingInventory(requirementFish);
+                    
+                    if (!AreSpawnRequirementsMet(shadowSpot))
+                    {
+                        actualFishToGather = shadowSpot.SpawnRequirements.First().RequiredFish;
+                        gatheringPrerequisites = true;
+                    }
+                }
+                
+                if (gatheringPrerequisites)
+                {
+                    if (Player.Status.Any(s => Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+                    {
+                        TaskManager.Enqueue(() => UseAction(Actions.CollectorsGlove));
+                        TaskManager.DelayNext(1000);
+                    }
+                }
+                else if (actualFishToGather.ItemData.IsCollectable && Player.Status.All(s => !Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+                {
+                    TaskManager.Enqueue(() => UseAction(Actions.CollectorsGlove));
+                    TaskManager.DelayNext(1000);
+                }
+            }
+
+            TaskManager.Enqueue(() => targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address));
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
+            
+            TaskManager.Enqueue(() => {
+                if (!Dalamud.Conditions[ConditionFlag.Gathering])
+                {
+                    targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address);
+                }
+            });
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
+        }
+
         private unsafe void EnqueueGatherItem(ItemSlot slot)
         {
             if (slot.Item.ItemData.IsCollectable)
