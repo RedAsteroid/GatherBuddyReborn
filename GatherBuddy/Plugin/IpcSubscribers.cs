@@ -267,6 +267,9 @@ namespace GatherBuddy.Plugin
         [EzIPC("AutoHook.SetPluginState", applyPrefix: false)]
         internal static readonly Action<bool> SetPluginState;
 
+        [EzIPC("AutoHook.SetAutoGigState", applyPrefix: false)]
+        internal static readonly Action<bool> SetAutoGigState;
+
         [EzIPC("AutoHook.CreateAndSelectAnonymousPreset", applyPrefix: false)]
         internal static readonly Action<string> CreateAndSelectAnonymousPreset;
         

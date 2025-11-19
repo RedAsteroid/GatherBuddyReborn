@@ -205,6 +205,49 @@ namespace GatherBuddy.AutoGather
             }
         }
 
+        private void MoveToCloseSpearfishingNode(IGameObject gameObject, Classes.Fish targetFish)
+        {
+            var hSeparation = Vector2.Distance(gameObject.Position.ToVector2(), Player.Position.ToVector2());
+            var vSeparation = Math.Abs(gameObject.Position.Y - Player.Position.Y);
+
+            if (hSeparation < 3.5)
+            {
+                if (vSeparation < 3)
+                {
+                    if (Dalamud.Conditions[ConditionFlag.Mounted])
+                    {
+                        EnqueueDismount();
+                    }
+                    else
+                    {
+                        EnqueueSpearfishingNodeInteraction(gameObject, targetFish);
+                    }
+                }
+
+                if (!Dalamud.Conditions[ConditionFlag.Diving])
+                {
+                    TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
+                }
+            }
+            else if (hSeparation < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5))
+            {
+                Navigate(gameObject.Position, false);
+            }
+            else
+            {
+                if (!Dalamud.Conditions[ConditionFlag.Mounted])
+                {
+                    if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting)
+                        Navigate(gameObject.Position, false);
+                    EnqueueMountUp();
+                }
+                else
+                {
+                    Navigate(gameObject.Position, ShouldFly(gameObject.Position));
+                }
+            }
+        }
+
         private void StopNavigation()
         {
             // Reset navigation logic here

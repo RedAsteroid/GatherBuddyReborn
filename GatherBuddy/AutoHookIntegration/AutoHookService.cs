@@ -105,4 +105,32 @@ public class AutoHookService
             return string.Empty;
         }
     }
+
+    public static bool ExportSpearfishingPresetToAutoHook(string presetName, IEnumerable<Fish> fishList)
+    {
+        if (!IsAutoHookAvailable())
+        {
+            Svc.Log.Error("[AutoHook Integration] AutoHook plugin is not available");
+            return false;
+        }
+
+        try
+        {
+            var preset = AutoHookSpearfishingPresetBuilder.BuildSpearfishingPreset(presetName, fishList);
+            var exportString = AutoHookSpearfishingExporter.ExportPreset(preset);
+            
+            AutoHook.ImportAndSelectPreset?.Invoke(exportString);
+            
+            Svc.Log.Information($"[AutoHook Integration] Successfully exported spearfishing preset '{presetName}' to AutoHook");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error($"[AutoHook Integration] Failed to export spearfishing preset: {ex.Message}");
+            if (ex.InnerException != null)
+                Svc.Log.Error($"[AutoHook Integration] Inner exception: {ex.InnerException.Message}");
+            Svc.Log.Error($"[AutoHook Integration] Stack trace: {ex.StackTrace}");
+            return false;
+        }
+    }
 }

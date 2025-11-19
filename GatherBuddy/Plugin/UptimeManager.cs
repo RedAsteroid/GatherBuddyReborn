@@ -82,10 +82,23 @@ public class UptimeManager : IDisposable
             return loc;
 
         var closest = item.Locations.FirstOrDefault(l =>
-                l is FishingSpot f && (!f.Spearfishing || !f.SpearfishingSpotData!.Value.IsShadowNode)
-             || l is GatheringNode n && n.Times.AlwaysUp())
-         ?? FindClosestAetheryte(item) ?? item.Locations.FirstOrDefault();
-        Debug.Assert(closest != null);
+                l is FishingSpot f && (!f.Spearfishing || !f.IsShadowNode)
+             || l is GatheringNode n && n.Times.AlwaysUp());
+        
+        if (closest == null && item is Fish fish && fish.IsSpearFish)
+        {
+            var shadowSpot = fish.FishingSpots.FirstOrDefault(f => f.IsShadowNode);
+            closest = shadowSpot?.ParentNode;
+        }
+        
+        closest ??= FindClosestAetheryte(item) ?? item.Locations.FirstOrDefault();
+        
+        if (closest == null)
+        {
+            GatherBuddy.Log.Warning($"No valid location found for {item.Name[GatherBuddy.Language]}. Using fallback location.");
+            closest = (ILocation?)GatherBuddy.GameData.GatheringNodes.Values.FirstOrDefault() ?? GatherBuddy.GameData.FishingSpots.Values.FirstOrDefault()!;
+        }
+        
         _bestLocation[idx] = (closest, _lastReset);
         return closest;
     }

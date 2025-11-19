@@ -26,12 +26,14 @@ namespace GatherBuddy.AutoGather.Lists
     {
         private readonly List<GatherTarget>                      _gatherableItems = [];
         private readonly AutoGatherListsManager                  _listsManager;
+        private readonly AutoGather                              _autoGather;
         private readonly Dictionary<uint, int>                   _teleportationCosts = [];
         private readonly Dictionary<GatheringNode, TimeInterval> _visitedTimedNodes  = [];
         private          TimeStamp                               _lastUpdateTime     = TimeStamp.MinValue;
         private          uint                                    _lastTerritoryId;
         private          bool                                    _activeItemsChanged;
         private          bool                                    _gatheredSomething;
+        private          bool                                    _forceUpdateUnconditionally;
         private          GatheringType                           _lastJob            = GatheringType.Unknown;
 
         internal ReadOnlyDictionary<GatheringNode, TimeInterval> DebugVisitedTimedLocations
@@ -57,9 +59,10 @@ namespace GatherBuddy.AutoGather.Lists
         public bool IsInitialized
             => _lastUpdateTime != TimeStamp.MinValue;
 
-        public ActiveItemList(AutoGatherListsManager listsManager)
+        public ActiveItemList(AutoGatherListsManager listsManager, AutoGather autoGather)
         {
             _listsManager                    =  listsManager;
+            _autoGather                      =  autoGather;
             _listsManager.ActiveItemsChanged += OnActiveItemsChanged;
         }
 
@@ -199,7 +202,9 @@ namespace GatherBuddy.AutoGather.Lists
         {
             _gatheredSomething = true;
             // In almost all cases, the target is the first item in the list, so it's O(1).
-            var x = _gatherableItems.FirstOrDefault(x => x.Node.WorldPositions.ContainsKey(target.DataId));
+            var x = _gatherableItems.FirstOrDefault(x => 
+                (x.Node?.WorldPositions.ContainsKey(target.DataId) ?? false) ||
+                (x.FishingSpot?.WorldPositions.ContainsKey(target.DataId) ?? false));
             if (x != default && x.Time != TimeInterval.Always && x.Node?.NodeType is NodeType.Legendary or NodeType.Unspoiled)
                 _visitedTimedNodes[x.Node] = x.Time;
         }
@@ -244,6 +249,11 @@ namespace GatherBuddy.AutoGather.Lists
         internal void DebugClearVisited()
         {
             _visitedTimedNodes.Clear();
+        }
+
+        public void ForceRefresh()
+        {
+            _forceUpdateUnconditionally = true;
         }
 
         /// <summary>
@@ -321,8 +331,9 @@ namespace GatherBuddy.AutoGather.Lists
             var fish = _listsManager.ActiveFish
                 .Where(NeedsGathering)
                 .Where(x => (RequiresHomeWorld(x) && Functions.OnHomeWorld()) || !RequiresHomeWorld(x))
-                .Select(x => (x.Fish, x.Quantity, PreferredLocation: _listsManager.GetPreferredLocation(x.Fish) ?? x.Fish.FishingSpots.First()))
-                .Select(x => (x.Fish, x.PreferredLocation, Time: GatherBuddy.UptimeManager.NextUptime(x.Fish, adjustedServerTime).interval,
+                .Select(x => (x.Fish, x.Quantity, PreferredLocation: _listsManager.GetPreferredLocation(x.Fish) ?? x.Fish.Locations.FirstOrDefault()))
+                .Where(x => x.PreferredLocation != null)
+                .Select(x => (x.Fish, PreferredLocation: x.PreferredLocation!, Time: GatherBuddy.UptimeManager.NextUptime(x.Fish, adjustedServerTime).interval,
                     x.Quantity))
                 .Where(x => x.Time.InRange(adjustedServerTime))
                 .GroupBy(x => x.Fish, x => x, (_, g) => g
@@ -356,7 +367,19 @@ namespace GatherBuddy.AutoGather.Lists
 
             _gatherableItems.Clear();
             _gatherableItems.AddRange(nodes.Select(x => new GatherTarget(x.Item, x.Node, x.Time, x.Quantity)));
-            _gatherableItems.AddRange(fish.Select(x => new GatherTarget(x.Fish, x.PreferredLocation, x.Time, x.Quantity)));
+            
+            foreach (var x in fish)
+            {
+                var location = x.PreferredLocation;
+                if (location is FishingSpot spot && spot.IsShadowNode && spot.ParentNode != null)
+                {
+                    if (!_autoGather.AreSpawnRequirementsMet(spot))
+                    {
+                        location = spot.ParentNode;
+                    }
+                }
+                _gatherableItems.Add(new GatherTarget(x.Fish, location, x.Time, x.Quantity));
+            }
             
             AddUmbralItemsIfAvailable(adjustedServerTime, minerLevel, botanistLevel);
             
@@ -433,6 +456,20 @@ namespace GatherBuddy.AutoGather.Lists
         }
 
         /// <summary>
+        /// Checks if the active item list should be updated while fishing.
+        /// This is used to detect when timed/weather fish become available.
+        /// </summary>
+        /// <returns>
+        /// True if the list should update (e.g., hour changed, active items changed); otherwise, false.
+        /// </returns>
+        public bool ShouldUpdateWhileFishing()
+        {
+            // Check if Eorzea hour changed or active items changed
+            return _activeItemsChanged
+                || _lastUpdateTime.TotalEorzeaHours() != AutoGather.AdjustedServerTime.TotalEorzeaHours();
+        }
+
+        /// <summary>
         /// Returns true in the following cases:
         /// 1) The active item list has changed.
         /// 2) The Eorzea hour has changed.
@@ -452,6 +489,9 @@ namespace GatherBuddy.AutoGather.Lists
                 _ => GatheringType.Unknown
             };
             
+            if (_forceUpdateUnconditionally)
+                return true;
+            
             if (_activeItemsChanged
              || _lastUpdateTime.TotalEorzeaHours() != AutoGather.AdjustedServerTime.TotalEorzeaHours()
              || _lastTerritoryId != Dalamud.ClientState.TerritoryType
@@ -462,12 +502,14 @@ namespace GatherBuddy.AutoGather.Lists
             {
                 _gatheredSomething = false;
                 var current = CurrentOrDefault;
-                foreach (var item in _gatherableItems.Where(NeedsGathering).Where(x => !_visitedTimedNodes.ContainsKey(x.Node)))
+                foreach (var item in _gatherableItems.Where(NeedsGathering).Where(x => x.Node == null || !_visitedTimedNodes.ContainsKey(x.Node)))
                 {
                     if (item == current)
                         return false;
 
-                    if (item.Node.Territory.Id != _lastTerritoryId)
+                    if (item.Node != null && item.Node.Territory.Id != _lastTerritoryId)
+                        break;
+                    if (item.FishingSpot != null && item.FishingSpot.Territory.Id != _lastTerritoryId)
                         break;
                 }
 
@@ -497,6 +539,7 @@ namespace GatherBuddy.AutoGather.Lists
 
             _activeItemsChanged = false;
             _gatheredSomething  = false;
+            _forceUpdateUnconditionally = false;
             _lastUpdateTime     = adjustedServerTime;
             _lastTerritoryId    = territoryId;
             _lastJob            = currentJob;
