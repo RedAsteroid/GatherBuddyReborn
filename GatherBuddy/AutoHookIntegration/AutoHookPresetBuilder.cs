@@ -289,7 +289,7 @@ public class AutoHookPresetBuilder
     private static void ConfigureAutoCasts(AHCustomPresetConfig preset, Fish[] fishList, ConfigPreset? gbrPreset)
     {
         var needsPatience = fishList.Any(f => f.ItemData.Rarity > 0 || f.IsBigFish);
-        var needsCollect = fishList.Any(f => f.ItemData.Rarity > 0);
+        var needsCollect = fishList.Any(f => f.ItemData.IsCollectable);
         var useCordials = gbrPreset?.Consumables.Cordial.Enabled ?? false;
         
         var hasSurfaceSlap = fishList.Any(f => f.SurfaceSlap != null);

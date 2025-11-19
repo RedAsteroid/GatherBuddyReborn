@@ -749,7 +749,7 @@ namespace GatherBuddy.AutoGather
             var territoryId = Svc.ClientState.TerritoryType;
             //Idyllshire to The Dravanian Hinterlands
             if ((territoryId == 478 && (next.First().Node?.Territory.Id == 399 || next.First().FishingSpot?.Territory.Id == 399))
-             || (territoryId == 418 && next.First().Node?.Territory.Id is 901 or 929 or 939) && Lifestream.Enabled)
+             || (territoryId == 418 && (next.First().Node?.Territory.Id is 901 or 929 or 939 || next.First().FishingSpot?.Territory.Id is 901 or 929 or 939)) && Lifestream.Enabled)
             {
                 var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
                     .OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
@@ -795,7 +795,7 @@ namespace GatherBuddy.AutoGather
                 }
             }
 
-            if (territoryId == 886 && next.First().Node?.Territory.Id is 901 or 929 or 939)
+            if (territoryId == 886 && (next.First().Node?.Territory.Id is 901 or 929 or 939 || next.First().FishingSpot?.Territory.Id is 901 or 929 or 939))
             {
                 if (JobAsGatheringType == GatheringType.Unknown)
                 {
@@ -1076,6 +1076,156 @@ namespace GatherBuddy.AutoGather
         private void DoFishMovement(IEnumerable<GatherTarget> next)
         {
             var fish = next.First(ne => ne.Fish != null);
+            var territoryId = Svc.ClientState.TerritoryType;
+            var isCurrentDiadem = territoryId is 901 or 929 or 939;
+            var isTargetDiadem = fish.FishingSpot?.Territory.Id is 901 or 929 or 939;
+            
+            var isPathGenerating = IsPathGenerating;
+            var isPathing = IsPathing;
+            
+            if (territoryId == 418 && fish.FishingSpot?.Territory.Id is 901 or 929 or 939 && Lifestream.Enabled)
+            {
+                var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
+                    .OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
+                if (aetheryte != null)
+                {
+                    if (aetheryte.Position.DistanceToPlayer() > 10)
+                    {
+                        AutoStatus = "Moving to aetheryte...";
+                        if (!isPathing && !isPathGenerating)
+                            Navigate(aetheryte.Position, false);
+                    }
+                    else if (!Lifestream.IsBusy())
+                    {
+                        if (IsFishing)
+                        {
+                            AutoStatus = "Closing fishing before teleport...";
+                            QueueQuitFishingTasks();
+                            return;
+                        }
+                        AutoStatus = "Teleporting...";
+                        StopNavigation();
+                        string name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString()
+                            .Split(" ")[1];
+
+                        TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                        TaskManager.DelayNext(1000);
+                        TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
+                    }
+
+                    return;
+                }
+            }
+            
+            if (fish.FishingSpot?.Territory.Id != territoryId && !(isCurrentDiadem && isTargetDiadem))
+            {
+                if (Dalamud.Conditions[ConditionFlag.BoundByDuty] && !Functions.InTheDiadem())
+                {
+                    AutoStatus = "Can not teleport when bound by duty";
+                    return;
+                }
+                else if (Functions.InTheDiadem())
+                {
+                    LeaveTheDiadem();
+                    return;
+                }
+                
+                if (territoryId == 886 && fish.FishingSpot?.Territory.Id is 901 or 929 or 939)
+                {
+                    if (JobAsGatheringType == GatheringType.Unknown)
+                    {
+                        if (ChangeGearSet(GatheringType.Fisher, 2400))
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            AbortAutoGather();
+                            return;
+                        }
+                    }
+                    
+                    var dutyNpc                    = Svc.Objects.FirstOrDefault(o => o.DataId == 1031694);
+                    var selectStringAddon          = Dalamud.GameGui.GetAddonByName("SelectString");
+                    var talkAddon                  = Dalamud.GameGui.GetAddonByName("Talk");
+                    var selectYesNoAddon           = Dalamud.GameGui.GetAddonByName("SelectYesno");
+                    var contentsFinderConfirmAddon = Dalamud.GameGui.GetAddonByName("ContentsFinderConfirm");
+                    
+                    if (dutyNpc != null && dutyNpc.Position.DistanceToPlayer() > 3)
+                    {
+                        AutoStatus = "Moving to Diadem NPC...";
+                        var point = VNavmesh.Query.Mesh.NearestPoint(dutyNpc.Position, 10, 10000);
+                        if (CurrentDestination != point || (!IsPathGenerating && !IsPathing))
+                        {
+                            Navigate(point, false);
+                        }
+                        return;
+                    }
+                    else
+                        switch (Dalamud.Conditions[ConditionFlag.OccupiedInQuestEvent])
+                        {
+                            case false when contentsFinderConfirmAddon > 0:
+                            {
+                                var contents = new AddonMaster.ContentsFinderConfirm(contentsFinderConfirmAddon);
+                                TaskManager.Enqueue(contents.Commence);
+                                TaskManager.Enqueue(() => _diademQueuingInProgress = false);
+                                TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.BoundByDuty]);
+                                return;
+                            }
+                            case false when contentsFinderConfirmAddon == nint.Zero
+                             && selectStringAddon == nint.Zero
+                             && selectYesNoAddon == nint.Zero:
+                                unsafe
+                                {
+                                    var targetSystem = TargetSystem.Instance();
+                                    if (targetSystem == null)
+                                        return;
+
+                                    TaskManager.Enqueue(StopNavigation);
+                                    TaskManager.Enqueue(()
+                                        => targetSystem->OpenObjectInteraction(
+                                            (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)dutyNpc.Address));
+                                    TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.OccupiedInQuestEvent]);
+                                    TaskManager.Enqueue(() => _diademQueuingInProgress = true);
+                                    return;
+                                }
+                            case true when selectStringAddon > 0:
+                            {
+                                var select = new AddonMaster.SelectString(selectStringAddon);
+                                TaskManager.Enqueue(() => select.Entries[0].Select());
+                                return;
+                            }
+                            case true when selectYesNoAddon > 0:
+                            {
+                                var yesNo = new AddonMaster.SelectYesno(selectYesNoAddon);
+                                TaskManager.Enqueue(yesNo.Yes);
+                                TaskManager.DelayNext(5000);
+                                return;
+                            }
+                            case true when talkAddon > 0:
+                            {
+                                var talk = new AddonMaster.Talk(talkAddon);
+                                TaskManager.Enqueue(talk.Click);
+                                return;
+                            }
+                        }
+                }
+                
+                if (IsFishing)
+                {
+                    AutoStatus = "Closing fishing before teleport...";
+                    QueueQuitFishingTasks();
+                    return;
+                }
+                
+                AutoStatus = "Teleporting...";
+                StopNavigation();
+                
+                if (!MoveToTerritory(fish.Location))
+                    AbortAutoGather();
+                
+                return;
+            }
 
             if (!FishingSpotData.TryGetValue(fish, out var fishingSpotData))
             {
