@@ -21,16 +21,36 @@ public class AutoHookPresetBuilder
             allFish.Add(fish);
             
             // Add all fish in the mooch chain
-            // fish.Mooches contains the full chain from initial bait to immediate predecessor
-            // e.g., if Fish A needs Fish B to mooch, and Fish B needs Fish C:
-            // Fish A.Mooches = [C, B]
-            // Fish B.Mooches = [C]
-            // Fish C.Mooches = []
             if (fish.Mooches.Length > 0)
             {
                 foreach (var moochFish in fish.Mooches)
                 {
                     allFish.Add(moochFish);
+                }
+            }
+            
+            // Add predator fish for Fisher's Intuition (skip spearfish predators)
+            if (fish.Predators.Length > 0)
+            {
+                foreach (var (predatorFish, _) in fish.Predators)
+                {
+                    if (predatorFish.IsSpearFish)
+                    {
+                        GatherBuddy.Log.Warning($"[AutoHook] Skipping spearfish predator {predatorFish.Name[GatherBuddy.Language]} for {fish.Name[GatherBuddy.Language]}");
+                        continue;
+                    }
+                    
+                    GatherBuddy.Log.Debug($"[AutoHook] Adding predator fish {predatorFish.Name[GatherBuddy.Language]} for {fish.Name[GatherBuddy.Language]}");
+                    allFish.Add(predatorFish);
+                    
+                    // Also include predator's mooch chain so we can actually catch them
+                    if (predatorFish.Mooches.Length > 0)
+                    {
+                        foreach (var moochFish in predatorFish.Mooches)
+                        {
+                            allFish.Add(moochFish);
+                        }
+                    }
                 }
             }
         }
