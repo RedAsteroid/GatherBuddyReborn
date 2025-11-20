@@ -143,14 +143,23 @@ public class AutoHookPresetBuilder
             return;
         }
 
+        var biteTimers = GatherBuddy.BiteTimerService.GetBiteTimers(fish.ItemId);
+        var minTime = biteTimers?.WhiskerMin ?? 0;
+        var maxTime = biteTimers?.WhiskerMax ?? 0;
+        
+        if (biteTimers != null)
+        {
+            GatherBuddy.Log.Debug($"[AutoHook] Using bite timers for {fish.Name[GatherBuddy.Language]}: {minTime:F1}s - {maxTime:F1}s");
+        }
+
         ConfigureLures(hookConfig.NormalHook, fish.Lure);
-        SetHookConfiguration(hookConfig.NormalHook, ahBiteType, ahHookType);
+        SetHookConfiguration(hookConfig.NormalHook, ahBiteType, ahHookType, minTime, maxTime);
 
         if (fish.Predators.Length > 0)
         {
             hookConfig.IntuitionHook.UseCustomStatusHook = true;
             ConfigureLures(hookConfig.IntuitionHook, fish.Lure);
-            SetHookConfiguration(hookConfig.IntuitionHook, ahBiteType, ahHookType);
+            SetHookConfiguration(hookConfig.IntuitionHook, ahBiteType, ahHookType, minTime, maxTime);
         }
     }
 

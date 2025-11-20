@@ -68,6 +68,7 @@ public partial class GatherBuddy : IDalamudPlugin
     public static SeTugType             TugType         { get; private set; } = null!;
     public static WaymarkManager        WaymarkManager  { get; private set; } = null!;
     public static AutoGather.AutoGather AutoGather      { get; private set; } = null!;
+    public static AutoHookIntegration.BiteTimerService BiteTimerService { get; private set; } = null!;
 
 
     internal readonly GatherGroup.GatherGroupManager GatherGroupManager;
@@ -121,6 +122,7 @@ public partial class GatherBuddy : IDalamudPlugin
 
             FishRecorder = new FishRecorder(Dalamud.Interop);
             FishRecorder.Enable();
+            BiteTimerService = new AutoHookIntegration.BiteTimerService(pluginInterface.ConfigDirectory.FullName);
             AutoGather   = new AutoGather.AutoGather(this);
             WindowSystem = new WindowSystem(Name);
             Interface    = new Interface(this);
