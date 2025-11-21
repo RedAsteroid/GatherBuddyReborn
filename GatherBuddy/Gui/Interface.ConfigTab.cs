@@ -846,6 +846,45 @@ public partial class Interface
             ImGui.SameLine();
             ImGuiEx.PluginAvailabilityIndicator([new("AutoHook")]);
         }
+
+        public static void DrawSurfaceSlapConfig()
+        {
+            DrawCheckbox("Enable automatic Surface Slap",
+                "Automatically enable Surface Slap for non-target fish that share the same bite type as your target fish.\n"
+              + "This helps remove unwanted fish to increase catch rates of your target.",
+                GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap,
+                b => GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap = b);
+            
+            if (GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap)
+            {
+                ImGui.Indent();
+                
+                var gpAbove = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove;
+                if (ImGui.RadioButton("Use Surface Slap when GP is Above", gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = true;
+                    GatherBuddy.Config.Save();
+                }
+                
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Below", !gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = false;
+                    GatherBuddy.Config.Save();
+                }
+                
+                var gpThreshold = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold;
+                ImGui.SetNextItemWidth(SetInputWidth);
+                if (ImGui.DragInt("GP Threshold", ref gpThreshold, 1, 0, 10000))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold = Math.Max(0, gpThreshold);
+                    GatherBuddy.Config.Save();
+                }
+                ImGuiUtil.HoverTooltip("Surface Slap will be used when your GP is above/below this threshold.");
+                
+                ImGui.Unindent();
+            }
+        }
     }
 
 
@@ -880,6 +919,12 @@ public partial class Interface
                 ConfigFunctions.DrawCheckRetainersBox();
                 ConfigFunctions.DrawFishCollectionBox();
                 ConfigFunctions.DrawAlwaysMapsBox();
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNodeEx("Fishing"))
+            {
+                ConfigFunctions.DrawSurfaceSlapConfig();
                 ImGui.TreePop();
             }
 
