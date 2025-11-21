@@ -86,6 +86,12 @@ namespace GatherBuddy.AutoGather
         public bool UseAutoHook { get; set; } = true;
         public bool DisableAutoHookOnStop { get; set; } = false;
         public bool UseExistingAutoHookPresets { get; set; } = false;
+        public bool EnableSurfaceSlap { get; set; } = false;
+        public int SurfaceSlapGPThreshold { get; set; } = 200;
+        public bool SurfaceSlapGPAbove { get; set; } = true;
+        public bool EnableIdenticalCast { get; set; } = false;
+        public int IdenticalCastGPThreshold { get; set; } = 350;
+        public bool IdenticalCastGPAbove { get; set; } = true;
 
         public enum SortingType
         {

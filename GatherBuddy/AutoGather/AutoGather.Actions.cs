@@ -180,11 +180,10 @@ namespace GatherBuddy.AutoGather
 
                 if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    AutoHook.SetPluginState?.Invoke(false);
+                    TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(false));
                 }
 
-                ReduceItems(false);
-                TaskManager.Enqueue(() =>
+                ReduceItems(false, () =>
                 {
                     if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                     {
@@ -284,6 +283,22 @@ namespace GatherBuddy.AutoGather
 
             if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
             {
+                var hasSnagStatus = Player.Status.Any(s => s.StatusId == 761);
+                var needsSnagging = target.Fish?.Snagging == Snagging.Required;
+                
+                if (needsSnagging && !hasSnagStatus)
+                {
+                    GatherBuddy.Log.Debug($"[AutoGather] Enabling Snagging for {target.Fish!.Name[GatherBuddy.Language]}");
+                    EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
+                    return;
+                }
+                else if (!needsSnagging && hasSnagStatus)
+                {
+                    GatherBuddy.Log.Debug($"[AutoGather] Disabling Snagging for {target.Fish!.Name[GatherBuddy.Language]}");
+                    EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
+                    return;
+                }
+                
                 TaskManager.DelayNext(2000);
                 EnqueueActionWithDelay(() => UseAction(Actions.Cast));
                 return;
