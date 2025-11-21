@@ -54,9 +54,24 @@ public class AHAutoIdenticalCast
     [JsonProperty("Enabled")]
     public bool Enabled { get; set; }
     
+    [JsonProperty("GPThreshold")]
+    public int GPThreshold { get; set; }
+    
+    [JsonProperty("GPThresholdAbove")]
+    public bool GPThresholdAbove { get; set; }
+    
     public AHAutoIdenticalCast()
     {
         Enabled = false;
+        GPThreshold = 350;
+        GPThresholdAbove = true;
+    }
+    
+    public AHAutoIdenticalCast(bool enabled, int gpThreshold = 350, bool gpThresholdAbove = true)
+    {
+        Enabled = enabled;
+        GPThreshold = gpThreshold;
+        GPThresholdAbove = gpThresholdAbove;
     }
 }
 

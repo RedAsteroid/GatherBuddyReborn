@@ -355,10 +355,14 @@ public class AutoHookPresetBuilder
         // Configure Surface Slap based on config and bite type matching
         var surfaceSlap = DetermineSurfaceSlap(fish, targetFishList, allFish);
         
+        // Configure Identical Cast for target fish
+        var identicalCast = DetermineIdenticalCast(fish, targetFishList);
+        
         var fishConfig = new AHFishConfig((int)fish.ItemId)
         {
             Enabled = true,
             SurfaceSlap = surfaceSlap,
+            IdenticalCast = identicalCast,
             Mooch = mooch,
             NeverMooch = false
         };
@@ -418,6 +422,32 @@ public class AutoHookPresetBuilder
         
         return new AHAutoSurfaceSlap(false);
     }
+    
+    private static AHAutoIdenticalCast DetermineIdenticalCast(Fish fish, Fish[] targetFishList)
+    {
+        // Check if Identical Cast auto-configuration is enabled
+        if (!GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast)
+        {
+            return new AHAutoIdenticalCast(false);
+        }
+        
+        // Check if this fish is a target fish (Identical Cast ONLY for targets)
+        bool isTargetFish = targetFishList.Any(f => f.ItemId == fish.ItemId);
+        if (!isTargetFish)
+        {
+            return new AHAutoIdenticalCast(false);
+        }
+        
+        // Enable Identical Cast for target fish
+        var gpThreshold = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold;
+        var gpAbove = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove;
+        GatherBuddy.Log.Debug($"[AutoHook] Enabling Identical Cast for {fish.Name[GatherBuddy.Language]} (target fish). GP: {(gpAbove ? "Above" : "Below")} {gpThreshold}");
+        return new AHAutoIdenticalCast(
+            enabled: true,
+            gpThreshold: gpThreshold,
+            gpThresholdAbove: gpAbove
+        );
+    }
 
     private static void ConfigureAutoCasts(AHCustomPresetConfig preset, Fish[] fishList, ConfigPreset? gbrPreset)
     {
@@ -440,7 +470,8 @@ public class AutoHookPresetBuilder
             CastPatience = needsPatience ? new AHAutoPatience
             {
                 Enabled = true,
-                PatienceVersion = 2
+                // Use Patience II if level 60+ (assumes quest completion)
+                PatienceVersion = DiscipleOfLand.FisherLevel >= 60 ? 2 : 1
             } : null,
             CastCollect = needsCollect ? new AHAutoCollect
             {

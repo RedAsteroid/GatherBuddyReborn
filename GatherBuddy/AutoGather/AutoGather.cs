@@ -401,11 +401,20 @@ namespace GatherBuddy.AutoGather
 
             if (IsGathering && Player.Job == Job.FSH && _activeItemList.ShouldUpdateWhileFishing())
             {
-                Svc.Log.Information($"[AutoGather] Timed/weather fish available - quitting fishing to pursue new target");
-                CleanupAutoHook();
-                QueueQuitFishingTasks();
-                _activeItemList.ForceRefresh();
-                return;
+                // Only quit if the refreshed list actually contains a timed/weather fish that takes priority over the current target.
+                var nextAfterRefresh = _activeItemList.GetNextOrDefault(new List<uint>());
+                var currentFishId = _currentAutoHookTarget?.Fish?.ItemId ?? 0;
+                var hasNewTimedTarget = nextAfterRefresh.Any(g => g.Fish != null
+                    && g.Time != Time.TimeInterval.Always
+                    && g.Fish!.ItemId != currentFishId);
+                if (hasNewTimedTarget)
+                {
+                    Svc.Log.Information($"[AutoGather] Timed/weather fish available - quitting fishing to pursue new target");
+                    CleanupAutoHook();
+                    QueueQuitFishingTasks();
+                    _activeItemList.ForceRefresh();
+                    return;
+                }
             }
 
             if (_activeItemList.GetNextOrDefault(new List<uint>()).Any(g => g.Fish != null)
@@ -695,23 +704,28 @@ namespace GatherBuddy.AutoGather
                     {
                         if (Player.Job == Job.FSH)
                         {
-                            if (IsFishing)
+                            if (IsGathering)
                             {
                                 QueueQuitFishingTasks();
-                                TaskManager.Enqueue(() => !IsFishing, 5000, "Wait until fishing stopped.");
+                                return;
                             }
 
                             if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                             {
                                 TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(false));
                             }
+                            
+                            ReduceItems(true, () =>
+                            {
+                                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                                {
+                                    AutoHook.SetPluginState?.Invoke(true);
+                                }
+                            });
                         }
-
-                        ReduceItems(true);
-
-                        if (Player.Job == Job.FSH && GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                        else
                         {
-                            TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(true));
+                            ReduceItems(true);
                         }
 
                         return;

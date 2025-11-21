@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
@@ -8,6 +9,7 @@ using ECommons.ImGuiMethods;
 using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
+using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.Enums;
 using GatherBuddy.FishTimer;
@@ -24,6 +26,10 @@ public partial class Interface
     private static class ConfigFunctions
     {
         public static Interface _base = null!;
+        
+        private static string _fishFilterText = "";
+        private static Fish? _selectedFish = null;
+        private static string _presetName = "";
 
         public static void DrawSetInput(string jobName, string oldName, Action<string> setName)
         {
@@ -885,6 +891,119 @@ public partial class Interface
                 ImGui.Unindent();
             }
         }
+
+        public static void DrawIdenticalCastConfig()
+        {
+            DrawCheckbox("Enable automatic Identical Cast",
+                "Automatically enable Identical Cast for your target fish to increase catch rates.\n"
+              + "Identical Cast improves catch rate when used on the same fishing hole.",
+                GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast,
+                b => GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast = b);
+            
+            if (GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast)
+            {
+                ImGui.Indent();
+                
+                var gpAbove = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove;
+                if (ImGui.RadioButton("Use Identical Cast when GP is Above", gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = true;
+                    GatherBuddy.Config.Save();
+                }
+                
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Below##IdenticalCast", !gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = false;
+                    GatherBuddy.Config.Save();
+                }
+                
+                var gpThreshold = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold;
+                ImGui.SetNextItemWidth(SetInputWidth);
+                if (ImGui.DragInt("GP Threshold##IdenticalCast", ref gpThreshold, 1, 0, 10000))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold = Math.Max(0, gpThreshold);
+                    GatherBuddy.Config.Save();
+                }
+                ImGuiUtil.HoverTooltip("Identical Cast will be used when your GP is above/below this threshold.");
+                
+                ImGui.Unindent();
+            }
+        }
+        
+        public static void DrawManualPresetGenerator()
+        {
+            ImGui.Separator();
+            ImGui.TextUnformatted("Manual Preset Generator");
+            ImGui.Spacing();
+            
+            var availableFish = GatherBuddy.GameData.Fishes.Values.Where(f => !f.IsSpearFish).ToList();
+            
+            ImGui.TextUnformatted("Select Target Fish:");
+            ImGui.SetNextItemWidth(SetInputWidth);
+            
+            if (ImGui.BeginCombo("###FishSelector", _selectedFish?.Name[GatherBuddy.Language] ?? "None"))
+            {
+                ImGui.SetNextItemWidth(SetInputWidth - 20);
+                ImGui.InputTextWithHint("###FishFilter", "Search...", ref _fishFilterText, 100);
+                ImGui.Separator();
+                
+                using (var child = ImRaii.Child("###FishList", new Vector2(0, 200 * ImGuiHelpers.GlobalScale), false))
+                {
+                    for (int i = 0; i < availableFish.Count; i++)
+                    {
+                        var fish = availableFish[i];
+                        var fishName = fish.Name[GatherBuddy.Language];
+                        
+                        if (_fishFilterText.Length > 0 && !fishName.ToLower().Contains(_fishFilterText.ToLower()))
+                            continue;
+                        
+                        using var id = ImRaii.PushId($"{fish.ItemId}###{i}");
+                        if (ImGui.Selectable(fishName, _selectedFish?.ItemId == fish.ItemId))
+                        {
+                            _selectedFish = fish;
+                            _presetName = fish.ItemId.ToString();
+                            _fishFilterText = "";
+                            ImGui.CloseCurrentPopup();
+                        }
+                    }
+                }
+                
+                ImGui.EndCombo();
+            }
+            
+            if (_selectedFish != null)
+            {
+                ImGui.Spacing();
+                ImGui.TextUnformatted("Preset Name:");
+                ImGui.SetNextItemWidth(SetInputWidth);
+                ImGui.InputText("###PresetNameInput", ref _presetName, 64);
+                ImGuiUtil.HoverTooltip("The preset name should match the fish's Item ID for GBR to use it automatically.");
+                
+                ImGui.Spacing();
+                if (ImGui.Button("Generate Preset"))
+                {
+                    GenerateManualPreset(_selectedFish, _presetName);
+                }
+            }
+        }
+        
+        private static void GenerateManualPreset(Fish fish, string presetName)
+        {
+            if (string.IsNullOrWhiteSpace(presetName))
+                presetName = fish.ItemId.ToString();
+            
+            var success = AutoHookIntegration.AutoHookService.ExportPresetToAutoHook(presetName, [fish]);
+            
+            if (success)
+            {
+                Svc.Chat.Print($"[GatherBuddy] Generated preset '{presetName}' for {fish.Name[GatherBuddy.Language]}");
+            }
+            else
+            {
+                Svc.Chat.PrintError($"[GatherBuddy] Failed to generate preset for {fish.Name[GatherBuddy.Language]}");
+            }
+        }
     }
 
 
@@ -925,6 +1044,8 @@ public partial class Interface
             if (ImGui.TreeNodeEx("Fishing"))
             {
                 ConfigFunctions.DrawSurfaceSlapConfig();
+                ConfigFunctions.DrawIdenticalCastConfig();
+                ConfigFunctions.DrawManualPresetGenerator();
                 ImGui.TreePop();
             }
 

@@ -180,11 +180,10 @@ namespace GatherBuddy.AutoGather
 
                 if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    AutoHook.SetPluginState?.Invoke(false);
+                    TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(false));
                 }
 
-                ReduceItems(false);
-                TaskManager.Enqueue(() =>
+                ReduceItems(false, () =>
                 {
                     if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                     {
