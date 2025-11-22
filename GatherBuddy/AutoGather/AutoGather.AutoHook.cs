@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using ECommons.DalamudServices;
+using ECommons.GameHelpers;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.AutoHookIntegration;
 using GatherBuddy.Plugin;
@@ -147,6 +148,9 @@ public partial class AutoGather
             }
             else
             {
+                // Toggle Collector's Glove based on fish collectability
+                ToggleCollectorsGlove(target.Fish.ItemData.IsCollectable);
+                
                 if (AutoHook.SetPluginState == null)
                 {
                     Svc.Log.Error("[AutoGather] SetPluginState IPC is null!");
@@ -189,6 +193,16 @@ public partial class AutoGather
                 }
             }
             
+            // Disable Collector's Glove if it was enabled for regular fishing
+            if (_currentAutoHookTarget.HasValue && _currentAutoHookTarget.Value.Fish != null && !_currentAutoHookTarget.Value.Fish.IsSpearFish)
+            {
+                if (Player.Status.Any(s => Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+                {
+                    UseAction(Actions.CollectorsGlove);
+                    Svc.Log.Debug("[AutoGather] Disabled Collector's Glove after fishing");
+                }
+            }
+            
             AutoHook.SetPluginState?.Invoke(false);
             AutoHook.SetAutoGigState?.Invoke(false);
             Svc.Log.Debug("[AutoGather] AutoHook/AutoGig disabled");
@@ -207,6 +221,22 @@ public partial class AutoGather
         catch (Exception ex)
         {
             Svc.Log.Error($"[AutoGather] Exception cleaning up AutoHook: {ex.Message}");
+        }
+    }
+    
+    private void ToggleCollectorsGlove(bool enable)
+    {
+        var hasCollectorsGlove = Player.Status.Any(s => Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId));
+        
+        if (enable && !hasCollectorsGlove)
+        {
+            Svc.Log.Debug("[AutoGather] Enabling Collector's Glove for collectable fish");
+            UseAction(Actions.CollectorsGlove);
+        }
+        else if (!enable && hasCollectorsGlove)
+        {
+            Svc.Log.Debug("[AutoGather] Disabling Collector's Glove");
+            UseAction(Actions.CollectorsGlove);
         }
     }
 
