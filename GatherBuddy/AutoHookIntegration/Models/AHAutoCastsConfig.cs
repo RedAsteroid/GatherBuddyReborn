@@ -10,6 +10,12 @@ public class AHAutoCastsConfig
     [JsonProperty("DontCancelMooch")]
     public bool DontCancelMooch { get; set; } = true;
     
+    [JsonProperty("TurnCollectOffWithoutAnimCancel")]
+    public bool TurnCollectOffWithoutAnimCancel { get; set; }
+    
+    [JsonProperty("CastLine")]
+    public AHAutoCastLine? CastLine { get; set; }
+    
     [JsonProperty("CastMooch")]
     public AHAutoMoochCast? CastMooch { get; set; }
 
@@ -81,6 +87,12 @@ public class AHAutoThaliaksFavor
 }
 
 public class AHAutoMoochCast
+{
+    [JsonProperty("Enabled")]
+    public bool Enabled { get; set; }
+}
+
+public class AHAutoCastLine
 {
     [JsonProperty("Enabled")]
     public bool Enabled { get; set; }

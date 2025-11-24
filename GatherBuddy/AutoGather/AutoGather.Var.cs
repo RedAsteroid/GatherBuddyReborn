@@ -192,6 +192,7 @@ namespace GatherBuddy.AutoGather
         private DateTime _lastAutoHookSetupTime = DateTime.MinValue;
         private bool _autoHookSetupComplete = false;
         private bool _wasGatheringSpearfish = false;
+        private bool _wasAtShadowNode = false;
 
         private IEnumerator<Actions.BaseAction?>? ActionSequence;
 

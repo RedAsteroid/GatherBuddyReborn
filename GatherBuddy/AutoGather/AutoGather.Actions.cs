@@ -154,19 +154,21 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
 
+            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+            {
+                AutoHook.SetPluginState?.Invoke(false);
+                AutoHook.SetAutoStartFishing?.Invoke(false);
+            }
+
+            DoMateriaExtraction();
+            TaskManager.Enqueue(() =>
+            {
                 if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetPluginState?.Invoke(true);
+                    AutoHook.SetAutoStartFishing?.Invoke(true);
                 }
-
-                DoMateriaExtraction();
-                TaskManager.Enqueue(() =>
-                {
-                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                    {
-                        AutoHook.SetPluginState?.Invoke(true);
-                    }
-                });
+            });
                 return;
             }
 
@@ -178,18 +180,23 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
 
+            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+            {
+                TaskManager.Enqueue(() =>
+                {
+                    AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
+                });
+            }
+
+            ReduceItems(false, () =>
+            {
                 if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(false));
+                    AutoHook.SetPluginState?.Invoke(true);
+                    AutoHook.SetAutoStartFishing?.Invoke(true);
                 }
-
-                ReduceItems(false, () =>
-                {
-                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                    {
-                        AutoHook.SetPluginState?.Invoke(true);
-                    }
-                });
+            });
                 return;
             }
 
@@ -299,8 +306,6 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
                 
-                TaskManager.DelayNext(2000);
-                EnqueueActionWithDelay(() => UseAction(Actions.Cast));
                 return;
             }
 

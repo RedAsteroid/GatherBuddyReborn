@@ -452,7 +452,7 @@ public class AutoHookPresetBuilder
     private static void ConfigureAutoCasts(AHCustomPresetConfig preset, Fish[] fishList, ConfigPreset? gbrPreset)
     {
         var needsPatience = fishList.Any(f => f.ItemData.Rarity > 0 || f.IsBigFish);
-        // Note: Collect is NOT included in preset - GBR handles it dynamically via Collector's Glove action
+        var needsCollect = fishList.Any(f => f.ItemData.IsCollectable);
         var useCordials = gbrPreset?.Consumables.Cordial.Enabled ?? false;
         
         var hasSurfaceSlap = fishList.Any(f => f.SurfaceSlap != null);
@@ -463,6 +463,11 @@ public class AutoHookPresetBuilder
         {
             EnableAll = true,
             DontCancelMooch = true,
+            TurnCollectOffWithoutAnimCancel = true,
+            CastLine = new AHAutoCastLine
+            {
+                Enabled = true
+            },
             CastMooch = hasMooches ? new AHAutoMoochCast
             {
                 Enabled = true
@@ -473,7 +478,10 @@ public class AutoHookPresetBuilder
                 // Use Patience II if level 60+ (assumes quest completion)
                 PatienceVersion = DiscipleOfLand.FisherLevel >= 60 ? 2 : 1
             } : null,
-            // CastCollect deliberately omitted - handled by GBR via Collector's Glove toggle
+            CastCollect = needsCollect ? new AHAutoCollect
+            {
+                Enabled = true
+            } : null,
             CastCordial = useCordials ? new AHAutoCordial
             {
                 Enabled = true

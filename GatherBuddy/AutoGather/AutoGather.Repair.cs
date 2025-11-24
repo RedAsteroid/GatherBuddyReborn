@@ -132,6 +132,7 @@ public unsafe partial class AutoGather
         if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
         {
             AutoHook.SetPluginState?.Invoke(false);
+            AutoHook.SetAutoStartFishing?.Invoke(false);
         }
 
         if (!GatherBuddy.Config.AutoGatherConfig.DoRepair)
@@ -174,6 +175,7 @@ public unsafe partial class AutoGather
             if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
             {
                 AutoHook.SetPluginState?.Invoke(true);
+                AutoHook.SetAutoStartFishing?.Invoke(true);
             }
         });
 

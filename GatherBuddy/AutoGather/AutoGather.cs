@@ -171,14 +171,17 @@ namespace GatherBuddy.AutoGather
                         }
                     }
                 }
-                else
+            else
+            {
+                WentHome = true; //Prevents going home right after enabling auto-gather
+                if (AutoHook.Enabled)
                 {
-                    WentHome = true; //Prevents going home right after enabling auto-gather
-                    if (AutoHook.Enabled)
-                        AutoHook.SetPluginState(false); //Make sure AutoHook doesn't interfere with us
-                    YesAlready.Lock();
-                    DisableQuickGathering();
+                    AutoHook.SetPluginState(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
                 }
+                YesAlready.Lock();
+                DisableQuickGathering();
+            }
 
                 _enabled = value;
                 _plugin.Ipc.AutoGatherEnabledChanged(value);
@@ -453,6 +456,7 @@ namespace GatherBuddy.AutoGather
                     if (isSpearfishing)
                     {
                         _wasGatheringSpearfish = true;
+                        _wasAtShadowNode = _currentGatherTarget?.FishingSpot?.IsShadowNode == true;
                         
                         var currentFishId = fish.First().Fish?.ItemId ?? 0;
                         var targetFishId = _currentAutoHookTarget?.Fish?.ItemId ?? 0;
@@ -527,7 +531,21 @@ namespace GatherBuddy.AutoGather
             {
                 Svc.Log.Debug("[AutoGather] Finished spearfishing, updating catches");
                 _wasGatheringSpearfish = false;
-                UpdateSpearfishingCatches();
+                Svc.Log.Debug($"[AutoGather] Was at shadow node: {_wasAtShadowNode}");
+                
+                // If we just finished at a shadow node, clear session data FIRST to allow respawn
+                if (_wasAtShadowNode)
+                {
+                    Svc.Log.Information("[AutoGather] Finished fishing at shadow node, clearing session data to allow respawn");
+                    ClearSpearfishingSessionData();
+                    _wasAtShadowNode = false;
+                }
+                else
+                {
+                    // Only update catches if we weren't at a shadow node
+                    UpdateSpearfishingCatches();
+                }
+                
                 _activeItemList.ForceRefresh();
             }
             
@@ -710,18 +728,23 @@ namespace GatherBuddy.AutoGather
                                 return;
                             }
 
-                            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                            {
-                                TaskManager.Enqueue(() => AutoHook.SetPluginState?.Invoke(false));
-                            }
-                            
-                            ReduceItems(true, () =>
-                            {
-                                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                                {
-                                    AutoHook.SetPluginState?.Invoke(true);
-                                }
-                            });
+                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                    {
+                        TaskManager.Enqueue(() =>
+                        {
+                            AutoHook.SetPluginState?.Invoke(false);
+                            AutoHook.SetAutoStartFishing?.Invoke(false);
+                        });
+                    }
+                    
+                    ReduceItems(true, () =>
+                    {
+                        if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                        {
+                            AutoHook.SetPluginState?.Invoke(true);
+                            AutoHook.SetAutoStartFishing?.Invoke(true);
+                        }
+                    });
                         }
                         else
                         {
@@ -1111,12 +1134,17 @@ namespace GatherBuddy.AutoGather
                     }
                     else if (!Lifestream.IsBusy())
                     {
-                        if (IsFishing)
+                    if (IsFishing)
+                    {
+                        if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                         {
-                            AutoStatus = "Closing fishing before teleport...";
-                            QueueQuitFishingTasks();
-                            return;
+                            AutoHook.SetPluginState?.Invoke(false);
+                            AutoHook.SetAutoStartFishing?.Invoke(false);
                         }
+                        AutoStatus = "Closing fishing before teleport...";
+                        QueueQuitFishingTasks();
+                        return;
+                    }
                         AutoStatus = "Teleporting...";
                         StopNavigation();
                         string name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString()
@@ -1225,12 +1253,17 @@ namespace GatherBuddy.AutoGather
                         }
                 }
                 
-                if (IsFishing)
+            if (IsFishing)
+            {
+                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    AutoStatus = "Closing fishing before teleport...";
-                    QueueQuitFishingTasks();
-                    return;
+                    AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
                 }
+                AutoStatus = "Closing fishing before teleport...";
+                QueueQuitFishingTasks();
+                return;
+            }
                 
                 AutoStatus = "Teleporting...";
                 StopNavigation();
@@ -1241,20 +1274,32 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (!FishingSpotData.TryGetValue(fish, out var fishingSpotData))
+        if (!FishingSpotData.TryGetValue(fish, out var fishingSpotData))
+        {
+            if (IsFishing)
             {
-                var positionData = _plugin.FishRecorder.GetPositionForFishingSpot(fish!.FishingSpot);
-                if (!positionData.HasValue)
+                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    Communicator.PrintError(
-                        $"No position data for fishing spot {fish.FishingSpot.Name}. Auto-Fishing cannot continue. Please, manually fish at least once at {fish.FishingSpot.Name} so GBR can know its location.");
-                    AbortAutoGather();
-                    return;
+                    AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
                 }
-
-                FishingSpotData.Add(fish, (positionData.Value.Position, positionData.Value.Rotation, DateTime.MaxValue));
+                AutoStatus = "Stopping fishing to change target...";
+                QueueQuitFishingTasks();
                 return;
             }
+            
+            var positionData = _plugin.FishRecorder.GetPositionForFishingSpot(fish!.FishingSpot);
+            if (!positionData.HasValue)
+            {
+                Communicator.PrintError(
+                    $"No position data for fishing spot {fish.FishingSpot.Name}. Auto-Fishing cannot continue. Please, manually fish at least once at {fish.FishingSpot.Name} so GBR can know its location.");
+                AbortAutoGather();
+                return;
+            }
+
+            FishingSpotData.Add(fish, (positionData.Value.Position, positionData.Value.Rotation, DateTime.MaxValue));
+            return;
+        }
 
             if (fishingSpotData.Expiration < DateTime.Now)
             {
@@ -1265,6 +1310,7 @@ namespace GatherBuddy.AutoGather
                 if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
                     AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
                     TaskManager.DelayNext(500);
                     Svc.Log.Debug("[AutoGather] AutoHook disabled for relocation to a new position at the same fishing spot");
                 }
@@ -1355,6 +1401,11 @@ namespace GatherBuddy.AutoGather
                 AutoStatus = "Moving to fishing spot...";
                 if (IsGathering || IsFishing)
                 {
+                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                    {
+                        AutoHook.SetPluginState?.Invoke(false);
+                        AutoHook.SetAutoStartFishing?.Invoke(false);
+                    }
                     QueueQuitFishingTasks();
                 }
 

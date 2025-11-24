@@ -59,18 +59,25 @@ namespace GatherBuddy.AutoGather
                 return true;
             
             if (!IsGathering && _spawnRequirementsMetCache.TryGetValue(shadowNode.Id, out var cached))
+            {
+                GatherBuddy.Log.Debug($"[Spearfishing] Using cached requirement status for shadow node {shadowNode.Id}: {cached}");
                 return cached;
+            }
                 
             var allMet = true;
             foreach (var requirement in shadowNode.SpawnRequirements)
             {
                 var caughtCount = SpearfishingSessionCatches.GetValueOrDefault(requirement.RequiredFish.ItemId, 0);
+                var reqFishName = GatherBuddy.GameData.Fishes.TryGetValue(requirement.RequiredFish.ItemId, out var fish) ? fish.Name[GatherBuddy.Language] : requirement.RequiredFish.ItemId.ToString();
+                GatherBuddy.Log.Debug($"[Spearfishing] Requirement check: {reqFishName} - caught {caughtCount}/{requirement.Count}");
                 if (caughtCount < requirement.Count)
                 {
                     allMet = false;
                     break;
                 }
             }
+            
+            GatherBuddy.Log.Debug($"[Spearfishing] Requirements met for shadow node {shadowNode.Id}: {allMet}");
             
             if (!IsGathering)
                 _spawnRequirementsMetCache[shadowNode.Id] = allMet;
