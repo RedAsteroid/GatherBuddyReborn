@@ -63,18 +63,23 @@ namespace GatherBuddy.AutoGather
             var fishForSnapshot = targetFish;
             if (fishForSnapshot != null)
             {
-                var shadowSpot = fishForSnapshot.FishingSpots.FirstOrDefault(fs => fs.IsShadowNode);
                 var actualFishToGather = fishForSnapshot;
                 bool gatheringPrerequisites = false;
                 
-                if (shadowSpot != null && shadowSpot.SpawnRequirements.Any())
+                // Check if THIS SPECIFIC target fish has predator requirements
+                if (fishForSnapshot.Predators.Any())
                 {
-                    var requirementFish = shadowSpot.SpawnRequirements.Select(r => r.RequiredFish).ToList();
+                    var requirementFish = fishForSnapshot.Predators.Select(p => p.Item1).ToList();
                     SnapshotSpearfishingInventory(requirementFish);
                     
-                    if (!AreSpawnRequirementsMet(shadowSpot))
+                    // Only check FIRST predator for shadow node spawning (rest are caught within shadow node)
+                    var (firstPredator, requiredCount) = fishForSnapshot.Predators.First();
+                    var caughtCount = SpearfishingSessionCatches.TryGetValue(firstPredator.ItemId, out var count) ? count : 0;
+                    var firstPredatorMet = caughtCount >= requiredCount;
+                    
+                    if (!firstPredatorMet)
                     {
-                        actualFishToGather = shadowSpot.SpawnRequirements.First().RequiredFish;
+                        actualFishToGather = firstPredator;
                         gatheringPrerequisites = true;
                     }
                 }

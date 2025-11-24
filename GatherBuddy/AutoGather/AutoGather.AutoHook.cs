@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using ECommons.DalamudServices;
+using ECommons.GameHelpers;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.AutoHookIntegration;
 using GatherBuddy.Plugin;
@@ -55,6 +56,7 @@ public partial class AutoGather
             else
             {
                 AutoHook.SetPluginState?.Invoke(true);
+                AutoHook.SetAutoStartFishing?.Invoke(true);
             }
             Svc.Log.Verbose($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
             return;
@@ -62,20 +64,25 @@ public partial class AutoGather
 
         try
         {
-            // For shadow nodes, check if this fish has a shadow spot with unmet requirements
             var presetFish = target.Fish;
-            var shadowSpot = target.Fish.FishingSpots.FirstOrDefault(fs => fs.IsShadowNode);
             
-            if (shadowSpot != null && shadowSpot.SpawnRequirements.Any())
+            // Check if THIS SPECIFIC target fish has predator requirements
+            if (target.Fish != null && target.Fish.Predators.Any())
             {
-                if (!AreSpawnRequirementsMet(shadowSpot))
+                // Only check FIRST predator for shadow node spawning (rest are caught within shadow node)
+                var (firstPredator, requiredCount) = target.Fish.Predators.First();
+                var caughtCount = SpearfishingSessionCatches.TryGetValue(firstPredator.ItemId, out var count) ? count : 0;
+                var firstPredatorMet = caughtCount >= requiredCount;
+                
+                if (!firstPredatorMet)
                 {
-                    presetFish = shadowSpot.SpawnRequirements.First().RequiredFish;
-                    Svc.Log.Debug($"[AutoGather] Shadow requirements not met for {target.Fish.Name[GatherBuddy.Language]}, using prerequisite fish {presetFish.Name[GatherBuddy.Language]} for preset");
+                    // Use first predator fish as preset
+                    presetFish = firstPredator;
+                    Svc.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator not met, using prerequisite fish {presetFish.Name[GatherBuddy.Language]} for preset");
                 }
                 else
                 {
-                    Svc.Log.Debug($"[AutoGather] Shadow requirements met for {target.Fish.Name[GatherBuddy.Language]}, using target fish for preset");
+                    Svc.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator met, using target fish for preset");
                 }
             }
             
@@ -103,7 +110,16 @@ public partial class AutoGather
 
             if (presetName == null)
             {
+                // Build fish list: if at shadow node with multiple predators, include them all
                 var fishList = new[] { presetFish };
+                if (presetFish == target.Fish && target.Fish.Predators.Count() > 1 && target.FishingSpot?.IsShadowNode == true)
+                {
+                    // At shadow node targeting fish with multiple predators - include all predators (skip first) + target
+                    var predatorFish = target.Fish.Predators.Skip(1).Select(p => p.Item1).ToList();
+                    fishList = predatorFish.Append(target.Fish).ToArray();
+                    Svc.Log.Debug($"[AutoGather] Building preset with {fishList.Length} fish for multi-predator chain: {string.Join(", ", fishList.Select(f => f.Name[GatherBuddy.Language]))}");
+                }
+                
                 presetName = $"GBR_{fishName.Replace(" ", "")}_{DateTime.Now:HHmmss}";
                 
                 Svc.Log.Information($"[AutoGather] Creating AutoHook preset '{presetName}' for {fishName}");
@@ -154,6 +170,7 @@ public partial class AutoGather
                 else
                 {
                     AutoHook.SetPluginState.Invoke(true);
+                    AutoHook.SetAutoStartFishing?.Invoke(true);
                     _autoHookSetupComplete = true;
                     Svc.Log.Information("[AutoGather] AutoHook enabled for fishing");
                 }
@@ -190,6 +207,7 @@ public partial class AutoGather
             }
             
             AutoHook.SetPluginState?.Invoke(false);
+            AutoHook.SetAutoStartFishing?.Invoke(false);
             AutoHook.SetAutoGigState?.Invoke(false);
             Svc.Log.Debug("[AutoGather] AutoHook/AutoGig disabled");
             

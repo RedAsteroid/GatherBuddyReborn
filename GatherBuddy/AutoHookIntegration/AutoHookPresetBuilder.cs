@@ -463,6 +463,11 @@ public class AutoHookPresetBuilder
         {
             EnableAll = true,
             DontCancelMooch = true,
+            TurnCollectOffWithoutAnimCancel = true,
+            CastLine = new AHAutoCastLine
+            {
+                Enabled = true
+            },
             CastMooch = hasMooches ? new AHAutoMoochCast
             {
                 Enabled = true

@@ -331,7 +331,8 @@ namespace GatherBuddy.AutoGather.Lists
             var fish = _listsManager.ActiveFish
                 .Where(NeedsGathering)
                 .Where(x => (RequiresHomeWorld(x) && Functions.OnHomeWorld()) || !RequiresHomeWorld(x))
-                .Select(x => (x.Fish, x.Quantity, PreferredLocation: _listsManager.GetPreferredLocation(x.Fish) ?? x.Fish.Locations.FirstOrDefault()))
+                .Select(x => (x.Fish, x.Quantity, PreferredLocation: _listsManager.GetPreferredLocation(x.Fish) ?? 
+                    x.Fish.FishingSpots.FirstOrDefault(spot => !spot.IsShadowNode) ?? x.Fish.Locations.FirstOrDefault()))
                 .Where(x => x.PreferredLocation != null)
                 .Select(x => (x.Fish, PreferredLocation: x.PreferredLocation!, Time: GatherBuddy.UptimeManager.NextUptime(x.Fish, adjustedServerTime).interval,
                     x.Quantity))
@@ -371,13 +372,41 @@ namespace GatherBuddy.AutoGather.Lists
             foreach (var x in fish)
             {
                 var location = x.PreferredLocation;
-                if (location is FishingSpot spot && spot.IsShadowNode && spot.ParentNode != null)
+                
+                // Check if THIS SPECIFIC FISH has predator requirements (not the whole shadow node)
+                if (x.Fish.Predators.Any())
+                {
+                    // Only check FIRST predator for shadow node spawning (rest are caught within shadow node)
+                    var (firstPredator, requiredCount) = x.Fish.Predators.First();
+                    var caughtCount = _autoGather.SpearfishingSessionCatches.GetValueOrDefault(firstPredator.ItemId, 0);
+                    var firstPredatorMet = caughtCount >= requiredCount;
+                    
+                    var shadowSpot = x.Fish.FishingSpots.FirstOrDefault(fs => fs.IsShadowNode);
+                    if (shadowSpot != null)
+                    {
+                        if (firstPredatorMet)
+                        {
+                            // First predator met - shadow node spawns, use it
+                            location = shadowSpot;
+                            Svc.Log.Debug($"[ActiveItemList] First predator met for {x.Fish.Name[GatherBuddy.Language]}, using shadow node");
+                        }
+                        else if (shadowSpot.ParentNode != null)
+                        {
+                            // First predator not met - use parent node to gather it
+                            location = shadowSpot.ParentNode;
+                            Svc.Log.Debug($"[ActiveItemList] First predator not met for {x.Fish.Name[GatherBuddy.Language]}, using parent node");
+                        }
+                    }
+                }
+                // Fallback: if preferred location is a shadow node, check its requirements
+                else if (location is FishingSpot spot && spot.IsShadowNode && spot.ParentNode != null)
                 {
                     if (!_autoGather.AreSpawnRequirementsMet(spot))
                     {
                         location = spot.ParentNode;
                     }
                 }
+                
                 _gatherableItems.Add(new GatherTarget(x.Fish, location, x.Time, x.Quantity));
             }
             
