@@ -213,7 +213,11 @@ public partial class Interface
                 if (!rhs.Data.InLog)
                     return -1;
 
-                return lhs.Unlocked ? rhs.Unlocked ? 0 : 1 : rhs.Unlocked ? -1 : 0;
+                var logComparison = lhs.Unlocked ? rhs.Unlocked ? 0 : 1 : rhs.Unlocked ? -1 : 0;
+                if (logComparison != 0)
+                    return logComparison;
+
+                return _nextUptimeColumn.Compare(lhs, rhs);
             }
         }
 
