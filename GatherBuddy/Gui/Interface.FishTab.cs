@@ -233,7 +233,29 @@ public partial class Interface
                 => DrawTimeInterval(item.Uptime.Item2, item.UptimeDependency);
 
             public override int Compare(ExtendedFish lhs, ExtendedFish rhs)
-                => lhs.Uptime.Item2.Compare(rhs.Uptime.Item2);
+            {
+                var lhsInterval = lhs.Uptime.Item2;
+                var rhsInterval = rhs.Uptime.Item2;
+                var now = GatherBuddy.Time.ServerTime;
+                var lhsActive = lhsInterval.InRange(now);
+                var rhsActive = rhsInterval.InRange(now);
+
+                if (lhsActive != rhsActive)
+                    return rhsActive.CompareTo(lhsActive);
+
+                if (lhsActive)
+                {
+                    var endDiff = lhsInterval.End.CompareTo(rhsInterval.End);
+                    if (endDiff != 0)
+                        return endDiff;
+                    return lhsInterval.Start.CompareTo(rhsInterval.Start);
+                }
+
+                var startDiff = lhsInterval.Start.CompareTo(rhsInterval.Start);
+                if (startDiff != 0)
+                    return startDiff;
+                return lhsInterval.End.CompareTo(rhsInterval.End);
+            }
 
             public override bool FilterFunc(ExtendedFish item)
             {
