@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.AutoGather;
 using GatherBuddy.AutoHookIntegration.Models;
 using GatherBuddy.Classes;
@@ -12,6 +13,12 @@ namespace GatherBuddy.AutoHookIntegration;
 
 public class AutoHookPresetBuilder
 {
+    private const uint VersatileLureId = 29717;
+    
+    private static unsafe int GetInventoryItemCount(uint itemRowId)
+    {
+        return InventoryManager.Instance()->GetInventoryItemCount(itemRowId < 100000 ? itemRowId : itemRowId - 100000, itemRowId >= 100000);
+    }
     private static HashSet<Fish> CollectAllFishInMoochChains(Fish[] fishList)
     {
         var allFish = new HashSet<Fish>();
@@ -127,7 +134,14 @@ public class AutoHookPresetBuilder
             var baitId = group.Key;
             if (baitId == 0) continue;
 
-            var hookConfig = new AHHookConfig((int)baitId);
+            var effectiveBaitId = baitId;
+            if (GetInventoryItemCount(baitId) == 0)
+            {
+                GatherBuddy.Log.Warning($"[AutoHook] User does not have bait {baitId} in inventory, using Versatile Lure ({VersatileLureId}) instead");
+                effectiveBaitId = VersatileLureId;
+            }
+
+            var hookConfig = new AHHookConfig((int)effectiveBaitId);
             
             foreach (var fish in group)
             {
