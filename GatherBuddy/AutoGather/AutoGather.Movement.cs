@@ -278,9 +278,15 @@ namespace GatherBuddy.AutoGather
             CurrentDestination = destination;
             CurrentRotation    = angle;
             var correctedDestination = GetCorrectedDestination(CurrentDestination, preferGround);
-            GatherBuddy.Log.Debug($"Navigating to {destination} (corrected to {correctedDestination})");
 
             LastNavigationResult = VNavmesh.SimpleMove.PathfindAndMoveTo(correctedDestination, shouldFly);
+            
+            if (LastNavigationResult == false)
+            {
+                GatherBuddy.Log.Warning($"VNavmesh pathfinding failed for destination {destination} (corrected: {correctedDestination}), shouldFly: {shouldFly}");
+                CurrentDestination = default;
+                CurrentRotation = default;
+            }
         }
 
         private static Vector3 GetCorrectedDestination(Vector3 destination, bool preferGround = false)
@@ -324,13 +330,11 @@ namespace GatherBuddy.AutoGather
                         
                         if (hDist <= MaxGroundHorizontalSeparation && vDist <= MaxGroundVerticalSeparation)
                         {
-                            GatherBuddy.Log.Debug($"Using ground point for fishing: horizontal {hDist:F2}y, vertical {vDist:F2}y from target");
                             return groundPoint;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
-                        GatherBuddy.Log.Debug($"Failed to find ground point for fishing: {e.Message}");
                     }
                 }
             }
@@ -355,13 +359,31 @@ namespace GatherBuddy.AutoGather
             }
         }
 
-        private void MoveToFishingSpot(Vector3 position, Angle angle)
+        private unsafe void MoveToFishingSpot(Vector3 position, Angle angle)
         {
             if (!Dalamud.Conditions[ConditionFlag.Mounted])
             {
-                if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting)
+                var am = ActionManager.Instance();
+                var mount = GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId;
+                var canMount = IsMountUnlocked(mount) && am->GetActionStatus(ActionType.Mount, mount) == 0;
+                if (!canMount)
+                {
+                    canMount = am->GetActionStatus(ActionType.GeneralAction, 24) == 0;
+                }
+                
+                if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting && canMount)
+                {
                     Navigate(position, false, angle, preferGround: true);
-                EnqueueMountUp();
+                    EnqueueMountUp();
+                }
+                else if (canMount)
+                {
+                    EnqueueMountUp();
+                }
+                else
+                {
+                    Navigate(position, false, angle, preferGround: true);
+                }
             }
             else
             {

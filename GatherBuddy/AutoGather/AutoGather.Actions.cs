@@ -146,13 +146,18 @@ namespace GatherBuddy.AutoGather
                 _fishingYesAlreadyUnlocked = true;
             }
 
-            if (SpiritbondMax > 0)
+        if (SpiritbondMax > 0)
+        {
+            if (IsGathering || IsFishing)
             {
-                if (IsFishing)
+                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                 {
-                    QueueQuitFishingTasks();
-                    return;
+                    AutoHook.SetPluginState?.Invoke(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
                 }
+                QueueQuitFishingTasks();
+                return;
+            }
 
             if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
             {
