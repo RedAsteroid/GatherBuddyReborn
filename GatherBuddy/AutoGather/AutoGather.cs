@@ -65,6 +65,21 @@ namespace GatherBuddy.AutoGather
         {
             PreviouslyCaughtFish = LastCaughtFish;
             LastCaughtFish       = arg1;
+            
+            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+            {
+                if (_currentAutoHookTarget?.Fish?.ItemId == arg1.ItemId)
+                {
+                    var targetQuantity = _currentAutoHookTarget.Value.Quantity;
+                    var currentCount = arg1.GetInventoryCount();
+                    
+                    if (currentCount >= targetQuantity)
+                    {
+                        Svc.Log.Information($"[AutoGather] Target fish count reached ({currentCount}/{targetQuantity}), disabling auto-cast");
+                        AutoHook.SetAutoStartFishing?.Invoke(false);
+                    }
+                }
+            }
         }
 
         // Track the current gather target for robust node handling
@@ -404,15 +419,31 @@ namespace GatherBuddy.AutoGather
 
             if (IsGathering && Player.Job == Job.FSH && _activeItemList.ShouldUpdateWhileFishing())
             {
-                // Only quit if the refreshed list actually contains a timed/weather fish that takes priority over the current target.
                 var nextAfterRefresh = _activeItemList.GetNextOrDefault(new List<uint>());
                 var currentFishId = _currentAutoHookTarget?.Fish?.ItemId ?? 0;
+                var currentFishIsTimed = _currentAutoHookTarget?.Time != Time.TimeInterval.Always;
+                
+                var currentTargetStillAvailable = nextAfterRefresh.Any(g => g.Fish?.ItemId == currentFishId);
+                
                 var hasNewTimedTarget = nextAfterRefresh.Any(g => g.Fish != null
                     && g.Time != Time.TimeInterval.Always
                     && g.Fish!.ItemId != currentFishId);
-                if (hasNewTimedTarget)
+                
+                var shouldSwitchToNewTimed = !currentFishIsTimed && hasNewTimedTarget;
+                var shouldQuitExpiredTimed = currentFishIsTimed && !currentTargetStillAvailable;
+                
+                if (shouldSwitchToNewTimed || shouldQuitExpiredTimed)
                 {
-                    Svc.Log.Information($"[AutoGather] Timed/weather fish available - quitting fishing to pursue new target");
+                    var reason = shouldSwitchToNewTimed
+                        ? "timed/weather fish available" 
+                        : "current timed fish window ended";
+                    Svc.Log.Information($"[AutoGather] {reason} - quitting fishing to pursue new target");
+                    
+                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                    {
+                        AutoHook.SetAutoStartFishing?.Invoke(false);
+                    }
+                    
                     CleanupAutoHook();
                     QueueQuitFishingTasks();
                     _activeItemList.ForceRefresh();
@@ -784,6 +815,111 @@ namespace GatherBuddy.AutoGather
             }
 
             var territoryId = Svc.ClientState.TerritoryType;
+            var targetTerritoryId = next.First().Node?.Territory.Id ?? next.First().FishingSpot?.Territory.Id ?? 0;
+            
+            if (((territoryId == 129 && targetTerritoryId == 128)
+             || (territoryId == 128 && targetTerritoryId == 129)
+             || (territoryId == 132 && targetTerritoryId == 133)
+             || (territoryId == 133 && targetTerritoryId == 132)
+             || (territoryId == 130 && targetTerritoryId == 131)
+             || (territoryId == 131 && targetTerritoryId == 130)) && Lifestream.Enabled)
+            {
+                if (!Lifestream.IsBusy())
+                {
+                    if (Dalamud.Conditions[ConditionFlag.Gathering])
+                    {
+                        AutoStatus = "Closing gathering window before teleport...";
+                        CloseGatheringAddons();
+                        return;
+                    }
+                    AutoStatus = "Using aethernet...";
+                    StopNavigation();
+                    string name = string.Empty;
+                    var territorySheet = Dalamud.GameData.GetExcelSheet<TerritoryType>();
+                    var aetheryteSheet = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.Aetheryte>();
+                    
+                    var targetTerritory = territorySheet.GetRow((uint)targetTerritoryId);
+                    var aethernetShard = aetheryteSheet.FirstOrDefault(a => 
+                        a.Territory.RowId == targetTerritoryId && 
+                        !a.IsAetheryte && 
+                        a.AethernetName.RowId > 0);
+                    
+                    if (aethernetShard.RowId > 0)
+                    {
+                        name = aethernetShard.AethernetName.Value.Name.ToString();
+                    }
+                    else
+                    {
+                        name = targetTerritory.PlaceName.Value.Name.ToString();
+                    }
+
+                    TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                    TaskManager.DelayNext(1000);
+                    TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
+                }
+
+                return;
+            }
+            
+            var housingWardTerritories = new uint[] { 339, 340, 341, 649, 641 };
+            var isTargetHousingWard = housingWardTerritories.Contains((uint)targetTerritoryId);
+            
+            if (isTargetHousingWard && Lifestream.Enabled)
+            {
+                var canAccessFromCurrentTerritory = (territoryId == 129 && targetTerritoryId == 339)  // Limsa -> Mist
+                                                  || (territoryId is 130 or 131 && targetTerritoryId == 341)  // Ul'dah -> Goblet
+                                                  || (territoryId == 132 && targetTerritoryId == 340)  // Gridania -> Lavender
+                                                  || (territoryId == 418 && targetTerritoryId == 649)  // Foundation -> Empyreum
+                                                  || (territoryId == 628 && targetTerritoryId == 641); // Kugane -> Shirogane
+                
+                if (canAccessFromCurrentTerritory)
+                {
+                    if (!Lifestream.IsBusy())
+                    {
+                        if (IsFishing)
+                        {
+                            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                            {
+                                AutoHook.SetPluginState?.Invoke(false);
+                                AutoHook.SetAutoStartFishing?.Invoke(false);
+                            }
+                            AutoStatus = "Closing fishing before teleport...";
+                            QueueQuitFishingTasks();
+                            return;
+                        }
+                        
+                        if (Dalamud.Conditions[ConditionFlag.Gathering])
+                        {
+                            AutoStatus = "Closing gathering window before teleport...";
+                            CloseGatheringAddons();
+                            return;
+                        }
+                        
+                        AutoStatus = "Teleporting to housing ward...";
+                        StopNavigation();
+                        
+                        string wardCommand = targetTerritoryId switch
+                        {
+                            339 => "mist 1 1",
+                            341 => "goblet 1 1",
+                            340 => "lavender 1 1",
+                            649 => "empyreum 1 1",
+                            641 => "shirogane 1 1",
+                            _ => ""
+                        };
+                        
+                        if (!string.IsNullOrEmpty(wardCommand))
+                        {
+                            TaskManager.Enqueue(() => Lifestream.ExecuteCommand(wardCommand));
+                            TaskManager.DelayNext(1000);
+                            TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
+                        }
+                    }
+                    
+                    return;
+                }
+            }
+            
             //Idyllshire to The Dravanian Hinterlands
             if ((territoryId == 478 && (next.First().Node?.Territory.Id == 399 || next.First().FishingSpot?.Territory.Id == 399))
              || (territoryId == 418 && (next.First().Node?.Territory.Id is 901 or 929 or 939 || next.First().FishingSpot?.Territory.Id is 901 or 929 or 939)) && Lifestream.Enabled)
@@ -919,10 +1055,18 @@ namespace GatherBuddy.AutoGather
             if (forcedAetheryte.ZoneId != 0
              && GatherBuddy.GameData.Aetherytes[forcedAetheryte.AetheryteId].Territory.Id == territoryId)
             {
-                if (territoryId == 478 && !Lifestream.Enabled)
+                var needsLifestream = territoryId == 478 || territoryId == 129 || territoryId == 128 || territoryId == 132 || territoryId == 133 || territoryId == 130 || territoryId == 131;
+                if (needsLifestream && !Lifestream.Enabled)
                     AutoStatus = $"Install Lifestream or teleport to {next.First().Location.Territory.Name} manually";
                 else
                     AutoStatus = "Manual teleporting required";
+                return;
+            }
+            
+            var housingWardTerritoriesCheck = new uint[] { 339, 340, 341, 649, 641 };
+            if (housingWardTerritoriesCheck.Contains((uint)targetTerritoryId) && !Lifestream.Enabled)
+            {
+                AutoStatus = "Install Lifestream to access housing wards";
                 return;
             }
 
@@ -942,7 +1086,11 @@ namespace GatherBuddy.AutoGather
             var isCurrentDiadem = territoryId is 901 or 929 or 939;
             var isTargetDiadem = next.First().Location.Territory.Id is 901 or 929 or 939;
             
-            if (next.First().Location.Territory.Id != territoryId && !(isCurrentDiadem && isTargetDiadem))
+            var isInSameCityPair = (territoryId is 128 or 129 && targetTerritoryId is 128 or 129)
+                                || (territoryId is 132 or 133 && targetTerritoryId is 132 or 133)
+                                || (territoryId is 130 or 131 && targetTerritoryId is 130 or 131);
+            
+            if (next.First().Location.Territory.Id != territoryId && !(isCurrentDiadem && isTargetDiadem) && !isInSameCityPair)
             {
                 if (GatherBuddy.Config.AutoGatherConfig.SortingMethod == AutoGatherConfig.SortingType.Location)
                 {
@@ -1119,6 +1267,59 @@ namespace GatherBuddy.AutoGather
             
             var isPathGenerating = IsPathGenerating;
             var isPathing = IsPathing;
+            
+            var targetFishTerritoryId = fish.FishingSpot?.Territory.Id ?? 0;
+            var housingWardTerritoriesFish = new uint[] { 339, 340, 341, 649, 641 };
+            var isTargetHousingWard = housingWardTerritoriesFish.Contains((uint)targetFishTerritoryId);
+            
+            if (isTargetHousingWard && Lifestream.Enabled)
+            {
+                var canAccessFromCurrentTerritory = (territoryId == 129 && targetFishTerritoryId == 339)  // Limsa -> Mist
+                                                  || (territoryId is 130 or 131 && targetFishTerritoryId == 341)  // Ul'dah -> Goblet
+                                                  || (territoryId == 132 && targetFishTerritoryId == 340)  // Gridania -> Lavender
+                                                  || (territoryId == 418 && targetFishTerritoryId == 649)  // Foundation -> Empyreum
+                                                  || (territoryId == 628 && targetFishTerritoryId == 641); // Kugane -> Shirogane
+                
+                if (canAccessFromCurrentTerritory)
+                {
+                    if (!Lifestream.IsBusy())
+                    {
+                        if (IsFishing)
+                        {
+                            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                            {
+                                AutoHook.SetPluginState?.Invoke(false);
+                                AutoHook.SetAutoStartFishing?.Invoke(false);
+                            }
+                            AutoStatus = "Closing fishing before teleport...";
+                            QueueQuitFishingTasks();
+                            return;
+                        }
+                        
+                        AutoStatus = "Teleporting to housing ward...";
+                        StopNavigation();
+                        
+                        string wardCommand = targetFishTerritoryId switch
+                        {
+                            339 => "mist 1 1",
+                            341 => "goblet 1 1",
+                            340 => "lavender 1 1",
+                            649 => "empyreum 1 1",
+                            641 => "shirogane 1 1",
+                            _ => ""
+                        };
+                        
+                        if (!string.IsNullOrEmpty(wardCommand))
+                        {
+                            TaskManager.Enqueue(() => Lifestream.ExecuteCommand(wardCommand));
+                            TaskManager.DelayNext(1000);
+                            TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
+                        }
+                    }
+                    
+                    return;
+                }
+            }
             
             if (territoryId == 418 && fish.FishingSpot?.Territory.Id is 901 or 929 or 939 && Lifestream.Enabled)
             {

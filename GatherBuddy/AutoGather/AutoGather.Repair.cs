@@ -123,7 +123,7 @@ public unsafe partial class AutoGather
         if (itemToRepair == null)
             return false;
 
-        if (IsFishing)
+        if (IsGathering || IsFishing)
         {
             QueueQuitFishingTasks();
             TaskManager.Enqueue(() => !IsFishing, 5000, "Wait until fishing stopped.");

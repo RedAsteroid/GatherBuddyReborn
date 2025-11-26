@@ -508,7 +508,7 @@ public static partial class Fish
             .Bite      (data, HookSet.Powerful, BiteType.Strong)
             .Weather   (data, 17);
         data.Apply     (5022, Patch.ARealmReborn) // Mushroom Crab
-            .Mooch     (data, 2620, 4995)
+            .Mooch     (data, 2626, 4995)
             .Bite      (data, HookSet.Powerful, BiteType.Strong)
             .Weather   (data, 4, 3);
         data.Apply     (5023, Patch.ARealmReborn) // Judgment Staff
