@@ -140,12 +140,6 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void DoFishingTasks(IEnumerable<GatherTarget> targets)
         {
-            if (!_fishingYesAlreadyUnlocked)
-            {
-                YesAlready.Unlock();
-                _fishingYesAlreadyUnlocked = true;
-            }
-
         if (SpiritbondMax > 0)
         {
             if (IsGathering || IsFishing)
@@ -734,11 +728,6 @@ namespace GatherBuddy.AutoGather
 
         private void QueueQuitFishingTasks()
         {
-            if (_fishingYesAlreadyUnlocked)
-            {
-                YesAlready.Lock();
-                _fishingYesAlreadyUnlocked = false;
-            }
             EnqueueActionWithDelay(() => UseAction(Actions.Quit));
             TaskManager.DelayNext(3000); //Delay to make sure we stand up properly
         }

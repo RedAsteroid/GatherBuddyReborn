@@ -153,7 +153,6 @@ namespace GatherBuddy.AutoGather
         public  int         LastIntegrity      = 0;
         private bool LuckUsed;
         private bool        WentHome;
-        private bool        _fishingYesAlreadyUnlocked = false;
 
         internal IEnumerable<GatherTarget> ItemsToGather
             => _activeItemList;

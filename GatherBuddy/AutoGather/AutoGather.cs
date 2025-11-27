@@ -141,7 +141,6 @@ namespace GatherBuddy.AutoGather
                     AutoStatus = "Idle...";
                     TaskManager.Abort();
                     YesAlready.Unlock();
-                    _fishingYesAlreadyUnlocked = false;
 
                     _activeItemList.Reset();
                     Waiting                    = false;
@@ -372,6 +371,9 @@ namespace GatherBuddy.AutoGather
                 AutoStatus = "vnavmesh communication failed. Do you have it installed??";
                 return;
             }
+
+            if (HandleFishingCollectable())
+                return;
 
             if (TaskManager.IsBusy)
             {

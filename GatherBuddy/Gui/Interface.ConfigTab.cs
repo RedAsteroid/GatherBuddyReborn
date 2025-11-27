@@ -930,6 +930,12 @@ public partial class Interface
                 ImGui.Unindent();
             }
         }
+
+        public static void DrawAutoCollectablesFishingBox()
+            => DrawCheckbox("Auto Collectables",
+                "Auto accept/decline collectable fish based on minimum collectability.",
+                GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing,
+                b => GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing = b);
         
         public static void DrawManualPresetGenerator()
         {
@@ -1043,6 +1049,7 @@ public partial class Interface
 
             if (ImGui.TreeNodeEx("Fishing"))
             {
+                ConfigFunctions.DrawAutoCollectablesFishingBox();
                 ConfigFunctions.DrawSurfaceSlapConfig();
                 ConfigFunctions.DrawIdenticalCastConfig();
                 ConfigFunctions.DrawManualPresetGenerator();
