@@ -187,6 +187,11 @@ public class AutoHookPresetBuilder
 
         ConfigureAutoCasts(preset, fishArray, gbrPreset);
         
+        if (preset.AutoCastsCfg?.CastPatience != null)
+        {
+            GatherBuddy.Log.Debug($"[AutoHook] Final preset Patience config: Enabled={preset.AutoCastsCfg.CastPatience.Enabled}, Id={preset.AutoCastsCfg.CastPatience.Id}, GP: {preset.AutoCastsCfg.CastPatience.GpThreshold} (Above={preset.AutoCastsCfg.CastPatience.GpThresholdAbove})");
+        }
+        
         return preset;
     }
 
@@ -472,6 +477,26 @@ public class AutoHookPresetBuilder
         var hasSurfaceSlap = fishList.Any(f => f.SurfaceSlap != null);
         var hasMooches = fishList.Any(f => f.Mooches.Length > 0);
         var needsPrizeCatch = hasSurfaceSlap || hasMooches;
+        
+        var fisherLevel = DiscipleOfLand.FisherLevel;
+        const uint patienceId = 4102;
+        const uint patience2Id = 4106;
+        var patienceActionId = fisherLevel >= 60 ? patience2Id : patienceId;
+        var patienceGpCost = fisherLevel >= 60 ? 560 : 200;
+        GatherBuddy.Log.Debug($"[AutoHook] Fisher level: {fisherLevel}, setting Patience action ID: {patienceActionId}, GP cost: {patienceGpCost}");
+        
+        AHAutoPatience? patienceConfig = null;
+        if (needsPatience)
+        {
+            patienceConfig = new AHAutoPatience
+            {
+                Enabled = true,
+                Id = patienceActionId,
+                GpThreshold = patienceGpCost,
+                GpThresholdAbove = true
+            };
+            GatherBuddy.Log.Debug($"[AutoHook] Created Patience config: Enabled={patienceConfig.Enabled}, Id={patienceConfig.Id}, GP: {patienceConfig.GpThreshold} (Above={patienceConfig.GpThresholdAbove})");
+        }
 
         preset.AutoCastsCfg = new AHAutoCastsConfig
         {
@@ -486,12 +511,7 @@ public class AutoHookPresetBuilder
             {
                 Enabled = true
             } : null,
-            CastPatience = needsPatience ? new AHAutoPatience
-            {
-                Enabled = true,
-                // Use Patience II if level 60+ (assumes quest completion)
-                PatienceVersion = DiscipleOfLand.FisherLevel >= 60 ? 2 : 1
-            } : null,
+            CastPatience = patienceConfig,
             CastCollect = needsCollect ? new AHAutoCollect
             {
                 Enabled = true

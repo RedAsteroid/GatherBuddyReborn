@@ -20,9 +20,17 @@ public static class AutoHookExporter
                 NullValueHandling = NullValueHandling.Ignore
             });
         
-        // Log first 2000 chars to see hookset config
-        var logLength = Math.Min(2000, json.Length);
-        GatherBuddy.Log.Debug($"[AutoHook Export] JSON (first {logLength} chars):\n{json.Substring(0, logLength)}");
+        if (preset.AutoCastsCfg?.CastPatience != null)
+        {
+            GatherBuddy.Log.Debug($"[AutoHook Export] Before serialization - Patience: Enabled={preset.AutoCastsCfg.CastPatience.Enabled}, Id={preset.AutoCastsCfg.CastPatience.Id}, GP: {preset.AutoCastsCfg.CastPatience.GpThreshold} (Above={preset.AutoCastsCfg.CastPatience.GpThresholdAbove})");
+        }
+        
+        var autoCastsIndex = json.IndexOf("\"AutoCastsCfg\"");
+        if (autoCastsIndex >= 0)
+        {
+            var snippet = json.Substring(autoCastsIndex, Math.Min(500, json.Length - autoCastsIndex));
+            GatherBuddy.Log.Debug($"[AutoHook Export] AutoCastsCfg section:\n{snippet}");
+        }
         
         var compressed = CompressString(json);
         return ExportPrefix + compressed;
