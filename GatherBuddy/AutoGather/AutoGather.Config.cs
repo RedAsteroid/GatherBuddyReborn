@@ -93,6 +93,7 @@ namespace GatherBuddy.AutoGather
         public int IdenticalCastGPThreshold { get; set; } = 350;
         public bool IdenticalCastGPAbove { get; set; } = true;
         public bool AutoCollectablesFishing { get; set; } = true;
+        public bool DiademAutoAetherCannon { get; set; } = false;
 
         public enum SortingType
         {

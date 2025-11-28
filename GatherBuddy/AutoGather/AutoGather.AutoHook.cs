@@ -56,7 +56,6 @@ public partial class AutoGather
             else
             {
                 AutoHook.SetPluginState?.Invoke(true);
-                AutoHook.SetAutoStartFishing?.Invoke(true);
             }
             Svc.Log.Verbose($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
             return;

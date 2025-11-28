@@ -163,6 +163,7 @@ namespace GatherBuddy.AutoGather
                     _diademArborCallUsedAt = DateTime.MinValue;
                     _diademArborCallTarget = null;
                     _diademVisitedNodes.Clear();
+                    _lastAetherTarget = DateTime.MinValue;
                     _lastNonTimedNodeTerritory = 0;
                     _lastUmbralWeather = 0;
                     _hasGatheredUmbralThisSession = false;
@@ -629,6 +630,8 @@ namespace GatherBuddy.AutoGather
 
             if (Functions.InTheDiadem())
             {
+                TryUseAetherCannon();
+                
                 var currentWeather = EnhancedCurrentWeather.GetCurrentWeatherId();
                 var isUmbralWeather = UmbralNodes.IsUmbralWeather(currentWeather);
                 var wasUmbralWeather = UmbralNodes.IsUmbralWeather(_lastUmbralWeather);
@@ -2098,10 +2101,10 @@ namespace GatherBuddy.AutoGather
         {
             var set = job switch
             {
-                GatheringType.Miner    => GatherBuddy.Config.MinerSetName,
+                GatheringType.Miner => GatherBuddy.Config.MinerSetName,
                 GatheringType.Botanist => GatherBuddy.Config.BotanistSetName,
-                GatheringType.Fisher   => GatherBuddy.Config.FisherSetName,
-                _                      => null,
+                GatheringType.Fisher => GatherBuddy.Config.FisherSetName,
+                _ => null,
             };
             if (string.IsNullOrEmpty(set))
             {
@@ -2109,8 +2112,27 @@ namespace GatherBuddy.AutoGather
                 return false;
             }
 
+            if (job is GatheringType.Miner or GatheringType.Botanist
+                && Player.Job == Job.FSH
+                && GatherBuddy.Config.AutoGatherConfig.UseAutoHook
+                && AutoHook.Enabled)
+            {
+                Svc.Log.Debug($"[AutoGather] Swapping from FSH to {job}, disabling AutoHook.");
+                try
+                {
+                    AutoHook.SetPluginState(false);
+                    AutoHook.SetAutoStartFishing?.Invoke(false);
+                }
+                catch (Exception e)
+                {
+                    GatherBuddy.Log.Error($"[AutoGather] Failed to disable AutoHook on gear change: {e}");
+                }
+
+                CleanupAutoHook();
+            }
+
             Chat.ExecuteCommand($"/gearset change \"{set}\"");
-            TaskManager.DelayNext(Random.Shared.Next(delay, delay + 500)); //Add a random delay to be less suspicious
+            TaskManager.DelayNext(Random.Shared.Next(delay, delay + 500)); // Add a random delay to be less suspicious
             return true;
         }
 

@@ -122,6 +122,7 @@ public partial class Interface
 
         public static void DrawRepairThreshold()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.RepairThreshold;
             if (ImGui.DragInt("Repair Threshold", ref tmp, 1, 1, 100))
             {
@@ -134,6 +135,7 @@ public partial class Interface
 
         public static void DrawFishingSpotMinutes()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes;
             if (ImGui.DragInt("Max Fishing Spot Minutes", ref tmp, 1, 1, 40))
             {
@@ -154,6 +156,7 @@ public partial class Interface
 
         public static void DrawAutoretainerThreshold()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiModeThreshold;
             if (ImGui.DragInt("AutoRetainer Threshold (Seconds)", ref tmp, 1, 0, 3600))
             {
@@ -172,6 +175,7 @@ public partial class Interface
 
         public static void DrawLifestreamCommandTextInput()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.LifestreamCommand;
             if (ImGui.InputText("Lifestream Command", ref tmp, 100))
             {
@@ -211,6 +215,7 @@ public partial class Interface
 
         public static void DrawFarNodeFilterDistance()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance;
             if (ImGui.DragFloat("Far Node Filter Distance", ref tmp, 0.1f, 0.1f, 100f))
             {
@@ -224,6 +229,7 @@ public partial class Interface
 
         public static void DrawTimedNodePrecog()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog;
             if (ImGui.DragInt("Timed Node Precognition (Seconds)", ref tmp, 1, 0, 600))
             {
@@ -236,6 +242,7 @@ public partial class Interface
 
         public static void DrawExecutionDelay()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
             if (ImGui.DragInt("Execution delay (Milliseconds)", ref tmp, 1, 0, 1500))
             {
@@ -254,6 +261,7 @@ public partial class Interface
 
         public static void DrawMountUpDistance()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
             if (ImGui.DragFloat("Mount Up Distance", ref tmp, 0.1f, 0.1f, 100f))
             {
@@ -272,6 +280,7 @@ public partial class Interface
 
         public static void DrawAntiStuckCooldown()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetCooldown;
             if (ImGui.DragFloat("Anti-Stuck Cooldown", ref tmp, 0.1f, 0.1f, 10f))
             {
@@ -292,6 +301,7 @@ public partial class Interface
 
         public static void DrawStuckThreshold()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetThreshold;
             if (ImGui.DragFloat("Stuck Threshold", ref tmp, 0.1f, 0.1f, 10f))
             {
@@ -305,7 +315,7 @@ public partial class Interface
         public static void DrawSortingMethodCombo()
         {
             var v = GatherBuddy.Config.AutoGatherConfig.SortingMethod;
-            ImGui.SetNextItemWidth(SetInputWidth);
+            ImGui.SetNextItemWidth(150);
 
             using var combo = ImRaii.Combo("Item Sorting Method", v.ToString());
             ImGuiUtil.HoverTooltip("What method to use when sorting items internally");
@@ -937,6 +947,13 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing,
                 b => GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing = b);
         
+        public static void DrawDiademAutoAetherCannonBox()
+            => DrawCheckbox("Diadem Auto-Aethercannon",
+                "Automatically target and fire aethercannon at nearby enemies when gauge is ready (≥200).\n"
+              + "Only fires while not pathing/navigating. 2-second cooldown between uses.",
+                GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon,
+                b => GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon = b);
+        
         public static void DrawManualPresetGenerator()
         {
             ImGui.Separator();
@@ -1031,24 +1048,28 @@ public partial class Interface
         {
             if (ImGui.TreeNodeEx("General##autoGeneral"))
             {
-                ConfigFunctions.DrawHonkModeBox();
-                ConfigFunctions.DrawHonkVolumeSlider();
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
                 ConfigFunctions.DrawMoveWhileMounting();
-                ConfigFunctions.DrawSortingMethodCombo();
-                ConfigFunctions.DrawUseGivingLandOnCooldown();
+                ConfigFunctions.DrawHonkModeBox();
+                if (GatherBuddy.Config.AutoGatherConfig.HonkMode)
+                {
+                    ConfigFunctions.DrawHonkVolumeSlider();
+                }
+                ConfigFunctions.DrawCheckRetainersBox();
                 ConfigFunctions.DrawGoHomeBox();
+                ConfigFunctions.DrawUseGivingLandOnCooldown();
                 ConfigFunctions.DrawUseSkillsForFallabckBox();
                 ConfigFunctions.DrawAbandonNodesBox();
-                ConfigFunctions.DrawCheckRetainersBox();
-                ConfigFunctions.DrawFishCollectionBox();
                 ConfigFunctions.DrawAlwaysMapsBox();
                 ImGui.TreePop();
             }
 
             if (ImGui.TreeNodeEx("Fishing"))
             {
+                ConfigFunctions.DrawUseExistingAutoHookPresetsBox();
+                ConfigFunctions.DrawFishingSpotMinutes();
+                ConfigFunctions.DrawFishCollectionBox();
                 ConfigFunctions.DrawAutoCollectablesFishingBox();
                 ConfigFunctions.DrawSurfaceSlapConfig();
                 ConfigFunctions.DrawIdenticalCastConfig();
@@ -1058,31 +1079,30 @@ public partial class Interface
 
             if (ImGui.TreeNodeEx("Advanced"))
             {
-                ConfigFunctions.DrawAutoGatherBox();
-                ConfigFunctions.DrawUseFlagBox();
-                ConfigFunctions.DrawUseNavigationBox();
-                ConfigFunctions.DrawForceWalkingBox();
                 ConfigFunctions.DrawRepairBox();
+                if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
+                {
+                    ConfigFunctions.DrawRepairThreshold();
+                }
+                ConfigFunctions.DrawMaterialExtraction();
+                ConfigFunctions.DrawAetherialReduction();
                 ConfigFunctions.DrawAutoretainerBox();
                 if (GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode)
                 {
                     ConfigFunctions.DrawAutoretainerThreshold();
                     ConfigFunctions.DrawAutoretainerTimedNodeDelayBox();
                 }
-                if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
-                {
-                    ConfigFunctions.DrawRepairThreshold();
-                }
-
-                ConfigFunctions.DrawFishingSpotMinutes();
-                ConfigFunctions.DrawUseExistingAutoHookPresetsBox();
-                ConfigFunctions.DrawMaterialExtraction();
-                ConfigFunctions.DrawAetherialReduction();
+                ConfigFunctions.DrawDiademAutoAetherCannonBox();
+                ConfigFunctions.DrawSortingMethodCombo();
                 ConfigFunctions.DrawLifestreamCommandTextInput();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
                 ConfigFunctions.DrawTimedNodePrecog();
                 ConfigFunctions.DrawExecutionDelay();
+                ConfigFunctions.DrawAutoGatherBox();
+                ConfigFunctions.DrawUseFlagBox();
+                ConfigFunctions.DrawUseNavigationBox();
+                ConfigFunctions.DrawForceWalkingBox();
                 ImGui.TreePop();
             }
         }
