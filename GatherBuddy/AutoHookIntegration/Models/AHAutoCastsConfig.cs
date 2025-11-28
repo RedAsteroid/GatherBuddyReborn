@@ -40,8 +40,14 @@ public class AHAutoPatience
     [JsonProperty("Enabled")]
     public bool Enabled { get; set; }
 
-    [JsonProperty("PatienceVersion")]
-    public int PatienceVersion { get; set; } = 2;
+    [JsonProperty("Id")]
+    public uint Id { get; set; }
+    
+    [JsonProperty("GpThreshold")]
+    public int GpThreshold { get; set; }
+    
+    [JsonProperty("GpThresholdAbove")]
+    public bool GpThresholdAbove { get; set; } = true;
 }
 
 public class AHAutoCollect

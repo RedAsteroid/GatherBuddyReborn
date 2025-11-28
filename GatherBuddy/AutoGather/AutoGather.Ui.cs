@@ -178,7 +178,7 @@ namespace GatherBuddy.AutoGather
 
         public unsafe static void DrawMountSelector()
         {
-            ImGui.PushItemWidth(300);
+            ImGui.PushItemWidth(200);
             var ps = PlayerState.Instance();
             var preview = Dalamud.GameData.GetExcelSheet<Mount>().First(x => x.RowId == GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId)
                 .Singular.ToString().ToProperCase();

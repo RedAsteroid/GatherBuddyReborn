@@ -140,12 +140,6 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void DoFishingTasks(IEnumerable<GatherTarget> targets)
         {
-            if (!_fishingYesAlreadyUnlocked)
-            {
-                YesAlready.Unlock();
-                _fishingYesAlreadyUnlocked = true;
-            }
-
         if (SpiritbondMax > 0)
         {
             if (IsGathering || IsFishing)
@@ -224,33 +218,12 @@ namespace GatherBuddy.AutoGather
             {
                 switch (state)
                 {
-                    // Old fishing logic
-                    // GBR only handles bait switching and casting
-                    // case FishingState.Bite: HandleBite(targets, config); break;
                     case FishingState.None:
                     case FishingState.PoleReady:
                         HandleReady(targets.First(t => t.Fish != null), config);
                         break;
-                    // case FishingState.Waiting3: HandleWaiting(targets.First(t => t.Fish != null), config); break;
                 }
             }
-        }
-
-        private void HandleWaiting(GatherTarget target, ConfigPreset config)
-        {
-            // Old fishing logic 
-            // if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-            //     return;
-            //
-            // if (target.Fish?.Lure == Lure.Ambitious && !LureSuccess)
-            // {
-            //     EnqueueActionWithDelay(() => UseAction(Actions.AmbitiousLure));
-            // }
-            //
-            // if (target.Fish?.Lure == Lure.Modest && !LureSuccess)
-            // {
-            //     EnqueueActionWithDelay(() => UseAction(Actions.ModestLure));
-            // }
         }
 
         private void HandleReady(GatherTarget target, ConfigPreset config)
@@ -311,25 +284,18 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
                 
+                TaskManager.DelayNext(5000);
+                TaskManager.Enqueue(() =>
+                {
+                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                    {
+                        AutoHook.SetAutoStartFishing?.Invoke(false);
+                        Svc.Log.Debug("[AutoGather] Disabled SetAutoStartFishing after initial cast");
+                    }
+                });
+                
                 return;
             }
-
-            // Old fishing logic - disabled in favor of AutoHook integration
-            // if (NeedsSurfaceSlap(target))
-            //     EnqueueActionWithDelay(() => UseAction(Actions.SurfaceSlap));
-            // else if (NeedsIdenticalCast(target))
-            //     EnqueueActionWithDelay(() => UseAction(Actions.IdenticalCast));
-            //
-            // if (Player.Status.All(s => !Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
-            //     EnqueueActionWithDelay(() => UseAction(Actions.CollectorsGlove));
-            // else if (Player.Status.Any(s => s is { StatusId: 2778, Param: >= 3 }))
-            //     EnqueueActionWithDelay(() => UseAction(Actions.ThaliaksFavor));
-            // else if (target.Fish?.Snagging == Snagging.Required)
-            //     EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
-            // else if ((target.Fish?.ItemData.IsCollectable ?? false) && !HasPatienceStatus())
-            //     EnqueueActionWithDelay(() => UseAction(GetCorrectPatienceAction()!));
-            // else
-            //     EnqueueActionWithDelay(() => UseAction(Actions.Cast));
         }
 
         private bool NeedsIdenticalCast(GatherTarget target)
@@ -398,27 +364,6 @@ namespace GatherBuddy.AutoGather
 
             return null;
         }
-
-        // Old fishing logic
-        // private void HandleBite(IEnumerable<GatherTarget> targets, ConfigPreset config)
-        // {
-        //     if (targets.Any(t => t.Fish?.BiteType == GatherBuddy.TugType.Bite))
-        //     {
-        //         if (!HasPatienceStatus())
-        //         {
-        //             EnqueueActionWithDelay(() => UseAction(Actions.Hook));
-        //             return;
-        //         }
-        //
-        //         var hookset = targets.First(t => t.Fish!.BiteType == GatherBuddy.TugType.Bite).Fish.HookSet;
-        //         switch (hookset)
-        //         {
-        //             case HookSet.Powerful: EnqueueActionWithDelay(() => UseAction(Actions.PowerfulHookset)); break;
-        //             case HookSet.Precise:  EnqueueActionWithDelay(() => UseAction(Actions.PrecisionHookset)); break;
-        //             default:               EnqueueActionWithDelay(() => UseAction(Actions.Hook)); break;
-        //         }
-        //     }
-        // }
 
         private unsafe void DoGatherWindowActions(IEnumerable<GatherTarget> target)
         {
@@ -734,11 +679,6 @@ namespace GatherBuddy.AutoGather
 
         private void QueueQuitFishingTasks()
         {
-            if (_fishingYesAlreadyUnlocked)
-            {
-                YesAlready.Lock();
-                _fishingYesAlreadyUnlocked = false;
-            }
             EnqueueActionWithDelay(() => UseAction(Actions.Quit));
             TaskManager.DelayNext(3000); //Delay to make sure we stand up properly
         }
