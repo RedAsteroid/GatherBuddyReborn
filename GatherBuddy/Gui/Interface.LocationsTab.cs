@@ -381,8 +381,6 @@ public partial class Interface
     {
         using var id  = ImRaii.PushId("Locations");
         using var tab = ImRaii.TabItem("地点");
-        ImGuiUtil.HoverTooltip("Default locations getting you down?\n"
-          + "Set up custom aetherytes or map marker locations for specific nodes.");
 
         if (!tab)
             return;

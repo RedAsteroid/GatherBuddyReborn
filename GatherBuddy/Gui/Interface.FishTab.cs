@@ -601,9 +601,7 @@ public partial class Interface
     {
         using var id  = ImRaii.PushId("Fish");
         using var tab = ImRaii.TabItem("钓/刺鱼");
-        ImGuiUtil.HoverTooltip("There are plenty of fish in the sea. And the air. And the sand. And the lava. And space, for some reason.\n"
-          + " Gotta catch'em all!\n"
-          + "Enough information about fish to get you started, and for everything else there's TeamCraft!");
+
         if (!tab)
             return;
 
