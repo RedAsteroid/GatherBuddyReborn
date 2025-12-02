@@ -278,13 +278,13 @@ public partial class Interface
                 Data.FishingSpots.Where(f => f.ClosestAetheryte != null).Select(f => f.ClosestAetheryte!.Name).Distinct());
             if (!Aetherytes.Contains('\n'))
                 Aetherytes = '\0' + Aetherytes;
-            Patch = string.Intern($"Patch {Data.Patch.ToVersionString()}");
-            FishType = Data.OceanFish ? "Ocean Fish" :
-                Data.IsSpearFish      ? "Spearfishing" :
-                Data.IsBigFish        ? "Big Fish" : "Regular Fish";
+            Patch = string.Intern($"版本 {Data.Patch.ToVersionString()}");
+            FishType = Data.OceanFish ? "海钓" :
+                Data.IsSpearFish      ? "刺鱼" :
+                Data.IsBigFish        ? "鱼王" : "常规";
 
             Time = !Data.FishRestrictions.HasFlag(FishRestrictions.Time)
-                ? "Always Up"
+                ? "总是出现"
                 : Data.OceanFish
                     ? PrintOceanTime(Data.OceanTime)
                     : Data.Interval.AlwaysUp()
@@ -310,13 +310,13 @@ public partial class Interface
         {
             return time switch
             {
-                OceanTime.日落                   => "Sunset",
-                OceanTime.日落 | OceanTime.夜晚 => "Sunset or Night",
-                OceanTime.日落 | OceanTime.白昼   => "Sunset or Day",
-                OceanTime.夜晚                    => "Night",
-                OceanTime.夜晚 | OceanTime.白昼    => "Day or Night",
-                OceanTime.白昼                      => "Day",
-                _                                  => "Unknown Uptime",
+                OceanTime.日落                => "日落",
+                OceanTime.日落 | OceanTime.夜晚 => "日落 / 夜晚",
+                OceanTime.日落 | OceanTime.白昼 => "日落 / 白昼",
+                OceanTime.夜晚                => "夜晚",
+                OceanTime.夜晚 | OceanTime.白昼 => "白昼 / 夜晚",
+                OceanTime.白昼                => "白昼",
+                _                           => "未知",
             };
         }
 
@@ -330,20 +330,20 @@ public partial class Interface
         {
             if (!fish.Data.FishRestrictions.HasFlag(FishRestrictions.Weather))
             {
-                ImUtf8.TextFramed("No Weather Restrictions"u8, ColorId.HeaderWeather.Value());
+                ImUtf8.TextFramed("无天气限制"u8, ColorId.HeaderWeather.Value());
                 return;
             }
 
             if (fish.WeatherIcons.Length == 0 && fish.TransitionIcons.Length == 0)
             {
-                ImUtf8.TextFramed("Unknown Weather Restrictions"u8, ColorId.HeaderWeather.Value());
+                ImUtf8.TextFramed("未知天气限制"u8, ColorId.HeaderWeather.Value());
                 return;
             }
 
             using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemSpacing / 2);
             if (fish.TransitionIcons.Length > 0)
             {
-                AlignTextToSize(fish.TransitionIcons.Length > 1 ? "Requires one of" : "Requires", weatherIconSize);
+                AlignTextToSize("要求", weatherIconSize);
                 style.Push(ImGuiStyleVar.ItemSpacing, Vector2.One * ImGuiHelpers.GlobalScale);
                 foreach (var w in fish.TransitionIcons)
                 {
@@ -361,7 +361,7 @@ public partial class Interface
                 if (fish.WeatherIcons.Length == 0)
                 {
                     ImGui.SameLine();
-                    AlignTextToSize(" Anything", weatherIconSize);
+                    AlignTextToSize(" 任意", weatherIconSize);
                 }
                 else
                 {
@@ -378,7 +378,7 @@ public partial class Interface
             }
             else if (fish.WeatherIcons.Length > 0)
             {
-                AlignTextToSize(fish.WeatherIcons.Length > 1 ? "Requires one of" : "Requires", weatherIconSize);
+                AlignTextToSize("要求", weatherIconSize);
                 style.Push(ImGuiStyleVar.ItemSpacing, Vector2.One * ImGuiHelpers.GlobalScale);
                 foreach (var w in fish.WeatherIcons)
                 {
@@ -395,7 +395,7 @@ public partial class Interface
         {
             if (fish.Bait.Length == 0)
             {
-                ImUtf8.TextFramed("Unknown Catch Method"u8, 0xFF0000A0);
+                ImUtf8.TextFramed("未知钓法"u8, 0xFF0000A0);
                 return;
             }
 

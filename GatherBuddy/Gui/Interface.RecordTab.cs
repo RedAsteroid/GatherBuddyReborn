@@ -53,7 +53,7 @@ public partial class Interface
             }
         }
 
-        private static readonly ContentIdHeader  _contentIdHeader  = new() { Label = "Content ID" };
+        private static readonly ContentIdHeader  _contentIdHeader  = new() { Label = "副本 ID" };
         private static readonly BaitHeader       _baitHeader       = new() { Label = "鱼饵" };
         private static readonly SpotHeader       _spotHeader       = new() { Label = "渔场" };
         private static readonly CatchHeader      _catchHeader      = new() { Label = "已捕获" };
@@ -219,18 +219,18 @@ public partial class Interface
         [Flags]
         private enum TugTypeFilter : byte
         {
-            Weak      = 0x01,
-            Strong    = 0x02,
-            Legendary = 0x04,
-            Unknown   = 0x08,
-            None      = 0x10,
+            轻杆      = 0x01,
+            强力杆    = 0x02,
+            鱼王杆 = 0x04,
+            未知   = 0x08,
+            无      = 0x10,
         }
 
         private sealed class BiteTypeHeader : ColumnFlags<TugTypeFilter, FishRecord>
         {
             public BiteTypeHeader()
             {
-                AllFlags = TugTypeFilter.Weak | TugTypeFilter.Strong | TugTypeFilter.Legendary | TugTypeFilter.Unknown | TugTypeFilter.None;
+                AllFlags = TugTypeFilter.轻杆 | TugTypeFilter.强力杆 | TugTypeFilter.鱼王杆 | TugTypeFilter.未知 | TugTypeFilter.无;
                 _filter  = AllFlags;
             }
 
@@ -256,11 +256,11 @@ public partial class Interface
             public override bool FilterFunc(FishRecord item)
                 => item.Tug switch
                 {
-                    BiteType.Weak      => _filter.HasFlag(TugTypeFilter.Weak),
-                    BiteType.Strong    => _filter.HasFlag(TugTypeFilter.Strong),
-                    BiteType.Legendary => _filter.HasFlag(TugTypeFilter.Legendary),
-                    BiteType.None      => _filter.HasFlag(TugTypeFilter.None),
-                    _                  => _filter.HasFlag(TugTypeFilter.Unknown),
+                    BiteType.Weak      => _filter.HasFlag(TugTypeFilter.轻杆),
+                    BiteType.Strong    => _filter.HasFlag(TugTypeFilter.强力杆),
+                    BiteType.Legendary => _filter.HasFlag(TugTypeFilter.鱼王杆),
+                    BiteType.None      => _filter.HasFlag(TugTypeFilter.无),
+                    _                  => _filter.HasFlag(TugTypeFilter.未知),
                 };
 
             public override float Width
@@ -270,28 +270,28 @@ public partial class Interface
         [Flags]
         private enum HookSetFilter : byte
         {
-            Regular  = 0x01,
-            Precise  = 0x02,
-            Powerful = 0x04,
-            Double   = 0x08,
-            Triple   = 0x10,
-            Unknown  = 0x20,
-            Stellar  = 0x40,
-            None     = 0x80,
+            常规 = 0x01,
+            精准 = 0x02,
+            强力 = 0x04,
+            双重 = 0x08,
+            三重 = 0x10,
+            未知 = 0x20,
+            星际 = 0x40,
+            无  = 0x80,
         }
 
         private sealed class HookHeader : ColumnFlags<HookSetFilter, FishRecord>
         {
             public HookHeader()
             {
-                AllFlags = HookSetFilter.Precise
-                  | HookSetFilter.Powerful
-                  | HookSetFilter.Regular
-                  | HookSetFilter.Double
-                  | HookSetFilter.Triple
-                  | HookSetFilter.Stellar
-                  | HookSetFilter.Unknown
-                  | HookSetFilter.None;
+                AllFlags = HookSetFilter.精准
+                  | HookSetFilter.强力
+                  | HookSetFilter.常规
+                  | HookSetFilter.双重
+                  | HookSetFilter.三重
+                  | HookSetFilter.星际
+                  | HookSetFilter.未知
+                  | HookSetFilter.无;
                 _filter = AllFlags;
             }
 
@@ -317,14 +317,14 @@ public partial class Interface
             public override bool FilterFunc(FishRecord item)
                 => item.Hook switch
                 {
-                    HookSet.Precise    => _filter.HasFlag(HookSetFilter.Precise),
-                    HookSet.Powerful   => _filter.HasFlag(HookSetFilter.Powerful),
-                    HookSet.Hook       => _filter.HasFlag(HookSetFilter.Regular),
-                    HookSet.DoubleHook => _filter.HasFlag(HookSetFilter.Double),
-                    HookSet.TripleHook => _filter.HasFlag(HookSetFilter.Triple),
-                    HookSet.Stellar    => _filter.HasFlag(HookSetFilter.Stellar),
-                    HookSet.None       => _filter.HasFlag(HookSetFilter.None),
-                    _                  => _filter.HasFlag(HookSetFilter.Unknown),
+                    HookSet.Precise    => _filter.HasFlag(HookSetFilter.精准),
+                    HookSet.Powerful   => _filter.HasFlag(HookSetFilter.强力),
+                    HookSet.Hook       => _filter.HasFlag(HookSetFilter.常规),
+                    HookSet.DoubleHook => _filter.HasFlag(HookSetFilter.双重),
+                    HookSet.TripleHook => _filter.HasFlag(HookSetFilter.三重),
+                    HookSet.Stellar    => _filter.HasFlag(HookSetFilter.星际),
+                    HookSet.None       => _filter.HasFlag(HookSetFilter.无),
+                    _                  => _filter.HasFlag(HookSetFilter.未知),
                 };
 
             public override float Width
