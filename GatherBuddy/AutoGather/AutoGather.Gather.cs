@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -11,6 +11,9 @@ using Dalamud.Game.ClientState.Conditions;
 using GatherBuddy.AutoGather.AtkReaders;
 using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.AutoGather.Lists;
+using GatherBuddy.Data;
+using GatherBuddy.Plugin;
+using ECommons.GameHelpers;
 
 namespace GatherBuddy.AutoGather
 {
@@ -23,6 +26,88 @@ namespace GatherBuddy.AutoGather
                 return;
 
             TaskManager.Enqueue(() => targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address));
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
+            
+            TaskManager.Enqueue(() => {
+                if (!Dalamud.Conditions[ConditionFlag.Gathering])
+                {
+                    targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address);
+                }
+            });
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
+            
+            TaskManager.Enqueue(() => {
+                if (!Dalamud.Conditions[ConditionFlag.Gathering] && Dalamud.Conditions[ConditionFlag.Mounted] && Dalamud.Conditions[ConditionFlag.InFlight] && !Dalamud.Conditions[ConditionFlag.Diving])
+                {
+                    try
+                    {
+                        var floor = VNavmesh.Query.Mesh.PointOnFloor(Player.Position, false, 3);
+                        Navigate(floor, true);
+                        TaskManager.Enqueue(() => !IsPathGenerating);
+                        TaskManager.DelayNext(50);
+                        TaskManager.Enqueue(() => !IsPathing, 1000);
+                        EnqueueDismount();
+                    }
+                    catch { }
+                    TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) _advancedUnstuck.Force(); });
+                }
+            });
+        }
+
+        private unsafe void EnqueueSpearfishingNodeInteraction(IGameObject gameObject, Classes.Fish targetFish)
+        {
+            var targetSystem = TargetSystem.Instance();
+            if (targetSystem == null)
+                return;
+
+            var fishForSnapshot = targetFish;
+            if (fishForSnapshot != null)
+            {
+                var actualFishToGather = fishForSnapshot;
+                bool gatheringPrerequisites = false;
+                
+                // Check if THIS SPECIFIC target fish has predator requirements
+                if (fishForSnapshot.Predators.Any())
+                {
+                    var requirementFish = fishForSnapshot.Predators.Select(p => p.Item1).ToList();
+                    SnapshotSpearfishingInventory(requirementFish);
+                    
+                    // Only check FIRST predator for shadow node spawning (rest are caught within shadow node)
+                    var (firstPredator, requiredCount) = fishForSnapshot.Predators.First();
+                    var caughtCount = SpearfishingSessionCatches.TryGetValue(firstPredator.ItemId, out var count) ? count : 0;
+                    var firstPredatorMet = caughtCount >= requiredCount;
+                    
+                    if (!firstPredatorMet)
+                    {
+                        actualFishToGather = firstPredator;
+                        gatheringPrerequisites = true;
+                    }
+                }
+                
+                if (gatheringPrerequisites)
+                {
+                    if (Player.Status.Any(s => Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+                    {
+                        TaskManager.Enqueue(() => UseAction(Actions.CollectorsGlove));
+                        TaskManager.DelayNext(1000);
+                    }
+                }
+                else if (actualFishToGather.ItemData.IsCollectable && Player.Status.All(s => !Actions.CollectorsGlove.StatusProvide.Contains(s.StatusId)))
+                {
+                    TaskManager.Enqueue(() => UseAction(Actions.CollectorsGlove));
+                    TaskManager.DelayNext(1000);
+                }
+            }
+
+            TaskManager.Enqueue(() => targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address));
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
+            
+            TaskManager.Enqueue(() => {
+                if (!Dalamud.Conditions[ConditionFlag.Gathering])
+                {
+                    targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address);
+                }
+            });
             TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
         }
 
@@ -110,6 +195,26 @@ namespace GatherBuddy.AutoGather
             if (slot != null)
             {
                 return (fallbackSkills && !slot.IsCollectable, slot);
+            }
+
+            if (Functions.InTheDiadem() && gatherTarget.Any())
+            {
+                var targetLevels = gatherTarget
+                    .Where(gt => gt.Gatherable != null)
+                    .Select(gt => gt.Gatherable!.Level)
+                    .Distinct()
+                    .ToHashSet();
+
+                slot = available
+                    .Where(s => s.Item != null && targetLevels.Contains(s.Item.Level))
+                    .Where(s => !s.Item!.IsTreasureMap && !s.IsCollectable)
+                    .OrderByDescending(s => s.ItemLevel)
+                    .FirstOrDefault();
+
+                if (slot != null)
+                {
+                    return (true, slot);
+                }
             }
 
             //Check if we should and can abandon the node

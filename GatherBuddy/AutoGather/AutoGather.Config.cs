@@ -43,6 +43,8 @@ namespace GatherBuddy.AutoGather
         public int TimedNodePrecog { get; set; } = 20;
         public bool DoGathering { get; set; } = true;
         public bool AutoRetainerMultiMode { get; set; } = false;
+        public int AutoRetainerMultiModeThreshold { get; set; } = 300;
+        public bool AutoRetainerDelayForTimedNodes { get; set; } = true;
         [Obsolete] public uint MinimumGPForGathering { get; set; } = 0;
         [Obsolete] public uint MinimumGPForCollectableRotation { get; set; } = 700;
         [Obsolete] public bool AlwaysUseSolidAgeCollectables { get; set; } = false;
@@ -81,6 +83,17 @@ namespace GatherBuddy.AutoGather
         public bool AlwaysGatherMaps { get; set; } = false;
         public int MaxFishingSpotMinutes { get; set; } = 20;
         public bool UseNavigation { get; set; } = true;
+        public bool UseAutoHook { get; set; } = true;
+        public bool DisableAutoHookOnStop { get; set; } = false;
+        public bool UseExistingAutoHookPresets { get; set; } = false;
+        public bool EnableSurfaceSlap { get; set; } = false;
+        public int SurfaceSlapGPThreshold { get; set; } = 200;
+        public bool SurfaceSlapGPAbove { get; set; } = true;
+        public bool EnableIdenticalCast { get; set; } = false;
+        public int IdenticalCastGPThreshold { get; set; } = 350;
+        public bool IdenticalCastGPAbove { get; set; } = true;
+        public bool AutoCollectablesFishing { get; set; } = true;
+        public bool DiademAutoAetherCannon { get; set; } = false;
 
         public enum SortingType
         {

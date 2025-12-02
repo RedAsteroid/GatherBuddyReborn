@@ -202,23 +202,35 @@ namespace GatherBuddy.AutoGather
             };
         }
 
-        public bool Match(Gatherable item) =>
-            Enabled
-            && (
-                !ItemLevel.UseGlv && item.Level >= ItemLevel.Min && item.Level <= ItemLevel.Max
-              || ItemLevel.UseGlv && item.GatheringData.GatheringItemLevel.RowId >= ItemLevel.Min && item.GatheringData.GatheringItemLevel.RowId <= ItemLevel.Max
-            )
-            && item.NodeType switch
-            {
-                Enums.NodeType.常规 => NodeType.Regular,
-                Enums.NodeType.未知 => NodeType.Unspoiled,
-                Enums.NodeType.传说 => NodeType.Legendary,
-                Enums.NodeType.限时 => NodeType.Ephemeral,
-                _ => false
-            }
-                && (   item.IsCrystal && ItemType.Crystals
+        public bool Match(Gatherable item)
+        {
+            if (!Enabled)
+                return false;
+
+            var levelMatch = !ItemLevel.UseGlv && item.Level >= ItemLevel.Min && item.Level <= ItemLevel.Max
+                          || ItemLevel.UseGlv && item.GatheringData.GatheringItemLevel.RowId >= ItemLevel.Min && item.GatheringData.GatheringItemLevel.RowId <= ItemLevel.Max;
+            if (!levelMatch)
+                return false;
+
+            // Treat umbral items as Legendary for preset matching
+            var isUmbralItem = Data.UmbralNodes.IsUmbralItem(item.ItemId);
+            var nodeTypeMatch = isUmbralItem
+                ? NodeType.Legendary
+                : item.NodeType switch
+                {
+                    Enums.NodeType.常规 => NodeType.Regular,
+                    Enums.NodeType.未知 => NodeType.Unspoiled,
+                    Enums.NodeType.传说 => NodeType.Legendary,
+                    Enums.NodeType.限时 => NodeType.Ephemeral,
+                    _ => false
+                };
+            if (!nodeTypeMatch)
+                return false;
+
+            return item.IsCrystal && ItemType.Crystals
                 || item.ItemData.IsCollectable && ItemType.Collectables
-                || !item.IsCrystal && !item.ItemData.IsCollectable && ItemType.Other);
+                || !item.IsCrystal && !item.ItemData.IsCollectable && ItemType.Other;
+        }
 
         public bool Match(Fish fish)
             => Enabled && ItemType.Fish;

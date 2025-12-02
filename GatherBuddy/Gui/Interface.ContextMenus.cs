@@ -242,7 +242,7 @@ public partial class Interface
 
     private void DrawAddToAutoGather(IGatherable item)
     {
-        var current = _autoGatherListsCache.Selector.EnsureCurrent();
+        var current = _autoGatherListsCache.Selector.Selected;
 
         if (ImGui.Selectable("添加至自动采集列表"))
         {

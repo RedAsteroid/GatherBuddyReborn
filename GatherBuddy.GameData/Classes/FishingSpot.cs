@@ -11,6 +11,8 @@ using FishingSpotRow = Lumina.Excel.Sheets.FishingSpot;
 
 namespace GatherBuddy.Classes;
 
+public record SpawnRequirement(Fish RequiredFish, int Count);
+
 public class FishingSpot : IComparable<FishingSpot>, ILocation
 {
     public const uint SpearfishingIdOffset = 1u << 31;
@@ -62,6 +64,13 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
 
     public bool Spearfishing
         => _data is SpearfishingNotebook;
+    
+    public bool IsShadowNode
+        => _data is SpearfishingNotebook sn && sn.IsShadowNode;
+    
+    public FishingSpot? ParentNode { get; set; }
+    
+    public List<SpawnRequirement> SpawnRequirements { get; init; } = new();
 
     public Dictionary<uint, List<Vector3>> WorldPositions { get; internal set; } = new();
 
@@ -109,6 +118,20 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
         DefaultYCoord    = IntegralYCoord;
         DefaultAetheryte = ClosestAetheryte;
         DefaultRadius    = Radius;
+        
+        if (spot.GatheringPointBase.ValueNullable != null)
+        {
+            var gatheringPoints = data.DataManager.GetExcelSheet<GatheringPoint>()
+                .Where(gp => gp.GatheringPointBase.RowId == spot.GatheringPointBase.RowId);
+            
+            foreach (var gp in gatheringPoints)
+            {
+                if (data.WorldCoords.TryGetValue(gp.RowId, out var coords))
+                {
+                    WorldPositions[gp.RowId] = coords;
+                }
+            }
+        }
 
         Items = spot.GatheringPointBase.ValueNullable?.Item.Where(i => i.RowId > 0)
                 .Select(i => data.Fishes.Values.FirstOrDefault(f => f.IsSpearFish && f.FishId == i.RowId))
@@ -125,9 +148,17 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
             10_000 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(759), // the rows in between are no longer used diadem objects
             > 10_016 and < 10_026 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(939),
             > 10_025 and < 10_031 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1073),
+
+            // Sinus Ardorum
             > 10_030 and < 10_040 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
             > 10_042 and < 10_094 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
-            10_096 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
+            10_096                => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1237),
+
+            // Phaenna
+            > 10_107 and < 10_136 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1291),
+            > 10_136 and < 10_145 => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1291),
+            > 10_146              => data.DataManager.GetExcelSheet<TerritoryType>().GetRow(1291),
+
             _ => spot.TerritoryType.ValueNullable,
         };
 
@@ -137,6 +168,7 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
         switch (spot.RowId)
         {
             case > 10_042 and < 10_094:
+            {
                 var missionRow = spot.RowId - 10_043 + 451;
                 if (missionRow > 495)
                 {
@@ -147,7 +179,12 @@ public class FishingSpot : IComparable<FishingSpot>, ILocation
                 }
 
                 return name + $" ({missionRow:D5})";
-            case 10_096: return name + " (00544)";
+            }
+            case 10_096:                return $"{name} (00544)";
+            case > 10_107 and < 10_136: return $"{name} ({spot.RowId - 10_108 + 965:D5})";
+            case > 10_136 and < 10_145: return $"{name} ({spot.RowId - 10_137 + 993:D5})";
+            case > 10_146 and < 10_153: return $"{name} ({spot.RowId - 10_147 + 1001:D5})";
+            case > 10_152 and < 10_156: return $"{name} ({spot.RowId - 10_153 + 1037:D5})";
         }
 
         return name;

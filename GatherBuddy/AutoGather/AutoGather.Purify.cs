@@ -1,3 +1,4 @@
+using System;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Plugin;
 using Dalamud.Game.ClientState.Conditions;
@@ -38,12 +39,21 @@ namespace GatherBuddy.AutoGather
                     for (int i = 0; i < container->Size; i++)
                     {
                         var slot = container->GetInventorySlot(i);
-                        if (slot != null
-                         && slot->ItemId != 0
-                         && GatherBuddy.GameData.Gatherables.TryGetValue(slot->ItemId, out var gatherable)
-                         && gatherable.ItemData.AetherialReduce != 0)
+                        if (slot != null && slot->ItemId != 0)
                         {
-                            return true;
+                            // Check regular gatherables
+                            if (GatherBuddy.GameData.Gatherables.TryGetValue(slot->ItemId, out var gatherable)
+                             && gatherable.ItemData.AetherialReduce != 0)
+                            {
+                                return true;
+                            }
+                            
+                            // Check fish
+                            if (GatherBuddy.GameData.Fishes.TryGetValue(slot->ItemId, out var fish)
+                             && fish.ItemData.AetherialReduce != 0)
+                            {
+                                return true;
+                            }
                         }
                     }
                 }
@@ -52,12 +62,11 @@ namespace GatherBuddy.AutoGather
             }
         }
 
-        private unsafe void ReduceItems(bool reduceAll)
+        private unsafe void ReduceItems(bool reduceAll, Action? onComplete = null)
         {
             AutoStatus = "精选物品";
             var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
             TaskManager.Enqueue(StopNavigation);
-            TaskManager.Enqueue(YesAlready.Lock);
             if (PurifyItemSelectorAddon == null)
             {
                 EnqueueActionWithDelay(() => { ActionManager.Instance()->UseAction(ActionType.GeneralAction, 21); });
@@ -79,15 +88,18 @@ namespace GatherBuddy.AutoGather
                         Callback.Fire(addon, true, -1);
                 });
                 if (reduceAll && HasReducibleItems())
-                    ReduceItems(true);
+                    ReduceItems(true, onComplete);
                 else
+                {
                     EnqueueActionWithDelay(() =>
                     {
                         if (PurifyItemSelectorAddon is var addon and not null)
                             Callback.Fire(addon, true, -1);
                     });
+                    if (onComplete != null)
+                        TaskManager.Enqueue(() => onComplete());
+                }
             });
-            TaskManager.Enqueue(YesAlready.Unlock);
         }
 
         private unsafe bool? ReduceFirstItem()

@@ -29,6 +29,8 @@ public class AutoGatherList
 
     public string Name        { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string FolderPath  { get; set; } = string.Empty;
+    public int    Order       { get; set; } = 0;
     public bool   Enabled     { get; set; } = false;
     public bool   Fallback    { get; set; } = false;
 
@@ -43,8 +45,11 @@ public class AutoGatherList
             items              = new(items),
             quantities         = new(quantities),
             preferredLocations = new(preferredLocations),
+            enabledItems       = new(enabledItems),
             Name               = Name,
             Description        = Description,
+            FolderPath         = FolderPath,
+            Order              = Order,
             Enabled            = false,
             Fallback           = Fallback
         };
@@ -156,7 +161,7 @@ public class AutoGatherList
 
     public struct Config(AutoGatherList list)
     {
-        public const byte CurrentVersion = 4;
+        public const byte CurrentVersion = 5;
 
         public uint[]                 ItemIds            = list.Items.Select(i => i.ItemId).ToArray();
         public Dictionary<uint, uint> Quantities         = list.Quantities.ToDictionary(v => v.Key.ItemId, v => v.Value);
@@ -164,6 +169,8 @@ public class AutoGatherList
         public Dictionary<uint, bool> EnabledItems       = list.EnabledItems.ToDictionary(v => v.Key.ItemId, v => v.Value);
         public string                 Name               = list.Name;
         public string                 Description        = list.Description;
+        public string                 FolderPath         = list.FolderPath;
+        public int                    Order              = list.Order;
         public bool                   Enabled            = list.Enabled;
         public bool                   Fallback           = list.Fallback;
 
@@ -181,7 +188,7 @@ public class AutoGatherList
             try
             {
                 var bytes = Functions.DecompressedBase64(data);
-                if (bytes.Length == 0 || bytes[0] != CurrentVersion)
+                if (bytes.Length == 0 || (bytes[0] != CurrentVersion && bytes[0] != 4))
                     return false;
 
                 var json = Encoding.UTF8.GetString(bytes.AsSpan()[1..]);
@@ -193,6 +200,7 @@ public class AutoGatherList
                  || cfg.PrefferedLocations == null)
                     return false;
 
+                cfg.FolderPath ??= string.Empty;
                 return true;
             }
             catch (Exception)
@@ -218,6 +226,8 @@ public class AutoGatherList
         {
             Name               = cfg.Name,
             Description        = cfg.Description,
+            FolderPath         = cfg.FolderPath ?? string.Empty,
+            Order              = cfg.Order,
             Enabled            = cfg.Enabled,
             Fallback           = cfg.Fallback,
             items              = new(cfg.ItemIds.Length),

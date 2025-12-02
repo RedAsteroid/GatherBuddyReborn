@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
@@ -8,6 +9,7 @@ using ECommons.ImGuiMethods;
 using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
+using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.Enums;
 using GatherBuddy.FishTimer;
@@ -24,6 +26,10 @@ public partial class Interface
     private static class ConfigFunctions
     {
         public static Interface _base = null!;
+        
+        private static string _fishFilterText = "";
+        private static Fish? _selectedFish = null;
+        private static string _presetName = "";
 
         public static void DrawSetInput(string jobName, string oldName, Action<string> setName)
         {
@@ -116,6 +122,7 @@ public partial class Interface
 
         public static void DrawRepairThreshold()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.RepairThreshold;
             if (ImGui.DragInt("Repair Threshold", ref tmp, 1, 1, 100))
             {
@@ -128,6 +135,7 @@ public partial class Interface
 
         public static void DrawFishingSpotMinutes()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes;
             if (ImGui.DragInt("Max Fishing Spot Minutes", ref tmp, 1, 1, 40))
             {
@@ -146,8 +154,28 @@ public partial class Interface
             ImGuiEx.PluginAvailabilityIndicator([new ImGuiEx.RequiredPluginInfo("AutoRetainer")]);
         }
 
+        public static void DrawAutoretainerThreshold()
+        {
+            ImGui.SetNextItemWidth(150);
+            var tmp = GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiModeThreshold;
+            if (ImGui.DragInt("AutoRetainer Threshold (Seconds)", ref tmp, 1, 0, 3600))
+            {
+                GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiModeThreshold = tmp;
+                GatherBuddy.Config.Save();
+            }
+
+            ImGuiUtil.HoverTooltip("How many seconds before a retainer venture completes GBR should pause and wait for MultiMode.");
+        }
+
+        public static void DrawAutoretainerTimedNodeDelayBox()
+            => DrawCheckbox("Delay AutoRetainer for timed nodes",
+                "Wait to process retainers until after active/upcoming timed nodes are gathered.",
+                GatherBuddy.Config.AutoGatherConfig.AutoRetainerDelayForTimedNodes,
+                b => GatherBuddy.Config.AutoGatherConfig.AutoRetainerDelayForTimedNodes = b);
+
         public static void DrawLifestreamCommandTextInput()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.LifestreamCommand;
             if (ImGui.InputText("Lifestream Command", ref tmp, 100))
             {
@@ -187,6 +215,7 @@ public partial class Interface
 
         public static void DrawFarNodeFilterDistance()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance;
             if (ImGui.DragFloat("过远采集点距离过滤", ref tmp, 0.1f, 0.1f, 100f))
             {
@@ -200,6 +229,7 @@ public partial class Interface
 
         public static void DrawTimedNodePrecog()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog;
             if (ImGui.DragInt("限时采集点预知（秒）", ref tmp, 1, 0, 600))
             {
@@ -212,6 +242,7 @@ public partial class Interface
 
         public static void DrawExecutionDelay()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
             if (ImGui.DragInt("执行延迟 (毫秒)", ref tmp, 1, 0, 1500))
             {
@@ -230,6 +261,7 @@ public partial class Interface
 
         public static void DrawMountUpDistance()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
             if (ImGui.DragFloat("需要上坐骑的距离", ref tmp, 0.1f, 0.1f, 100f))
             {
@@ -248,6 +280,7 @@ public partial class Interface
 
         public static void DrawAntiStuckCooldown()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetCooldown;
             if (ImGui.DragFloat("防卡冷却", ref tmp, 0.1f, 0.1f, 10f))
             {
@@ -268,6 +301,7 @@ public partial class Interface
 
         public static void DrawStuckThreshold()
         {
+            ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetThreshold;
             if (ImGui.DragFloat("卡死阈值", ref tmp, 0.1f, 0.1f, 10f))
             {
@@ -281,7 +315,7 @@ public partial class Interface
         public static void DrawSortingMethodCombo()
         {
             var v = GatherBuddy.Config.AutoGatherConfig.SortingMethod;
-            ImGui.SetNextItemWidth(SetInputWidth);
+            ImGui.SetNextItemWidth(150);
 
             using var combo = ImRaii.Combo("物品排序方法", v.ToString());
             ImGuiUtil.HoverTooltip("内部排序物品时所使用的方法");
@@ -824,6 +858,184 @@ public partial class Interface
         public static void DrawAlwaysMapsBox()
             => DrawCheckbox("Always gather maps when available",      "GBR will always grab maps first if it sees one in a node",
                 GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps, b => GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps = b);
+
+        public static void DrawUseExistingAutoHookPresetsBox()
+        {
+            DrawCheckbox("Use existing AutoHook presets",
+                "Use your own AutoHook presets instead of GBR-generated ones.\n"
+              + "Name your preset using the fish's Item ID (e.g., '46188' for Goldentail).\n"
+              + "Find Fish IDs by hovering over fish in the Fish tab.\n"
+              + "Your presets will never be deleted - only GBR-generated presets are cleaned up.",
+                GatherBuddy.Config.AutoGatherConfig.UseExistingAutoHookPresets,
+                b => GatherBuddy.Config.AutoGatherConfig.UseExistingAutoHookPresets = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new("AutoHook")]);
+        }
+
+        public static void DrawSurfaceSlapConfig()
+        {
+            DrawCheckbox("Enable automatic Surface Slap",
+                "Automatically enable Surface Slap for non-target fish that share the same bite type as your target fish.\n"
+              + "This helps remove unwanted fish to increase catch rates of your target.",
+                GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap,
+                b => GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap = b);
+            
+            if (GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap)
+            {
+                ImGui.Indent();
+                
+                var gpAbove = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove;
+                if (ImGui.RadioButton("Use Surface Slap when GP is Above", gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = true;
+                    GatherBuddy.Config.Save();
+                }
+                
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Below", !gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = false;
+                    GatherBuddy.Config.Save();
+                }
+                
+                var gpThreshold = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold;
+                ImGui.SetNextItemWidth(SetInputWidth);
+                if (ImGui.DragInt("GP Threshold", ref gpThreshold, 1, 0, 10000))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold = Math.Max(0, gpThreshold);
+                    GatherBuddy.Config.Save();
+                }
+                ImGuiUtil.HoverTooltip("Surface Slap will be used when your GP is above/below this threshold.");
+                
+                ImGui.Unindent();
+            }
+        }
+
+        public static void DrawIdenticalCastConfig()
+        {
+            DrawCheckbox("Enable automatic Identical Cast",
+                "Automatically enable Identical Cast for your target fish to increase catch rates.\n"
+              + "Identical Cast improves catch rate when used on the same fishing hole.",
+                GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast,
+                b => GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast = b);
+            
+            if (GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast)
+            {
+                ImGui.Indent();
+                
+                var gpAbove = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove;
+                if (ImGui.RadioButton("Use Identical Cast when GP is Above", gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = true;
+                    GatherBuddy.Config.Save();
+                }
+                
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Below##IdenticalCast", !gpAbove))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = false;
+                    GatherBuddy.Config.Save();
+                }
+                
+                var gpThreshold = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold;
+                ImGui.SetNextItemWidth(SetInputWidth);
+                if (ImGui.DragInt("GP Threshold##IdenticalCast", ref gpThreshold, 1, 0, 10000))
+                {
+                    GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold = Math.Max(0, gpThreshold);
+                    GatherBuddy.Config.Save();
+                }
+                ImGuiUtil.HoverTooltip("Identical Cast will be used when your GP is above/below this threshold.");
+                
+                ImGui.Unindent();
+            }
+        }
+
+        public static void DrawAutoCollectablesFishingBox()
+            => DrawCheckbox("Auto Collectables",
+                "Auto accept/decline collectable fish based on minimum collectability.",
+                GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing,
+                b => GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing = b);
+        
+        public static void DrawDiademAutoAetherCannonBox()
+            => DrawCheckbox("Diadem Auto-Aethercannon",
+                "Automatically target and fire aethercannon at nearby enemies when gauge is ready (≥200).\n"
+              + "Only fires while not pathing/navigating. 2-second cooldown between uses.",
+                GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon,
+                b => GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon = b);
+        
+        public static void DrawManualPresetGenerator()
+        {
+            ImGui.Separator();
+            ImGui.TextUnformatted("Manual Preset Generator");
+            ImGui.Spacing();
+            
+            var availableFish = GatherBuddy.GameData.Fishes.Values.Where(f => !f.IsSpearFish).ToList();
+            
+            ImGui.TextUnformatted("Select Target Fish:");
+            ImGui.SetNextItemWidth(SetInputWidth);
+            
+            if (ImGui.BeginCombo("###FishSelector", _selectedFish?.Name[GatherBuddy.Language] ?? "None"))
+            {
+                ImGui.SetNextItemWidth(SetInputWidth - 20);
+                ImGui.InputTextWithHint("###FishFilter", "Search...", ref _fishFilterText, 100);
+                ImGui.Separator();
+                
+                using (var child = ImRaii.Child("###FishList", new Vector2(0, 200 * ImGuiHelpers.GlobalScale), false))
+                {
+                    for (int i = 0; i < availableFish.Count; i++)
+                    {
+                        var fish = availableFish[i];
+                        var fishName = fish.Name[GatherBuddy.Language];
+                        
+                        if (_fishFilterText.Length > 0 && !fishName.ToLower().Contains(_fishFilterText.ToLower()))
+                            continue;
+                        
+                        using var id = ImRaii.PushId($"{fish.ItemId}###{i}");
+                        if (ImGui.Selectable(fishName, _selectedFish?.ItemId == fish.ItemId))
+                        {
+                            _selectedFish = fish;
+                            _presetName = fish.ItemId.ToString();
+                            _fishFilterText = "";
+                            ImGui.CloseCurrentPopup();
+                        }
+                    }
+                }
+                
+                ImGui.EndCombo();
+            }
+            
+            if (_selectedFish != null)
+            {
+                ImGui.Spacing();
+                ImGui.TextUnformatted("Preset Name:");
+                ImGui.SetNextItemWidth(SetInputWidth);
+                ImGui.InputText("###PresetNameInput", ref _presetName, 64);
+                ImGuiUtil.HoverTooltip("The preset name should match the fish's Item ID for GBR to use it automatically.");
+                
+                ImGui.Spacing();
+                if (ImGui.Button("Generate Preset"))
+                {
+                    GenerateManualPreset(_selectedFish, _presetName);
+                }
+            }
+        }
+        
+        private static void GenerateManualPreset(Fish fish, string presetName)
+        {
+            if (string.IsNullOrWhiteSpace(presetName))
+                presetName = fish.ItemId.ToString();
+            
+            var success = AutoHookIntegration.AutoHookService.ExportPresetToAutoHook(presetName, [fish]);
+            
+            if (success)
+            {
+                Svc.Chat.Print($"[GatherBuddy] Generated preset '{presetName}' for {fish.Name[GatherBuddy.Language]}");
+            }
+            else
+            {
+                Svc.Chat.PrintError($"[GatherBuddy] Failed to generate preset for {fish.Name[GatherBuddy.Language]}");
+            }
+        }
     }
 
 
@@ -843,43 +1055,61 @@ public partial class Interface
         {
             if (ImGui.TreeNodeEx("通用##autoGeneral"))
             {
-                ConfigFunctions.DrawHonkModeBox();
-                ConfigFunctions.DrawHonkVolumeSlider();
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
                 ConfigFunctions.DrawMoveWhileMounting();
-                ConfigFunctions.DrawSortingMethodCombo();
-                ConfigFunctions.DrawUseGivingLandOnCooldown();
+                ConfigFunctions.DrawHonkModeBox();
+                if (GatherBuddy.Config.AutoGatherConfig.HonkMode)
+                {
+                    ConfigFunctions.DrawHonkVolumeSlider();
+                }
+                ConfigFunctions.DrawCheckRetainersBox();
                 ConfigFunctions.DrawGoHomeBox();
+                ConfigFunctions.DrawUseGivingLandOnCooldown();
                 ConfigFunctions.DrawUseSkillsForFallabckBox();
                 ConfigFunctions.DrawAbandonNodesBox();
-                ConfigFunctions.DrawCheckRetainersBox();
-                ConfigFunctions.DrawFishCollectionBox();
                 ConfigFunctions.DrawAlwaysMapsBox();
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNodeEx("捕鱼"))
+            {
+                ConfigFunctions.DrawUseExistingAutoHookPresetsBox();
+                ConfigFunctions.DrawFishingSpotMinutes();
+                ConfigFunctions.DrawFishCollectionBox();
+                ConfigFunctions.DrawAutoCollectablesFishingBox();
+                ConfigFunctions.DrawSurfaceSlapConfig();
+                ConfigFunctions.DrawIdenticalCastConfig();
+                ConfigFunctions.DrawManualPresetGenerator();
                 ImGui.TreePop();
             }
 
             if (ImGui.TreeNodeEx("高级"))
             {
-                ConfigFunctions.DrawAutoGatherBox();
-                ConfigFunctions.DrawUseFlagBox();
-                ConfigFunctions.DrawUseNavigationBox();
-                ConfigFunctions.DrawForceWalkingBox();
                 ConfigFunctions.DrawRepairBox();
-                ConfigFunctions.DrawAutoretainerBox();
                 if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
                 {
                     ConfigFunctions.DrawRepairThreshold();
                 }
-
-                ConfigFunctions.DrawFishingSpotMinutes();
                 ConfigFunctions.DrawMaterialExtraction();
                 ConfigFunctions.DrawAetherialReduction();
+                ConfigFunctions.DrawAutoretainerBox();
+                if (GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode)
+                {
+                    ConfigFunctions.DrawAutoretainerThreshold();
+                    ConfigFunctions.DrawAutoretainerTimedNodeDelayBox();
+                }
+                ConfigFunctions.DrawDiademAutoAetherCannonBox();
+                ConfigFunctions.DrawSortingMethodCombo();
                 ConfigFunctions.DrawLifestreamCommandTextInput();
                 ConfigFunctions.DrawAntiStuckCooldown();
                 ConfigFunctions.DrawStuckThreshold();
                 ConfigFunctions.DrawTimedNodePrecog();
                 ConfigFunctions.DrawExecutionDelay();
+                ConfigFunctions.DrawAutoGatherBox();
+                ConfigFunctions.DrawUseFlagBox();
+                ConfigFunctions.DrawUseNavigationBox();
+                ConfigFunctions.DrawForceWalkingBox();
                 ImGui.TreePop();
             }
         }

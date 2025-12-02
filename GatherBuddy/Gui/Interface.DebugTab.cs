@@ -33,8 +33,10 @@ using System.Collections;
 using ECommons;
 using ECommons.ExcelServices;
 using GatherBuddy.AutoGather.Lists;
-using Action = System.Action;
+using GatherBuddy.SeFunctions;
+using Newtonsoft.Json;
 using Effects = GatherBuddy.Models.Effects;
+using Action = System.Action;
 
 namespace GatherBuddy.Gui;
 
@@ -115,10 +117,41 @@ public partial class Interface
         ImGuiUtil.DrawTableColumn(string.Join('|', f.FishingSpots.Select(s => s.Name)));
     }
 
-    private static void DrawFishingSpotDebug(FishingSpot s)
+    private Dictionary<ushort, int>? _fishingSpotDataCounts;
+
+    private static bool ArePositionsIdentical(Vector3 pos1, Vector3 pos2)
     {
+        const float epsilon = 1.0f;
+        return Math.Abs(pos1.X - pos2.X) < epsilon
+            && Math.Abs(pos1.Y - pos2.Y) < epsilon
+            && Math.Abs(pos1.Z - pos2.Z) < epsilon;
+    }
+
+    private class Vector3Comparer : IEqualityComparer<Vector3>
+    {
+        public bool Equals(Vector3 x, Vector3 y)
+            => ArePositionsIdentical(x, y);
+
+        public int GetHashCode(Vector3 obj)
+        {
+            var x = (int)obj.X;
+            var y = (int)obj.Y;
+            var z = (int)obj.Z;
+            return HashCode.Combine(x, y, z);
+        }
+    }
+
+    private void DrawFishingSpotDebug(FishingSpot s)
+    {
+        _fishingSpotDataCounts ??= _plugin.FishRecorder.RemoteRecords
+            .Where(r => r.PositionDataValid)
+            .GroupBy(r => r.SpotId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.Position).Distinct(new Vector3Comparer()).Count());
+
         ImGuiUtil.DrawTableColumn($"{s.Id}{(s.Spearfishing ? " (sf)" : "")}");
         ImGuiUtil.DrawTableColumn(s.Name);
+        var dataCount = _fishingSpotDataCounts.GetValueOrDefault((ushort)s.Id, 0);
+        ImGuiUtil.DrawTableColumn(dataCount.ToString());
         ImGuiUtil.DrawTableColumn($"{s.Territory.Name} ({s.Territory.Id})");
         ImGuiUtil.DrawTableColumn(s.ClosestAetheryte?.Name ?? "Unknown");
         ImGuiUtil.DrawTableColumn($"{s.IntegralXCoord / 100f:00.00}-{s.IntegralYCoord / 100f:00.00}");
@@ -170,6 +203,21 @@ public partial class Interface
                 _plugin.AutoGatherListsManager.AddList(list);
             }
 
+
+            if (ImGui.Button("Test Enhanced Weather"))
+            {
+                var enhancedWeather = EnhancedCurrentWeather.GetCurrentWeatherWithDebug();
+                var originalWeather = GatherBuddy.CurrentWeather.Current;
+                
+                GatherBuddy.Log.Information($"[Weather Test] Enhanced: {enhancedWeather}, Original: {originalWeather}");
+                
+                if (GatherBuddy.GameData.Weathers.TryGetValue(enhancedWeather, out var eWeather))
+                    GatherBuddy.Log.Information($"[Weather Test] Enhanced Weather Name: {eWeather.Name}");
+                    
+                if (GatherBuddy.GameData.Weathers.TryGetValue(originalWeather, out var oWeather))
+                    GatherBuddy.Log.Information($"[Weather Test] Original Weather Name: {oWeather.Name}");
+            }
+
             if (FishTimerWindow.CollectableIcon.TryGetWrap(out var wrapCollectable, out _))
                 ImGui.Image(wrapCollectable.Handle, wrapCollectable.Size);
 
@@ -218,6 +266,12 @@ public partial class Interface
          && GatherBuddy.GameData.Weathers.TryGetValue(GatherBuddy.CurrentWeather.Current, out var w)
                 ? w.Name
                 : "None");
+        ImGuiUtil.DrawTableColumn("Enhanced Weather (ClientStructs)");
+        var enhancedId = EnhancedCurrentWeather.GetCurrentWeatherId();
+        ImGuiUtil.DrawTableColumn(Dalamud.ClientState.TerritoryType != 0
+         && GatherBuddy.GameData.Weathers.TryGetValue(enhancedId, out var ew)
+                ? $"{ew.Name} ({enhancedId})"
+                : $"None ({enhancedId})");
     }
 
     private static unsafe void DrawDebugFishingState()
@@ -593,7 +647,7 @@ public partial class Interface
         ImGuiTable.DrawTabbedTable($"Fish ({GatherBuddy.GameData.Fishes.Count})", GatherBuddy.GameData.Fishes.Values,
             DrawFishDebug, flags, "ItemId", "FishId", "Name", "Restrictions", "Folklore", "InLog", "Big", "Fishing Spots");
         ImGuiTable.DrawTabbedTable($"Fishing Spots ({GatherBuddy.GameData.FishingSpots.Count})", GatherBuddy.GameData.FishingSpots.Values,
-            DrawFishingSpotDebug, flags, "Id", "Name", "Territory", "Aetheryte", "Coords", "Shadow", "Fishes");
+            DrawFishingSpotDebug, flags, "Id", "Name", "Data", "Territory", "Aetheryte", "Coords", "Shadow", "Fishes");
         DrawUptimeManagerTable();
         DrawOceanTab();
         DrawCosmicTab();

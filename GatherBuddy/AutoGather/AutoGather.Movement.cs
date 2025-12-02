@@ -3,8 +3,10 @@ using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
+using GatherBuddy.Data;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
+using GatherBuddy.SeFunctions;
 using System;
 using System.Linq;
 using System.Numerics;
@@ -88,10 +90,11 @@ namespace GatherBuddy.AutoGather
 
             if (hSeparation < 3.5)
             {
+                
                 var waitGP = targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.CollectableMinGP;
                 waitGP |= !targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.GatherableMinGP;
 
-                if (Dalamud.Conditions[ConditionFlag.Mounted] && (waitGP || Dalamud.Conditions[ConditionFlag.InFlight] || GetConsumablesWithCastTime(config) > 0))
+                if (Dalamud.Conditions[ConditionFlag.Mounted] && (waitGP || GetConsumablesWithCastTime(config) > 0))
                 {
                     //Try to dismount early. It would help with nodes where it is not possible to dismount at vnavmesh's provided floor point
                     EnqueueDismount();
@@ -139,17 +142,45 @@ namespace GatherBuddy.AutoGather
                             return;
                         }
 
-                        if (vSeparation < 3)                        
-                            if (targetItem.GatheringType.ToGroup() != JobAsGatheringType && targetItem.GatheringType != GatheringType.多职业) {
-                                if (ChangeGearSet(targetItem.GatheringType.ToGroup(), 0)){
+                        if (vSeparation < 3)
+                        {
+                            
+                            var targetGatheringType = targetItem.GatheringType.ToGroup();
+                            var isUmbralItem = UmbralNodes.IsUmbralItem(targetItem.ItemId);
+                            if (isUmbralItem && Functions.InTheDiadem())
+                            {
+                                var currentWeather = EnhancedCurrentWeather.GetCurrentWeatherId();
+                                if (UmbralNodes.IsUmbralWeather(currentWeather))
+                                {
+                                    var umbralWeather = (UmbralNodes.UmbralWeatherType)currentWeather;
+                                    targetGatheringType = umbralWeather switch
+                                    {
+                                        UmbralNodes.UmbralWeatherType.UmbralFlare      => GatheringType.采矿工,
+                                        UmbralNodes.UmbralWeatherType.UmbralLevin      => GatheringType.采矿工,
+                                        UmbralNodes.UmbralWeatherType.UmbralDuststorms => GatheringType.园艺工,
+                                        UmbralNodes.UmbralWeatherType.UmbralTempest    => GatheringType.园艺工,
+                                        _                                              => targetGatheringType
+                                    };
+                                }
+                            }
+                            
+                            var shouldSkipJobSwitch = Functions.InTheDiadem() && _hasGatheredUmbralThisSession;
+                            
+                            if (targetGatheringType != JobAsGatheringType && targetGatheringType != GatheringType.多职业 && !shouldSkipJobSwitch) {
+                                if (ChangeGearSet(targetGatheringType, 0)){
                                     EnqueueNodeInteraction(gameObject, targetItem);
                                 } else {
                                     AbortAutoGather();
                                 }
                             }
                             else {
+                                if (shouldSkipJobSwitch && targetGatheringType != JobAsGatheringType)
+                                {
+                                    Svc.Log.Information($"[Umbral] Skipping job switch at node after umbral gathering (staying on {JobAsGatheringType})");
+                                }
                                 EnqueueNodeInteraction(gameObject, targetItem);
                             }
+                        }
 
                         // The node could be behind a rock or a tree and not be interactable. This happened in the Endwalker, but seems not to be reproducible in the Dawntrail.
                         // Enqueue navigation anyway, just in case.
@@ -159,6 +190,49 @@ namespace GatherBuddy.AutoGather
                             TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
                         }
                     }
+                }
+            }
+            else if (hSeparation < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5))
+            {
+                Navigate(gameObject.Position, false);
+            }
+            else
+            {
+                if (!Dalamud.Conditions[ConditionFlag.Mounted])
+                {
+                    if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting)
+                        Navigate(gameObject.Position, false);
+                    EnqueueMountUp();
+                }
+                else
+                {
+                    Navigate(gameObject.Position, ShouldFly(gameObject.Position));
+                }
+            }
+        }
+
+        private void MoveToCloseSpearfishingNode(IGameObject gameObject, Classes.Fish targetFish)
+        {
+            var hSeparation = Vector2.Distance(gameObject.Position.ToVector2(), Player.Position.ToVector2());
+            var vSeparation = Math.Abs(gameObject.Position.Y - Player.Position.Y);
+
+            if (hSeparation < 3.5)
+            {
+                if (vSeparation < 3)
+                {
+                    if (Dalamud.Conditions[ConditionFlag.Mounted])
+                    {
+                        EnqueueDismount();
+                    }
+                    else
+                    {
+                        EnqueueSpearfishingNodeInteraction(gameObject, targetFish);
+                    }
+                }
+
+                if (!Dalamud.Conditions[ConditionFlag.Diving])
+                {
+                    TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Gathering]) Navigate(gameObject.Position, false); });
                 }
             }
             else if (hSeparation < Math.Max(GatherBuddy.Config.AutoGatherConfig.MountUpDistance, 5))
@@ -199,7 +273,7 @@ namespace GatherBuddy.AutoGather
             playerObject->SetRotation(angle.Rad);
         }
 
-        private void Navigate(Vector3 destination, bool shouldFly, Angle angle = default)
+        private void Navigate(Vector3 destination, bool shouldFly, Angle angle = default, bool preferGround = false)
         {
             if (CurrentDestination == destination && (IsPathing || IsPathGenerating))
                 return;
@@ -209,13 +283,19 @@ namespace GatherBuddy.AutoGather
             StopNavigation();
             CurrentDestination = destination;
             CurrentRotation    = angle;
-            var correctedDestination = GetCorrectedDestination(CurrentDestination);
-            GatherBuddy.Log.Debug($"正在导航至 {destination} (关联点: {correctedDestination})");
+            var correctedDestination = GetCorrectedDestination(CurrentDestination, preferGround);
 
             LastNavigationResult = VNavmesh.SimpleMove.PathfindAndMoveTo(correctedDestination, shouldFly);
+            
+            if (LastNavigationResult == false)
+            {
+                GatherBuddy.Log.Warning($"VNavmesh pathfinding failed for destination {destination} (corrected: {correctedDestination}), shouldFly: {shouldFly}");
+                CurrentDestination = default;
+                CurrentRotation = default;
+            }
         }
 
-        private static Vector3 GetCorrectedDestination(Vector3 destination)
+        private static Vector3 GetCorrectedDestination(Vector3 destination, bool preferGround = false)
         {
             const float MaxHorizontalSeparation = 3.0f;
             const float MaxVerticalSeparation = 2.5f;
@@ -241,6 +321,28 @@ namespace GatherBuddy.AutoGather
                     GatherBuddy.Log.Warning($"Query.Mesh.NearestPoint() returned a point with too large vertical separation {separation}. Maximum allowed is {MaxVerticalSeparation}.");
                 else
                     return correctedDestination;
+                
+                if (preferGround)
+                {
+                    const float GroundSearchRadius = 15f;
+                    const float MaxGroundHorizontalSeparation = 7.5f;
+                    const float MaxGroundVerticalSeparation = 10f;
+                    
+                    try
+                    {
+                        var groundPoint = VNavmesh.Query.Mesh.PointOnFloor(destination, false, GroundSearchRadius);
+                        var hDist = Vector2.Distance(groundPoint.ToVector2(), destination.ToVector2());
+                        var vDist = Math.Abs(groundPoint.Y - destination.Y);
+                        
+                        if (hDist <= MaxGroundHorizontalSeparation && vDist <= MaxGroundVerticalSeparation)
+                        {
+                            return groundPoint;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
             }
             catch (Exception) { }
 
@@ -263,17 +365,35 @@ namespace GatherBuddy.AutoGather
             }
         }
 
-        private void MoveToFishingSpot(Vector3 position, Angle angle)
+        private unsafe void MoveToFishingSpot(Vector3 position, Angle angle)
         {
             if (!Dalamud.Conditions[ConditionFlag.Mounted])
             {
-                if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting)
-                    Navigate(position, false, angle);
-                EnqueueMountUp();
+                var am = ActionManager.Instance();
+                var mount = GatherBuddy.Config.AutoGatherConfig.AutoGatherMountId;
+                var canMount = IsMountUnlocked(mount) && am->GetActionStatus(ActionType.Mount, mount) == 0;
+                if (!canMount)
+                {
+                    canMount = am->GetActionStatus(ActionType.GeneralAction, 24) == 0;
+                }
+                
+                if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting && canMount)
+                {
+                    Navigate(position, false, angle, preferGround: true);
+                    EnqueueMountUp();
+                }
+                else if (canMount)
+                {
+                    EnqueueMountUp();
+                }
+                else
+                {
+                    Navigate(position, false, angle, preferGround: true);
+                }
             }
             else
             {
-                Navigate(position, ShouldFly(position), angle);
+                Navigate(position, ShouldFly(position), angle, preferGround: true);
             }
         }
 

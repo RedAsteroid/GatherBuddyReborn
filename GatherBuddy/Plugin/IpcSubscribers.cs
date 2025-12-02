@@ -216,6 +216,9 @@ namespace GatherBuddy.Plugin
 
         [EzIPC("Lifestream.AethernetTeleport", applyPrefix: false)]
         internal static readonly Func<string, bool> AethernetTeleport;
+        
+        [EzIPC("Lifestream.ChangeCharacter", applyPrefix: false)]
+        internal static readonly Func<string, string, int> ChangeCharacter;
     }
 
     internal static class YesAlready
@@ -264,24 +267,52 @@ namespace GatherBuddy.Plugin
         [EzIPC("AutoHook.SetPluginState", applyPrefix: false)]
         internal static readonly Action<bool> SetPluginState;
 
+        [EzIPC("AutoHook.SetAutoStartFishing", applyPrefix: false)]
+        internal static readonly Action<bool> SetAutoStartFishing;
+
+        [EzIPC("AutoHook.SetAutoGigState", applyPrefix: false)]
+        internal static readonly Action<bool> SetAutoGigState;
+
         [EzIPC("AutoHook.CreateAndSelectAnonymousPreset", applyPrefix: false)]
         internal static readonly Action<string> CreateAndSelectAnonymousPreset;
+        
+        [EzIPC("AutoHook.ImportAndSelectPreset", applyPrefix: false)]
+        internal static readonly Action<string> ImportAndSelectPreset;
+        
+        [EzIPC("AutoHook.SetPreset", applyPrefix: false)]
+        internal static readonly Action<string> SetPreset;
+        
+        [EzIPC("AutoHook.DeleteSelectedPreset", applyPrefix: false)]
+        internal static readonly Action DeleteSelectedPreset;
     }
 
     internal static class AutoRetainer
     {
+        public class OfflineRetainerData
+        {
+            public string Name { get; set; } = string.Empty;
+            public uint VentureEndsAt { get; set; }
+            public bool HasVenture { get; set; }
+        }
+
+        public class OfflineCharacterData
+        {
+            public ulong CID { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string World { get; set; } = string.Empty;
+            public bool Enabled { get; set; }
+            public List<OfflineRetainerData> RetainerData { get; set; } = new();
+        }
+
         private static EzIPCDisposalToken[] _disposalTokens = EzIPC.Init(typeof(AutoRetainer), "AutoRetainer.PluginState", SafeWrapper.IPCException);
 
         internal static bool IsEnabled => IPCSubscriber.IsReady("AutoRetainer");
 
         [EzIPC] internal static readonly Func<bool> IsBusy;
         [EzIPC] internal static readonly Func<Dictionary<ulong, HashSet<string>>> GetEnabledRetainers;
-        [EzIPC] internal static readonly Func<bool> AreAnyRetainersAvailableForCurrentChara;
         [EzIPC] internal static readonly Action AbortAllTasks;
         [EzIPC] internal static readonly Action DisableAllFunctions;
         [EzIPC] internal static readonly Action EnableMultiMode;
-        [EzIPC] internal static readonly Func<int> GetInventoryFreeSlotCount;
-        [EzIPC] internal static readonly Action EnqueueHET;
-        [EzIPC("AutoRetainer.GC.EnqueueInitiation", applyPrefix: false)] internal static readonly Action EnqueueGCInitiation;
+        [EzIPC("AutoRetainer.GetOfflineCharacterData", applyPrefix: false)] internal static readonly Func<ulong, OfflineCharacterData> GetOfflineCharacterData;
     }
 }

@@ -175,7 +175,7 @@ public class GameData
             OverriddenFish = Fishes.Values.Count(f => f.HasOverridenData);
 
             FishingSpots = DataManager.GetExcelSheet<FishingSpotRow>()
-                .Where(f => f.PlaceName.RowId != 0 && (f.TerritoryType.RowId > 0 || f.RowId == 10000 || f.RowId >= 10017))
+                .Where(f => (f.PlaceName.RowId != 0 || f.RowId >= 10017) && (f.TerritoryType.RowId > 0 || f.RowId == 10000 || (f.RowId >= 10017 && f.RowId < 10026)))
                 .Select(f => new FishingSpot(this, f))
                 .Concat(
                     DataManager.GetExcelSheet<SpearfishingNotebook>()
@@ -187,8 +187,11 @@ public class GameData
             if (FishingSpots.Count is 0)
                 throw new Exception("Could not fetch any fishing spots, this is certainly an error, terminating.");
 
+            Data.SpearfishingData.Apply(this);
+
             HiddenMaps.Apply(this);
             ForcedAetherytes.Apply(this);
+            UmbralNodes.Apply(this);
 
             OceanRoutes   = SetupOceanRoutes(gameData, FishingSpots);
             OceanTimeline = new OceanTimeline(gameData, OceanRoutes);

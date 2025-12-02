@@ -17,8 +17,11 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
 using ECommons;
+using ECommons.DalamudServices;
 using ECommons.MathHelpers;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.AutoGather.AtkReaders;
+using LuminaTerritoryType = Lumina.Excel.Sheets.TerritoryType;
 
 namespace GatherBuddy.AutoGather
 {
@@ -88,7 +91,7 @@ namespace GatherBuddy.AutoGather
         public bool ShouldUseFlag
             => !GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing;
 
-        public bool ShouldFly(Vector3 destination)
+        public unsafe bool ShouldFly(Vector3 destination)
         {
             if (Dalamud.Conditions[ConditionFlag.InFlight] || Dalamud.Conditions[ConditionFlag.Diving])
                 return true;
@@ -98,7 +101,26 @@ namespace GatherBuddy.AutoGather
                 return false;
             }
 
-            return Vector3.Distance(Dalamud.ClientState.LocalPlayer.Position, destination)
+            if (Functions.InTheDiadem())
+            {
+                return Vector3.Distance(Dalamud.ClientState.LocalPlayer.Position, destination)
+                 >= GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
+            }
+
+            var territory = Dalamud.ClientState.TerritoryType;
+            var territoryRow = Svc.Data.GameData.GetExcelSheet<LuminaTerritoryType>();
+            if (territoryRow == null)
+                return false;
+
+            var playerState = PlayerState.Instance();
+            if (playerState == null)
+                return false;
+
+            var aetherCurrentComp = territoryRow.GetRow(territory).AetherCurrentCompFlgSet.RowId;
+            if (aetherCurrentComp == 0)
+                return false;
+
+            return playerState->IsAetherCurrentZoneComplete(aetherCurrentComp) && Vector3.Distance(Dalamud.ClientState.LocalPlayer.Position, destination)
              >= GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
         }
 
@@ -120,7 +142,6 @@ namespace GatherBuddy.AutoGather
                         result = new Vector2(miniMapGatheringMarker.MapMarker.X / 16, miniMapGatheringMarker.MapMarker.Y / 16);
                         break;
                     }
-                    // GatherBuddy.Log.Information(miniMapGatheringMarker.MapMarker.IconId +  " => X: " + miniMapGatheringMarker.MapMarker.X / 16 + " Y: " + miniMapGatheringMarker.MapMarker.Y / 16);
                 }
 
                 return result;
@@ -141,6 +162,36 @@ namespace GatherBuddy.AutoGather
 
         public readonly HashSet<Vector3> FarNodesSeenSoFar = [];
         public readonly LinkedList<uint> VisitedNodes      = [];
+
+        private readonly Dictionary<Vector3, DateTime> _diademSpawnAreaLastChecked = new();
+        private Vector3? _currentDiademPatrolTarget = null;
+        private const float DiademSpawnAreaCheckRadius = 80f;
+        private const int DiademSpawnAreaRecheckSeconds = 180;
+        
+        private readonly LinkedList<Vector3> _diademRecentlyGatheredNodes = new();
+        private const int DiademNodeRespawnWindow = 8;
+        
+        private DateTime _diademArborCallUsedAt = DateTime.MinValue;
+        private Vector3? _diademArborCallTarget = null;
+        
+        private readonly LinkedList<Vector3> _diademVisitedNodes = new();
+        private const int DiademVisitedNodeTrackingCount = 20;
+        private const float DiademNodeProximityThreshold = 5f;
+        
+        private uint _lastUmbralWeather = 0;
+        private bool _hasGatheredUmbralThisSession = false;
+        private uint _lastTerritory = 0;
+        
+        private uint _lastNonTimedNodeTerritory = 0;
+        private GatheringType _lastJob = GatheringType.未知;
+        
+        public readonly Dictionary<uint, int> SpearfishingSessionCatches = new();
+        private readonly Dictionary<uint, int> _spearfishingInventorySnapshot = new();
+        private readonly Dictionary<uint, bool> _spawnRequirementsMetCache = new();
+        private DateTime _lastAutoHookSetupTime = DateTime.MinValue;
+        private bool _autoHookSetupComplete = false;
+        private bool _wasGatheringSpearfish = false;
+        private bool _wasAtShadowNode = false;
 
         private IEnumerator<Actions.BaseAction?>? ActionSequence;
 
@@ -178,7 +229,10 @@ namespace GatherBuddy.AutoGather
             => GetAddon<AddonRepair>("Repair");
 
         public IEnumerable<IGatherable> ItemsToGatherInZone
-            => _activeItemList.Where(i => i.Node?.Territory.Id == Dalamud.ClientState.TerritoryType).Select(i => i.Item);
+            => _activeItemList
+                .Where(i => i.Node?.Territory.Id == Dalamud.ClientState.TerritoryType)
+                .Where(i => LocationMatchesJob(i.Location))
+                .Select(i => i.Item);
 
         private bool LocationMatchesJob(ILocation loc)
             => loc.GatheringType.ToGroup() == JobAsGatheringType;
