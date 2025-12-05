@@ -941,6 +941,16 @@ public partial class Interface
             }
         }
 
+        public static void DrawUseHookTimersBox()
+        {
+            DrawCheckbox("Use Hook Timers in AutoHook Presets",
+                "Enable bite timer windows in generated AutoHook presets.",
+                GatherBuddy.Config.AutoGatherConfig.UseHookTimers,
+                b => GatherBuddy.Config.AutoGatherConfig.UseHookTimers = b);
+            ImGui.SameLine();
+            ImGuiEx.PluginAvailabilityIndicator([new("AutoHook")]);
+        }
+
         public static void DrawAutoCollectablesFishingBox()
             => DrawCheckbox("Auto Collectables",
                 "Auto accept/decline collectable fish based on minimum collectability.",
@@ -1071,6 +1081,7 @@ public partial class Interface
                 ConfigFunctions.DrawFishingSpotMinutes();
                 ConfigFunctions.DrawFishCollectionBox();
                 ConfigFunctions.DrawAutoCollectablesFishingBox();
+                ConfigFunctions.DrawUseHookTimersBox();
                 ConfigFunctions.DrawSurfaceSlapConfig();
                 ConfigFunctions.DrawIdenticalCastConfig();
                 ConfigFunctions.DrawManualPresetGenerator();

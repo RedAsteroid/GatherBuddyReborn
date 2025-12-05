@@ -25,7 +25,11 @@ namespace GatherBuddy.AutoGather
             if (targetSystem == null)
                 return;
 
-            TaskManager.Enqueue(() => targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address));
+            TaskManager.Enqueue(() =>
+            {
+                _lastNodeInteractionTime = Environment.TickCount64;
+                targetSystem->OpenObjectInteraction((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)gameObject.Address);
+            });
             TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Gathering], 500);
             
             TaskManager.Enqueue(() => {

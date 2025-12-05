@@ -305,7 +305,7 @@ public class AutoHookPresetBuilder
         tripleConfig!.HooksetEnabled = true;
         tripleConfig.HooksetType = hookType;
 
-        if (minTime > 0 || maxTime > 0)
+        if (GatherBuddy.Config.AutoGatherConfig.UseHookTimers && (minTime > 0 || maxTime > 0))
         {
             patienceConfig.HookTimerEnabled = true;
             patienceConfig.MinHookTimer = minTime;
