@@ -264,6 +264,12 @@ namespace GatherBuddy.Plugin
 
         internal static bool Enabled => IPCSubscriber.IsReady("AutoHook");
 
+        [EzIPC("AutoHook.GetPluginState", applyPrefix: false)]
+        internal static readonly Func<bool> GetPluginState;
+
+        [EzIPC("AutoHook.GetAutoStartFishing", applyPrefix: false)]
+        internal static readonly Func<bool> GetAutoStartFishing;
+
         [EzIPC("AutoHook.SetPluginState", applyPrefix: false)]
         internal static readonly Action<bool> SetPluginState;
 

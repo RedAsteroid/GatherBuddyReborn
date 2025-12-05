@@ -337,6 +337,7 @@ namespace GatherBuddy.AutoGather.Lists
                 .Select(x => (x.Fish, PreferredLocation: x.PreferredLocation!, Time: GatherBuddy.UptimeManager.NextUptime(x.Fish, adjustedServerTime).interval,
                     x.Quantity))
                 .Where(x => x.Time.InRange(adjustedServerTime))
+                .Where(x => ArePredatorWindowsActive(x.Fish, x.PreferredLocation, adjustedServerTime))
                 .GroupBy(x => x.Fish, x => x, (_, g) => g
                     // Order by end time, longest first as in the original UptimeManager.NextUptime().
                     .OrderByDescending(x => x.Time.End)
@@ -426,6 +427,37 @@ namespace GatherBuddy.AutoGather.Lists
         private bool RequiresHomeWorld((Fish fish, uint quantity) valueTuple)
         {
             return false;
+        }
+
+        private bool ArePredatorWindowsActive(Fish fish, ILocation location, TimeStamp now)
+        {
+            if (fish.Predators.Length == 0)
+                return true;
+
+            var territory = location switch
+            {
+                FishingSpot spot => spot.Territory,
+                _ => Territory.Invalid
+            };
+
+            if (territory == Territory.Invalid)
+            {
+                Svc.Log.Debug($"[ActiveItemList] Could not determine territory for {fish.Name[GatherBuddy.Language]}");
+                return true;
+            }
+
+            foreach (var (predatorFish, _) in fish.Predators)
+            {
+                var predatorUptime = GatherBuddy.UptimeManager.NextUptime(predatorFish, territory, now);
+                
+                if (!predatorUptime.InRange(now))
+                {
+                    Svc.Log.Debug($"[ActiveItemList] Predator {predatorFish.Name[GatherBuddy.Language]} window not active for {fish.Name[GatherBuddy.Language]}");
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static float GetHorizontalSquaredDistanceToPlayer(GatheringNode node)

@@ -419,6 +419,19 @@ namespace GatherBuddy.AutoGather
                 return false;
             }
 
+            if (Svc.Condition[ConditionFlag.Occupied]
+             || Svc.Condition[ConditionFlag.Gathering]
+             || Svc.Condition[ConditionFlag.ExecutingGatheringAction]
+             || Svc.Condition[ConditionFlag.Fishing]
+             || Svc.Condition[ConditionFlag.Casting]
+             || Svc.Condition[ConditionFlag.Mounting]
+             || Svc.Condition[ConditionFlag.Mounting71]
+             || Environment.TickCount64 - _lastNodeInteractionTime < 2000)
+            {
+                GatherBuddy.Log.Debug($"[MoveToTerritory] Cannot teleport in current state, deferring teleport");
+                return false;
+            }
+
             EnqueueActionWithDelay(() => Teleporter.Teleport(aetheryte.Id));
             TaskManager.Enqueue(() => Svc.Condition[ConditionFlag.BetweenAreas]);
             TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.BetweenAreas]);

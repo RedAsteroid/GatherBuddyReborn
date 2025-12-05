@@ -194,6 +194,7 @@ namespace GatherBuddy.AutoGather
         private bool _wasAtShadowNode = false;
 
         private IEnumerator<Actions.BaseAction?>? ActionSequence;
+        private long _lastNodeInteractionTime = 0;
 
         private static unsafe T* GetAddon<T>(string name) where T : unmanaged
         {

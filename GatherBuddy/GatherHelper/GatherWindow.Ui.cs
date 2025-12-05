@@ -11,6 +11,7 @@ using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
+using GatherBuddy.Enums;
 using GatherBuddy.Gui;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Time;
@@ -51,23 +52,25 @@ public class GatherWindow : Window
         };
     }
 
-    private static void DrawTime(ILocation? loc, TimeInterval time)
+    private static void DrawTime(ILocation? loc, TimeInterval time, bool uptimeDependency)
     {
         if (!GatherBuddy.Config.ShowGatherWindowTimers || !ImGui.TableNextColumn())
             return;
         if (time.Equals(TimeInterval.Always))
             return;
 
-        if (time.Start > GatherBuddy.Time.ServerTime)
+        var active = time.Start <= GatherBuddy.Time.ServerTime;
+        var colorId = (active, uptimeDependency) switch
         {
-            using var color = ImRaii.PushColor(ImGuiCol.Text, ColorId.UpcomingItem.Value());
-            ImGui.Text(TimeInterval.DurationString(time.Start, GatherBuddy.Time.ServerTime, false));
-        }
-        else
-        {
-            using var color = ImRaii.PushColor(ImGuiCol.Text, ColorId.AvailableItem.Value());
-            ImGui.Text(TimeInterval.DurationString(time.End, GatherBuddy.Time.ServerTime, false));
-        }
+            (true, true)   => ColorId.DependentAvailableFish.Value(),
+            (true, false)  => ColorId.AvailableItem.Value(),
+            (false, true)  => ColorId.DependentUpcomingFish.Value(),
+            (false, false) => ColorId.UpcomingItem.Value(),
+        };
+
+        using var color = ImRaii.PushColor(ImGuiCol.Text, colorId);
+        ImGui.Text(TimeInterval.DurationString(active ? time.End : time.Start, GatherBuddy.Time.ServerTime, false));
+        color.Pop();
 
         CreateTooltip(null, loc, time);
     }
@@ -115,6 +118,45 @@ public class GatherWindow : Window
 
     private readonly List<(IGatherable Item, ILocation Location, TimeInterval Uptime, uint Quantity)> _data = new();
 
+    private static bool HasPredatorTimerIssue(IGatherable item)
+    {
+        if (item is not Fish fish || fish.Predators.Length == 0)
+            return false;
+
+        foreach (var (predatorFish, _) in fish.Predators)
+        {
+            if (CheckRestrictions(predatorFish, fish))
+                return true;
+        }
+
+        return false;
+
+        static bool CheckRestrictions(Fish predator, Fish target)
+        {
+            if (predator.FishRestrictions.HasFlag(FishRestrictions.Time))
+            {
+                if (!target.FishRestrictions.HasFlag(FishRestrictions.Time))
+                    return true;
+                if (!predator.Interval.Contains(target.Interval))
+                    return true;
+            }
+
+            if (predator.FishRestrictions.HasFlag(FishRestrictions.Weather))
+            {
+                if (!target.FishRestrictions.HasFlag(FishRestrictions.Weather))
+                    return true;
+
+                if (predator.CurrentWeather.Length > 0 && target.CurrentWeather.Any(w => !predator.CurrentWeather.Contains(w)))
+                    return true;
+
+                if (predator.PreviousWeather.Length > 0 && target.PreviousWeather.Any(w => !predator.PreviousWeather.Contains(w)))
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
     private void DrawItem(IGatherable item, ILocation loc, TimeInterval time, uint quantity)
     {
         if (GatherBuddy.Config.ShowGatherWindowOnlyAvailable && time.Start > GatherBuddy.Time.ServerTime)
@@ -125,6 +167,8 @@ public class GatherWindow : Window
         if (quantity > 0 && inventoryCount >= quantity && GatherBuddy.Config.HideGatherWindowCompletedItems)
             return;
 
+        var hasPredatorIssue = HasPredatorTimerIssue(item);
+
         if (ImGui.TableNextColumn())
         {
             using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemSpacing / 2);
@@ -133,6 +177,7 @@ public class GatherWindow : Window
             else
                 ImGui.Dummy(new Vector2(ImGui.GetTextLineHeight()));
             ImGui.SameLine();
+            
             var colorId = time == TimeInterval.Always    ? ColorId.GatherWindowText :
                 time.Start > GatherBuddy.Time.ServerTime ? ColorId.GatherWindowUpcoming : ColorId.GatherWindowAvailable;
 
@@ -206,7 +251,7 @@ public class GatherWindow : Window
                 Interface.CreateGatherWindowContextMenu(item, clicked);
         }
 
-        DrawTime(loc, time);
+        DrawTime(loc, time, hasPredatorIssue);
     }
 
     private void DeleteItem()

@@ -1,45 +1,46 @@
-﻿using ECommons.Automation.LegacyTaskManager;
-using GatherBuddy.Plugin;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Tasks;
-using Dalamud.Game.Addon.Lifecycle;
+﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using ECommons.DalamudServices;
-using ECommons.GameHelpers;
-using GatherBuddy.AutoGather.Movement;
-using GatherBuddy.CustomInfo;
-using GatherBuddy.Enums;
-using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-using FFXIVClientStructs.FFXIV.Client.Game;
+using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Game.Text;
 using Dalamud.Utility;
 using ECommons;
-using ECommons.ExcelServices;
 using ECommons.Automation;
+using ECommons.Automation.LegacyTaskManager;
+using ECommons.DalamudServices;
+using ECommons.ExcelServices;
+using ECommons.EzIpcManager;
+using ECommons.GameHelpers;
 using ECommons.MathHelpers;
-using GatherBuddy.Data;
-using GatherBuddy.SeFunctions;
-using GatherBuddy.AutoGather.Extensions;
-using NodeType = GatherBuddy.Enums.NodeType;
 using ECommons.UIHelpers.AddonMasterImplementations;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.AutoGather.Helpers;
 using GatherBuddy.AutoGather.Lists;
+using GatherBuddy.AutoGather.Movement;
 using GatherBuddy.Classes;
+using GatherBuddy.CustomInfo;
+using GatherBuddy.Data;
+using GatherBuddy.Enums;
 using GatherBuddy.Interfaces;
+using GatherBuddy.Plugin;
+using GatherBuddy.SeFunctions;
 using Lumina.Excel.Sheets;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
 using Fish = GatherBuddy.Classes.Fish;
 using GatheringType = GatherBuddy.Enums.GatheringType;
+using NodeType = GatherBuddy.Enums.NodeType;
+using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace GatherBuddy.AutoGather
 {
@@ -1509,25 +1510,15 @@ namespace GatherBuddy.AutoGather
 
             if (fishingSpotData.Expiration < DateTime.Now)
             {
-                Svc.Log.Debug("Time for a new fishing spot!");
+                Svc.Log.Debug("[AutoGather] Time for a new fishing spot!");
                 var oldPosition = fishingSpotData.Position;
-                FishingSpotData.Remove(fish);
-
-                if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                {
-                    AutoHook.SetPluginState?.Invoke(false);
-                    AutoHook.SetAutoStartFishing?.Invoke(false);
-                    TaskManager.DelayNext(500);
-                    Svc.Log.Debug("[AutoGather] AutoHook disabled for relocation to a new position at the same fishing spot");
-                }
-
-                if (IsGathering || IsFishing)
-                {
-                    QueueQuitFishingTasks();
-                }
 
                 const float MinRelocationDistance = 10.0f;
-                var positionData = _plugin.FishRecorder.GetPositionForFishingSpot(fish!.FishingSpot, oldPosition, MinRelocationDistance);
+                var positionData = _plugin.FishRecorder.GetPositionForFishingSpot(
+                    fish!.FishingSpot,
+                    oldPosition,
+                    MinRelocationDistance);
+
                 if (!positionData.HasValue)
                 {
                     Communicator.PrintError(
@@ -1536,8 +1527,24 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
 
-                FishingSpotData.Add(fish, (positionData.Value.Position, positionData.Value.Rotation, DateTime.MaxValue));
+                var newPos = positionData.Value.Position;
+                var newRot = positionData.Value.Rotation;
+                var dist = Vector3.Distance(newPos, oldPosition);
 
+                Svc.Log.Debug($"[AutoGather] Relocating fishing spot for '{fish.FishingSpot.Name}' " +
+                              $"from {oldPosition} to {newPos}, distance={dist}");
+
+                FishingSpotData[fish] = (newPos, newRot, DateTime.MaxValue);
+
+                if (IsGathering || IsFishing)
+                {
+                    AutoStatus = "Stopping fishing to relocate to new spot...";
+                    QueueQuitFishingTasks();
+                    return;
+                }
+
+                AutoStatus = "Moving to new fishing spot...";
+                MoveToFishingSpot(newPos, newRot);
                 return;
             }
 
@@ -1605,14 +1612,16 @@ namespace GatherBuddy.AutoGather
             {
                 StopNavigation();
                 AutoStatus = "Moving to fishing spot...";
-                if (IsGathering || IsFishing)
+                var autoHookArmed =
+                    GatherBuddy.Config.AutoGatherConfig.UseAutoHook
+                    && AutoHook.Enabled
+                    && AutoHook.GetAutoStartFishing?.Invoke() == true;
+
+                if (IsGathering || IsFishing || autoHookArmed)
                 {
-                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-                    {
-                        AutoHook.SetPluginState?.Invoke(false);
-                        AutoHook.SetAutoStartFishing?.Invoke(false);
-                    }
+                    AutoStatus = "Stopping fishing to change target...";
                     QueueQuitFishingTasks();
+                    return;
                 }
 
                 MoveToFishingSpot(fishingSpotData.Position, fishingSpotData.Rotation);
@@ -2135,6 +2144,47 @@ namespace GatherBuddy.AutoGather
             TaskManager.DelayNext(Random.Shared.Next(delay, delay + 500)); // Add a random delay to be less suspicious
             return true;
         }
+
+        private void EnqueueEnsureAutoHookDisabled()
+        {
+            if (!GatherBuddy.Config.AutoGatherConfig.UseAutoHook || !AutoHook.Enabled)
+                return;
+
+            const int maxAttempts = 10;
+            var attempt = 0;
+
+            void TryDisableOnce()
+            {
+                attempt++;
+
+                var pluginOn = AutoHook.GetPluginState?.Invoke() == true;
+                var autoStartOn = AutoHook.GetAutoStartFishing?.Invoke() == true;
+                var stillEnabled = pluginOn || autoStartOn;
+
+                if (!stillEnabled)
+                {
+                    Svc.Log.Debug($"[AutoGather] AutoHook fully disabled after {attempt} attempt(s).");
+                    return;
+                }
+
+                Svc.Log.Debug($"[AutoGather] AutoHook still enabled (plugin={pluginOn}, autoStart={autoStartOn}), " +
+                              $"attempt {attempt}/{maxAttempts} – sending IPC disable.");
+
+                AutoHook.SetAutoStartFishing?.Invoke(false);
+                AutoHook.SetPluginState?.Invoke(false);
+
+                if (attempt >= maxAttempts)
+                {
+                    Svc.Log.Warning("[AutoGather] Failed to fully disable AutoHook after max attempts.");
+                    return;
+                }
+
+                TaskManager.Enqueue(TryDisableOnce, "EnsureAutoHookDisabled");
+            }
+
+            TaskManager.Enqueue(TryDisableOnce, "EnsureAutoHookDisabled");
+        }
+
 
         internal void DebugClearVisited()
         {

@@ -92,6 +92,7 @@ namespace GatherBuddy.AutoGather
         public bool EnableIdenticalCast { get; set; } = false;
         public int IdenticalCastGPThreshold { get; set; } = 350;
         public bool IdenticalCastGPAbove { get; set; } = true;
+        public bool UseHookTimers { get; set; } = false;
         public bool AutoCollectablesFishing { get; set; } = true;
         public bool DiademAutoAetherCannon { get; set; } = false;
 

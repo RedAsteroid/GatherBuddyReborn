@@ -113,6 +113,8 @@ public unsafe partial class AutoGather
         return true;
     }
 
+    private DateTime _lastRepairTime = DateTime.MinValue;
+    
     private bool RepairIfNeededForFishing()
     {
         if (Svc.Condition[ConditionFlag.Mounted] || Player.Job is not Job.FSH)
@@ -121,19 +123,13 @@ public unsafe partial class AutoGather
         var itemToRepair = EquipmentNeedingRepair();
 
         if (itemToRepair == null)
+        {
+            _lastRepairTime = DateTime.MinValue;
             return false;
-
-        if (IsGathering || IsFishing)
-        {
-            QueueQuitFishingTasks();
-            TaskManager.Enqueue(() => !IsFishing, 5000, "Wait until fishing stopped.");
         }
-
-        if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
-        {
-            AutoHook.SetPluginState?.Invoke(false);
-            AutoHook.SetAutoStartFishing?.Invoke(false);
-        }
+        
+        if ((DateTime.Now - _lastRepairTime).TotalSeconds < 5)
+            return false;
 
         if (!GatherBuddy.Config.AutoGatherConfig.DoRepair)
         {
@@ -154,11 +150,30 @@ public unsafe partial class AutoGather
         }
 
         AutoStatus = "Repairing...";
-        StopNavigation();
-
+        _lastRepairTime = DateTime.Now;
         var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
+        
+        TaskManager.Enqueue(StopNavigation);
+        
+        if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+        {
+            TaskManager.Enqueue(() =>
+            {
+                AutoHook.SetPluginState?.Invoke(false);
+                AutoHook.SetAutoStartFishing?.Invoke(false);
+            });
+        }
+        
+        if (IsGathering || IsFishing)
+        {
+            QueueQuitFishingTasks();
+            TaskManager.Enqueue(() => !IsFishing, 5000, "Wait until fishing stopped.");
+        }
+        
         if (RepairAddon == null)
-            ActionManager.Instance()->UseAction(ActionType.GeneralAction, 6);
+        {
+            EnqueueActionWithDelay(() => ActionManager.Instance()->UseAction(ActionType.GeneralAction, 6));
+        }
 
         TaskManager.Enqueue(() => RepairAddon != null, 1000, true, "Wait until repair menu is ready.");
         TaskManager.DelayNext(delay);

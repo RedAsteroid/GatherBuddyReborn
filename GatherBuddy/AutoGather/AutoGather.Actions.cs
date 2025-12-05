@@ -283,17 +283,22 @@ namespace GatherBuddy.AutoGather
                     EnqueueActionWithDelay(() => UseAction(Actions.Snagging));
                     return;
                 }
-                
-                TaskManager.DelayNext(5000);
-                TaskManager.Enqueue(() =>
+
+                var autoStartIsOn = AutoHook.GetAutoStartFishing?.Invoke() == true;
+                if (autoStartIsOn)
                 {
-                    if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+                    TaskManager.DelayNext(5000);
+                    TaskManager.Enqueue(() =>
                     {
-                        AutoHook.SetAutoStartFishing?.Invoke(false);
-                        Svc.Log.Debug("[AutoGather] Disabled SetAutoStartFishing after initial cast");
-                    }
-                });
-                
+                        if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook
+                            && AutoHook.Enabled
+                            && AutoHook.GetAutoStartFishing?.Invoke() == true)
+                        {
+                            AutoHook.SetAutoStartFishing?.Invoke(false);
+                        }
+                    });
+                }
+
                 return;
             }
         }
@@ -679,8 +684,17 @@ namespace GatherBuddy.AutoGather
 
         private void QueueQuitFishingTasks()
         {
+            if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
+            {
+                AutoHook.SetAutoStartFishing?.Invoke(false);
+                AutoHook.SetPluginState?.Invoke(false);
+                EnqueueEnsureAutoHookDisabled();
+            }
+
             EnqueueActionWithDelay(() => UseAction(Actions.Quit));
-            TaskManager.DelayNext(3000); //Delay to make sure we stand up properly
+
+            // Delay to make sure we stand up properly before continuing.
+            TaskManager.DelayNext(3000);
         }
     }
 }
