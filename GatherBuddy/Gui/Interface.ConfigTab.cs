@@ -9,6 +9,8 @@ using ECommons.ImGuiMethods;
 using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
+using GatherBuddy.AutoGather.Collectables;
+using GatherBuddy.AutoGather.Collectables.Data;
 using GatherBuddy.Classes;
 using GatherBuddy.Config;
 using GatherBuddy.Enums;
@@ -30,6 +32,7 @@ public partial class Interface
         private static string _fishFilterText = "";
         private static Fish? _selectedFish = null;
         private static string _presetName = "";
+        private static string _scripShopFilterText = "";
 
         public static void DrawSetInput(string jobName, string oldName, Action<string> setName)
         {
@@ -964,6 +967,138 @@ public partial class Interface
                 GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon,
                 b => GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon = b);
         
+        public static void DrawCollectOnAutogatherDisabledBox()
+            => DrawCheckbox("Turn in collectables when AutoGather stops",
+                "Automatically turn in collectables when AutoGather is disabled",
+                GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled,
+                b => GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled = b);
+        
+        public static void DrawEnableAutogatherOnFinishBox()
+            => DrawCheckbox("Re-enable AutoGather after turning in",
+                "Automatically re-enable AutoGather after collectable turn-in completes",
+                GatherBuddy.Config.CollectableConfig.EnableAutogatherOnFinish,
+                b => GatherBuddy.Config.CollectableConfig.EnableAutogatherOnFinish = b);
+        
+        public static void DrawBuyAfterEachCollectBox()
+            => DrawCheckbox("Buy scrip shop items after each turn-in",
+                "Automatically purchase scrip shop items after turning in collectables",
+                GatherBuddy.Config.CollectableConfig.BuyAfterEachCollect,
+                b => GatherBuddy.Config.CollectableConfig.BuyAfterEachCollect = b);
+        
+        public static void DrawScripShopItemManager()
+        {
+            var shopItems = ScripShopItemManager.ShopItems;
+            var purchaseList = GatherBuddy.Config.CollectableConfig.ScripShopItems;
+            
+            ImGui.TextUnformatted("Items in purchase queue:");
+            ImGui.Spacing();
+            
+            if (purchaseList.Count == 0)
+            {
+                ImGui.TextDisabled("No items in queue. Add items below.");
+            }
+            else
+            {
+                ItemToPurchase? toRemove = null;
+                
+                foreach (var purchaseItem in purchaseList)
+                {
+                    using var id = ImRaii.PushId($"{purchaseItem.Name}");
+                    
+                    if (purchaseItem.Item != null && purchaseItem.Item.IconTexture.TryGetWrap(out var wrap, out _))
+                    {
+                        ImGui.Image(wrap.Handle, new Vector2(24, 24));
+                        ImGui.SameLine();
+                    }
+                    
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text($"{purchaseItem.Name}");
+                    ImGui.SameLine(300);
+                    
+                    unsafe
+                    {
+                        var inventory = FFXIVClientStructs.FFXIV.Client.Game.InventoryManager.Instance();
+                        var currentInventory = purchaseItem.Item != null ? inventory->GetInventoryItemCount(purchaseItem.Item.ItemId) : 0;
+                        ImGui.Text($"{currentInventory}");
+                    }
+                    
+                    ImGui.SameLine();
+                    ImGui.Text("/");
+                    ImGui.SameLine();
+                    
+                    var quantity = purchaseItem.Quantity;
+                    ImGui.SetNextItemWidth(80);
+                    if (ImGui.InputInt($"##{purchaseItem.Name}_Quantity", ref quantity, 1, 10))
+                    {
+                        purchaseItem.Quantity = Math.Max(0, quantity);
+                        GatherBuddy.Config.Save();
+                    }
+                    
+                    ImGui.SameLine();
+                    if (ImGui.Button($"Remove##{purchaseItem.Name}"))
+                    {
+                        toRemove = purchaseItem;
+                    }
+                }
+                
+                if (toRemove != null)
+                {
+                    purchaseList.Remove(toRemove);
+                    GatherBuddy.Config.Save();
+                }
+            }
+            
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+            ImGui.TextUnformatted("Add Item:");
+            
+            if (shopItems.Count() == 0)
+            {
+                ImGui.TextDisabled("No scrip shop items available. Data may not be loaded.");
+            }
+            else
+            {
+                if (ImGui.BeginCombo("###AddScripShopItem", "Select item..."))
+                {
+                    ImGui.SetNextItemWidth(SetInputWidth - 20);
+                    ImGui.InputTextWithHint("###ScripShopFilter", "Search...", ref _scripShopFilterText, 100);
+                    ImGui.Separator();
+                    
+                    foreach (var item in shopItems)
+                    {
+                        if (_scripShopFilterText.Length > 0 && !item.Name.Contains(_scripShopFilterText, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        
+                        using var id = ImRaii.PushId($"AddItem_{item.Name}");
+                        
+                        var alreadyAdded = purchaseList.Any(p => p.Name == item.Name);
+                        if (alreadyAdded)
+                        {
+                            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+                        }
+                        
+                        if (ImGui.Selectable(item.Name, false, alreadyAdded ? ImGuiSelectableFlags.Disabled : ImGuiSelectableFlags.None))
+                        {
+                            if (!alreadyAdded)
+                            {
+                                purchaseList.Add(new ItemToPurchase { Item = item, Quantity = 1 });
+                                GatherBuddy.Config.Save();
+                                _scripShopFilterText = "";
+                            }
+                        }
+                        
+                        if (alreadyAdded)
+                        {
+                            ImGui.PopStyleVar();
+                        }
+                    }
+                    
+                    ImGui.EndCombo();
+                }
+            }
+        }
+        
         public static void DrawManualPresetGenerator()
         {
             ImGui.Separator();
@@ -1114,6 +1249,24 @@ public partial class Interface
                 ConfigFunctions.DrawUseFlagBox();
                 ConfigFunctions.DrawUseNavigationBox();
                 ConfigFunctions.DrawForceWalkingBox();
+                ImGui.TreePop();
+            }
+            
+            if (ImGui.TreeNodeEx("Collectable"))
+            {
+                ConfigFunctions.DrawCollectOnAutogatherDisabledBox();
+                ConfigFunctions.DrawEnableAutogatherOnFinishBox();
+                ConfigFunctions.DrawBuyAfterEachCollectBox();
+                
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+                
+                if (ImGui.CollapsingHeader("Scrip Shop Purchase List"))
+                {
+                    ConfigFunctions.DrawScripShopItemManager();
+                }
+                
                 ImGui.TreePop();
             }
         }

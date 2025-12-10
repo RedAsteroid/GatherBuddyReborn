@@ -206,6 +206,12 @@ public partial class GatherBuddy
                 Config.MainWindowLockPosition = false;
                 Config.MainWindowLockResize   = false;
                 break;
+            case "collect":
+                CollectableManager.Start();
+                return;
+            case "collectstop":
+                CollectableManager.Stop();
+                return;
             default:
                 var shortHelpString = new SeStringBuilder().AddText("Use ").AddColoredText(command, Config.SeColorCommands)
                     .AddText(" with one of the following arguments:\n")
