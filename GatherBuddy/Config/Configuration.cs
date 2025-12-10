@@ -15,7 +15,7 @@ namespace GatherBuddy.Config;
 
 public partial class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 7;
+    public int Version { get; set; } = 9;
 
     // Set Names
     public string BotanistSetName { get; set; } = "Botanist";
@@ -62,6 +62,9 @@ public partial class Configuration : IPluginConfiguration
     // AutoGather Config
     public AutoGatherConfig AutoGatherConfig              { get; set; } = new();
     public float            AutoGatherListSelectorWidth { get; set; } = 225f;
+
+    // Collectable Config
+    public CollectableConfig CollectableConfig { get; set; } = new();
 
     // Weather tab
     public bool ShowWeatherNames { get; set; } = true;
@@ -154,6 +157,8 @@ public partial class Configuration : IPluginConfiguration
                 config.Migrate4To5();
                 config.Migrate5To6();
                 config.Migrate6To7();
+                config.Migrate7To8();
+                config.Migrate8To9();
                 return config;
             }
         }
@@ -212,6 +217,35 @@ public partial class Configuration : IPluginConfiguration
         }
 
         Version = 7;
+        Save();
+    }
+
+    public void Migrate7To8()
+    {
+        if (Version >= 8)
+            return;
+
+        if (CollectableConfig == null)
+        {
+            CollectableConfig = new();
+        }
+
+        Version = 8;
+        Save();
+    }
+    
+    public void Migrate8To9()
+    {
+        if (Version >= 9)
+            return;
+        
+        if (CollectableConfig.PreferredCollectableShop == null || 
+            string.IsNullOrEmpty(CollectableConfig.PreferredCollectableShop.Name))
+        {
+            CollectableConfig.PreferredCollectableShop = AutoGather.Collectables.CollectableNpcLocations.GetDefaultShop();
+        }
+
+        Version = 9;
         Save();
     }
 }

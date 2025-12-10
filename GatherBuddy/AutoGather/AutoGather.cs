@@ -186,6 +186,12 @@ namespace GatherBuddy.AutoGather
                             GatherBuddy.Log.Error($"Failed to disable AutoRetainer MultiMode: {e.Message}");
                         }
                     }
+                    
+                    if (GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled)
+                    {
+                        GatherBuddy.Log.Debug("[AutoGather] Triggering collectable turn-in on AutoGather disable");
+                        GatherBuddy.CollectableManager?.Start();
+                    }
                 }
             else
             {

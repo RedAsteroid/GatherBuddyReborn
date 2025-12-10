@@ -69,6 +69,8 @@ public partial class GatherBuddy : IDalamudPlugin
     public static WaymarkManager        WaymarkManager  { get; private set; } = null!;
     public static AutoGather.AutoGather AutoGather      { get; private set; } = null!;
     public static AutoHookIntegration.BiteTimerService BiteTimerService { get; private set; } = null!;
+    public static AutoGather.Collectables.CollectableManager CollectableManager { get; private set; } = null!;
+    public static AutoGather.Collectables.ScripShopItemManager ScripShopItemManager { get; private set; } = null!;
 
 
     internal readonly GatherGroup.GatherGroupManager GatherGroupManager;
@@ -124,6 +126,8 @@ public partial class GatherBuddy : IDalamudPlugin
             FishRecorder.Enable();
             BiteTimerService = new AutoHookIntegration.BiteTimerService(pluginInterface.ConfigDirectory.FullName);
             AutoGather   = new AutoGather.AutoGather(this);
+            ScripShopItemManager = new AutoGather.Collectables.ScripShopItemManager();
+            CollectableManager = new AutoGather.Collectables.CollectableManager(Dalamud.Framework, Dalamud.Conditions, Config);
             WindowSystem = new WindowSystem(Name);
             Interface    = new Interface(this);
             WindowSystem.AddWindow(Interface);
@@ -195,6 +199,7 @@ public partial class GatherBuddy : IDalamudPlugin
         ContextMenu?.Dispose();
         UptimeManager?.Dispose();
         AutoGather?.Dispose();
+        CollectableManager?.Dispose();
         Ipc?.Dispose();
         //Wotsit?.Dispose();
         if (Interface != null)
