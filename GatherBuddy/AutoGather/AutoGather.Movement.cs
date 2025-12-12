@@ -428,10 +428,33 @@ namespace GatherBuddy.AutoGather
              || Svc.Condition[ConditionFlag.Mounting71]
              || Environment.TickCount64 - _lastNodeInteractionTime < 2000)
             {
-                GatherBuddy.Log.Debug($"[MoveToTerritory] Cannot teleport in current state, deferring teleport");
-                return false;
+                if (_teleportDeferralStartTime == 0)
+                {
+                    _teleportDeferralStartTime = Environment.TickCount64;
+                    _consecutiveTeleportDeferrals = 0;
+                }
+                
+                var deferralDuration = Environment.TickCount64 - _teleportDeferralStartTime;
+                _consecutiveTeleportDeferrals++;
+                
+                if (deferralDuration > 15000)
+                {
+                    GatherBuddy.Log.Error($"[MoveToTerritory] Teleport blocked for {deferralDuration}ms ({_consecutiveTeleportDeferrals} attempts), aborting");
+                    _teleportDeferralStartTime = 0;
+                    _consecutiveTeleportDeferrals = 0;
+                    return false;
+                }
+                
+                GatherBuddy.Log.Debug($"[MoveToTerritory] Cannot teleport in current state, deferring teleport (attempt {_consecutiveTeleportDeferrals}, {deferralDuration}ms elapsed)");
+                
+                TaskManager.DelayNext(500);
+                TaskManager.Enqueue(() => MoveToTerritory(location));
+                return true;
             }
 
+            _teleportDeferralStartTime = 0;
+            _consecutiveTeleportDeferrals = 0;
+            
             EnqueueActionWithDelay(() => Teleporter.Teleport(aetheryte.Id));
             TaskManager.Enqueue(() => Svc.Condition[ConditionFlag.BetweenAreas]);
             TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.BetweenAreas]);

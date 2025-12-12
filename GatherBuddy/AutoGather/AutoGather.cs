@@ -169,6 +169,8 @@ namespace GatherBuddy.AutoGather
                     _lastUmbralWeather = 0;
                     _hasGatheredUmbralThisSession = false;
                     _autoRetainerWasEnabledBeforeDiadem = false;
+                    _teleportDeferralStartTime = 0;
+                    _consecutiveTeleportDeferrals = 0;
                     
                     ClearSpearfishingSessionData();
                     
