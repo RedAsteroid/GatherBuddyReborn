@@ -119,6 +119,7 @@ namespace GatherBuddy.AutoGather
         public TaskManager                TaskManager { get; }
 
         private           bool             _enabled { get; set; } = false;
+        private           bool             _disabledBySystem = false;
 
         public bool Waiting
         {
@@ -189,11 +190,18 @@ namespace GatherBuddy.AutoGather
                         }
                     }
                     
-                    if (GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled)
+                    if (GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled && _disabledBySystem)
                     {
-                        GatherBuddy.Log.Debug("[AutoGather] Triggering collectable turn-in on AutoGather disable");
+                        GatherBuddy.Log.Debug("[AutoGather] Triggering collectable turn-in after AutoGather ended (system disable)");
                         GatherBuddy.CollectableManager?.Start();
                     }
+                    else if (GatherBuddy.CollectableManager?.IsRunning == true)
+                    {
+                        GatherBuddy.Log.Debug("[AutoGather] Stopping collectable turn-in (user disabled AutoGather)");
+                        GatherBuddy.CollectableManager?.Stop();
+                    }
+                    
+                    _disabledBySystem = false;
                 }
             else
             {
@@ -1990,6 +1998,7 @@ namespace GatherBuddy.AutoGather
             CloseGatheringAddons();
             if (GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone)
                 EnqueueActionWithDelay(() => { GoHome(); });
+            _disabledBySystem = true;
             TaskManager.Enqueue(() =>
             {
                 Enabled    = false;

@@ -58,7 +58,8 @@ public class CollectableManager : IDisposable
     public bool IsRunning { get; private set; }
     
     private CollectableState _state = CollectableState.Idle;
-    private Queue<(string name, int count, int jobId)> _turnInQueue = new();
+    private Queue<(uint itemId, string name, int count, int jobId)> _turnInQueue = new();
+    private uint _currentItemId = 0;
     private string? _currentItemName;
     private int _currentJobId = -1;
     private DateTime _lastAction = DateTime.MinValue;
@@ -214,22 +215,42 @@ public class CollectableManager : IDisposable
     
     private void CheckInventory()
     {
-        var items = ItemHelper.GetLuminaItemsFromInventory()
-            .Where(i => i.Name.ToString().Contains("Rarefied", StringComparison.OrdinalIgnoreCase))
-            .GroupBy(i => i.Name.ToString())
+        var shopSubSheet = Svc.Data.GetSubrowExcelSheet<CollectablesShopItem>();
+        var shopItemIds = shopSubSheet == null
+            ? new HashSet<uint>()
+            : shopSubSheet.SelectMany(s => s).Select(r => r.Item.RowId).ToHashSet();
+
+        var fishSheet = Svc.Data.GetExcelSheet<FishParameter>();
+        var fishItemIds = fishSheet == null
+            ? new HashSet<uint>()
+            : fishSheet.Select(f => f.Item.RowId).ToHashSet();
+
+        var collectables = ItemHelper.GetCurrentInventoryItems()
+            .Where(i => i.IsCollectable && shopItemIds.Contains(i.BaseItemId))
+            .GroupBy(i => i.BaseItemId)
             .ToList();
         
         _turnInQueue.Clear();
         
-        foreach (var group in items)
+        foreach (var group in collectables)
         {
-            var itemName = group.Key;
+            var itemId = group.Key;
             var count = group.Count();
+            
+            var item = Svc.Data.GetExcelSheet<Item>().GetRow(itemId);
+            if (item.RowId == 0)
+                continue;
+
+            var isFish = fishItemIds.Contains(itemId);
+            if (isFish && item.AetherialReduce > 0)
+                continue;
+                
+            var itemName = item.Name.ToString();
             var jobId = ItemJobResolver.GetJobIdForItem(itemName, Svc.Data);
             
             if (jobId != -1)
             {
-                _turnInQueue.Enqueue((itemName, count, jobId));
+                _turnInQueue.Enqueue((itemId, itemName, count, jobId));
             }
         }
         
@@ -450,11 +471,13 @@ public class CollectableManager : IDisposable
         
         var next = _turnInQueue.Peek();
         
-        if (_currentItemName != next.name)
+        if (_currentItemId != next.itemId)
         {
-            _windowHandler.SelectItem(next.name);
+            _windowHandler.SelectItemById(next.itemId);
+            _currentItemId = next.itemId;
             _currentItemName = next.name;
             _lastAction = DateTime.UtcNow;
+            return;
         }
         
         _state = CollectableState.SubmittingItem;
@@ -480,12 +503,13 @@ public class CollectableManager : IDisposable
         
         if (newCount > 0)
         {
-            _turnInQueue = new Queue<(string name, int count, int jobId)>(
-                new[] { (current.name, newCount, current.jobId) }.Concat(_turnInQueue)
+            _turnInQueue = new Queue<(uint itemId, string name, int count, int jobId)>(
+                new[] { (current.itemId, current.name, newCount, current.jobId) }.Concat(_turnInQueue)
             );
         }
         else
         {
+            _currentItemId = 0;
             _currentItemName = null;
         }
         
@@ -653,14 +677,17 @@ public class CollectableManager : IDisposable
         {
             if (_taskManager.IsBusy)
                 return;
-                
-            var gameObj = Svc.Objects.FirstOrDefault(a => a.Name.TextValue.Contains("scrip", StringComparison.OrdinalIgnoreCase));
+            
+            var shop = _config.CollectableConfig.PreferredCollectableShop;
+            var gameObj = Svc.Objects.FirstOrDefault(a => a.DataId == shop.ScripShopNpcId);
             
             if (gameObj == null)
             {
+                GatherBuddy.Log.Debug($"[CollectableManager] Scrip NPC {shop.ScripShopNpcId} not found in object table");
                 return;
             }
             
+            GatherBuddy.Log.Debug($"[CollectableManager] Found scrip NPC: {gameObj.Name.TextValue} at {gameObj.Position}");
             EnqueueScripShopNpcInteraction(gameObj);
             return;
         }
