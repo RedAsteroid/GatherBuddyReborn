@@ -2,7 +2,9 @@ using System;
 using System.Text.RegularExpressions;
 using Dalamud.Memory;
 using ECommons;
+using ECommons.DalamudServices;
 using ECommons.UIHelpers.AddonMasterImplementations;
+using Lumina.Excel.Sheets;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -39,6 +41,7 @@ public unsafe class CollectableWindowHandler
                 GatherBuddy.Log.Error($"[CollectableWindowHandler] Item '{itemName}' not found in current collectable tab");
                 return;
             }
+            GatherBuddy.Log.Debug($"[CollectableWindowHandler] Firing SelectItem callback with index {index}");
             var selectItem = stackalloc AtkValue[]
             {
                 new() { Type = ValueType.Int, Int = 12 },
@@ -46,6 +49,14 @@ public unsafe class CollectableWindowHandler
             };
             addon->FireCallback(2, selectItem);
         }
+    }
+
+    public unsafe void SelectItemById(uint itemId)
+    {
+        var item = Svc.Data.GetExcelSheet<Item>().GetRow(itemId);
+        var itemName = item.Name.ToString();
+        GatherBuddy.Log.Debug($"[CollectableWindowHandler] SelectItemById({itemId}) -> '{itemName}'");
+        SelectItem(itemName);
     }
     
     public unsafe void SubmitItem()
