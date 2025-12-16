@@ -170,8 +170,6 @@ namespace GatherBuddy.AutoGather
                     _lastUmbralWeather = 0;
                     _hasGatheredUmbralThisSession = false;
                     _autoRetainerWasEnabledBeforeDiadem = false;
-                    _teleportDeferralStartTime = 0;
-                    _consecutiveTeleportDeferrals = 0;
                     
                     ClearSpearfishingSessionData();
                     
@@ -1196,18 +1194,35 @@ namespace GatherBuddy.AutoGather
                     }
                 }
 
-                if (Dalamud.Conditions[ConditionFlag.Gathering])
-                {
-                    AutoStatus = "Closing gathering window before teleport...";
-                    CloseGatheringAddons();
-                    return;
-                }
+            if (Dalamud.Conditions[ConditionFlag.Gathering] 
+             || Dalamud.Conditions[ConditionFlag.ExecutingGatheringAction]
+             || Svc.Condition[ConditionFlag.Occupied]
+             || Svc.Condition[ConditionFlag.Fishing]
+             || Svc.Condition[ConditionFlag.Casting]
+             || Svc.Condition[ConditionFlag.Mounting]
+             || Svc.Condition[ConditionFlag.Mounting71])
+            {
+                AutoStatus = "Waiting for current action to complete before teleport...";
+                return;
+            }
 
-                AutoStatus = "Teleporting...";
-                StopNavigation();
+            if (TaskManager.IsBusy)
+            {
+                AutoStatus = "Waiting for current tasks to complete before teleport...";
+                return;
+            }
 
-                if (!MoveToTerritory(next.First().Location))
-                    AbortAutoGather();
+            if (Environment.TickCount64 - _lastNodeInteractionTime < 5000)
+            {
+                AutoStatus = "Waiting after recent node interaction before teleport...";
+                return;
+            }
+
+            AutoStatus = "Teleporting...";
+            StopNavigation();
+
+            if (!MoveToTerritory(next.First().Location))
+                AbortAutoGather();
 
                 // Reset target to pick up closest item after teleport
                 next = default;
