@@ -1,4 +1,4 @@
-﻿using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Conditions;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Classes;
@@ -8,6 +8,7 @@ using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Types;
@@ -419,42 +420,7 @@ namespace GatherBuddy.AutoGather
                 return false;
             }
 
-            if (Svc.Condition[ConditionFlag.Occupied]
-             || Svc.Condition[ConditionFlag.Gathering]
-             || Svc.Condition[ConditionFlag.ExecutingGatheringAction]
-             || Svc.Condition[ConditionFlag.Fishing]
-             || Svc.Condition[ConditionFlag.Casting]
-             || Svc.Condition[ConditionFlag.Mounting]
-             || Svc.Condition[ConditionFlag.Mounting71]
-             || Environment.TickCount64 - _lastNodeInteractionTime < 2000)
-            {
-                if (_teleportDeferralStartTime == 0)
-                {
-                    _teleportDeferralStartTime = Environment.TickCount64;
-                    _consecutiveTeleportDeferrals = 0;
-                }
-                
-                var deferralDuration = Environment.TickCount64 - _teleportDeferralStartTime;
-                _consecutiveTeleportDeferrals++;
-                
-                if (deferralDuration > 15000)
-                {
-                    GatherBuddy.Log.Error($"[MoveToTerritory] Teleport blocked for {deferralDuration}ms ({_consecutiveTeleportDeferrals} attempts), aborting");
-                    _teleportDeferralStartTime = 0;
-                    _consecutiveTeleportDeferrals = 0;
-                    return false;
-                }
-                
-                GatherBuddy.Log.Debug($"[MoveToTerritory] Cannot teleport in current state, deferring teleport (attempt {_consecutiveTeleportDeferrals}, {deferralDuration}ms elapsed)");
-                
-                TaskManager.DelayNext(500);
-                TaskManager.Enqueue(() => MoveToTerritory(location));
-                return true;
-            }
-
-            _teleportDeferralStartTime = 0;
-            _consecutiveTeleportDeferrals = 0;
-            
+            GatherBuddy.Log.Debug($"[MoveToTerritory] Teleporting to {aetheryte.Name}");
             EnqueueActionWithDelay(() => Teleporter.Teleport(aetheryte.Id));
             TaskManager.Enqueue(() => Svc.Condition[ConditionFlag.BetweenAreas]);
             TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.BetweenAreas]);

@@ -195,8 +195,6 @@ namespace GatherBuddy.AutoGather
 
         private IEnumerator<Actions.BaseAction?>? ActionSequence;
         private long _lastNodeInteractionTime = 0;
-        private long _teleportDeferralStartTime = 0;
-        private int _consecutiveTeleportDeferrals = 0;
 
         private static unsafe T* GetAddon<T>(string name) where T : unmanaged
         {
