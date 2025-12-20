@@ -15,6 +15,7 @@ using System.Numerics;
 
 using GatherBuddy.Classes;
 using static GatherBuddy.AutoGather.AutoGather;
+using Dalamud.Utility;
 
 namespace GatherBuddy.Gui
 {
@@ -156,6 +157,7 @@ namespace GatherBuddy.Gui
                 {
                     foreach (var item in items)
                     {
+                        MigrateHQItemIds(item);
                         Items.Add(item);
                     }
                 }
@@ -250,6 +252,24 @@ namespace GatherBuddy.Gui
                     {
                         GatherBuddy.Log.Error($"Critical error creating default preset: {fallbackEx}");
                     }
+                }
+            }
+
+            private static void MigrateHQItemIds(ConfigPreset preset)
+            {
+                MigrateConsumableItemId(preset.Consumables.Cordial);
+                MigrateConsumableItemId(preset.Consumables.Food);
+                MigrateConsumableItemId(preset.Consumables.Potion);
+                MigrateConsumableItemId(preset.Consumables.Manual);
+                MigrateConsumableItemId(preset.Consumables.SquadronManual);
+                MigrateConsumableItemId(preset.Consumables.SquadronPass);
+            }
+
+            private static void MigrateConsumableItemId(ConfigPreset.ActionConfigConsumable consumable)
+            {
+                if (consumable.ItemId >= 100_000 && consumable.ItemId < 1_000_000)
+                {
+                    consumable.ItemId = consumable.ItemId - 100_000 + 1_000_000;
                 }
             }
 
@@ -817,14 +837,15 @@ namespace GatherBuddy.Gui
                 var list = items
                     .SelectMany(item => new[]
                     {
-                        (item, rowid: item.RowId),
-                        (item, rowid: item.RowId + 100000)
+                        (item, rowid: item.RowId, isHq: false),
+                        (item, rowid: item.RowId + 1_000_000, isHq: true)
                     })
-                    .Where(x => x.item.CanBeHq || x.rowid < 100000)
-                    .Select(x => (name: x.item.Name.ExtractText(), x.rowid, count: GetInventoryItemCount(x.rowid)))
+                    .Where(x => !x.isHq || x.item.CanBeHq)
+                    .Select(x => (name: ItemUtil.GetItemName(x.rowid, includeIcon: true).ExtractText(), x.rowid, count: GetInventoryItemCount(x.rowid)))
+                    .Where(x => !string.IsNullOrEmpty(x.name))
                     .OrderBy(x => x.count == 0)
                     .ThenBy(x => x.name)
-                    .Select(x => x with { name = $"{(x.rowid > 100000 ? "? " : "")}{x.name} ({x.count})" })
+                    .Select(x => x with { name = $"{x.name} ({x.count})" })
                     .ToList();
 
                 var       selected = (action7.ItemId > 0 ? list.FirstOrDefault(x => x.rowid == action7.ItemId).name : null) ?? string.Empty;

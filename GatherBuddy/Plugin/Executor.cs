@@ -33,7 +33,7 @@ public class Executor
         Fish,
     }
 
-    private readonly CommandManager _commandManager = new(Dalamud.GameGui, new SigScannerWrapper(Dalamud.SigScanner));
+    private readonly CommandManager _commandManager = new(Dalamud.GameGui, new SigScannerWrapper(Dalamud.Interop));
     private readonly MacroManager _macroManager = new();
     private readonly GatherBuddy _plugin;
     public readonly Identificator Identificator = new();

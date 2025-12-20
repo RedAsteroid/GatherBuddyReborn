@@ -1,3 +1,4 @@
+using System;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Plugin;
 
@@ -22,17 +23,27 @@ public sealed class CurrentWeather : SeAddressBase
     {
         get
         {
-            if (Functions.InTheDiadem())
+            try
             {
-                var weatherManager = WeatherManager.Instance();
-                if (weatherManager != null)
+                if (Functions.InTheDiadem())
                 {
-                    return weatherManager->GetCurrentWeather();
+                    var weatherManager = WeatherManager.Instance();
+                    if (weatherManager != null)
+                    {
+                        return weatherManager->GetCurrentWeather();
+                    }
                 }
+                
+                // normal detection for non-Diadem
+                if (Address == IntPtr.Zero)
+                    return 0;
+                
+                return *(byte*)Address;
             }
-            
-            // normal detection for non-Diadem
-            return *(byte*)Address;
+            catch
+            {
+                return 0;
+            }
         }
     }
 }

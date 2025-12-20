@@ -103,12 +103,16 @@ public partial class GatherBuddy : IDalamudPlugin
 
             WeatherManager         = new WeatherManager(GameData);
             UptimeManager          = new UptimeManager(GameData);
-            var sigScannerWrapper  = new SigScannerWrapper(Dalamud.SigScanner);
-            FishLog                = new FishLog(sigScannerWrapper, Dalamud.GameData);
+            var sigScannerWrapper  = new SigScannerWrapper(Dalamud.Interop);
+            try { FishLog = new FishLog(sigScannerWrapper, Dalamud.GameData); }
+            catch (Exception e) { Log.Warning($"Failed to initialize FishLog: {e.Message}"); FishLog = null!; }
             EventFramework         = new EventFramework();
-            CurrentBait            = new CurrentBait(sigScannerWrapper);
-            CurrentWeather         = new CurrentWeather(sigScannerWrapper);
-            TugType                = new SeTugType(sigScannerWrapper);
+            try { CurrentBait = new CurrentBait(sigScannerWrapper); }
+            catch (Exception e) { Log.Warning($"Failed to initialize CurrentBait: {e.Message}"); CurrentBait = null!; }
+            try { CurrentWeather = new CurrentWeather(sigScannerWrapper); }
+            catch (Exception e) { Log.Warning($"Failed to initialize CurrentWeather: {e.Message}"); CurrentWeather = null!; }
+            try { TugType = new SeTugType(sigScannerWrapper); }
+            catch (Exception e) { Log.Warning($"Failed to initialize TugType: {e.Message}"); TugType = null!; }
             Executor               = new Executor(this);
             ContextMenu            = new ContextMenu(this, Dalamud.ContextMenu, Executor);
             GatherGroupManager     = GatherGroup.GatherGroupManager.Load();
