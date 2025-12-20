@@ -1,8 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using ECommons.DalamudServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.AutoHookIntegration;
 using GatherBuddy.Plugin;
@@ -37,7 +36,7 @@ public partial class AutoGather
 
         if (!AutoHook.Enabled)
         {
-            Svc.Log.Debug("[AutoGather] AutoHook not available, skipping preset generation");
+            GatherBuddy.Log.Debug("[AutoGather] AutoHook not available, skipping preset generation");
             return;
         }
 
@@ -58,7 +57,7 @@ public partial class AutoGather
                 AutoHook.SetPluginState?.Invoke(true);
                 AutoHook.SetAutoStartFishing?.Invoke(true); 
             }
-            Svc.Log.Verbose($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
+            GatherBuddy.Log.Verbose($"[AutoGather] Re-enabled existing AutoHook preset '{_currentAutoHookPresetName}'");
             return;
         }
 
@@ -78,11 +77,11 @@ public partial class AutoGather
                 {
                     // Use first predator fish as preset
                     presetFish = firstPredator;
-                    Svc.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator not met, using prerequisite fish {presetFish.Name[GatherBuddy.Language]} for preset");
+                    GatherBuddy.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator not met, using prerequisite fish {presetFish.Name[GatherBuddy.Language]} for preset");
                 }
                 else
                 {
-                    Svc.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator met, using target fish for preset");
+                    GatherBuddy.Log.Debug($"[AutoGather] Target fish {target.Fish.Name[GatherBuddy.Language]} first predator met, using target fish for preset");
                 }
             }
             
@@ -99,12 +98,12 @@ public partial class AutoGather
                     presetName = userPresetName;
                     isUserPreset = true;
 
-                    Svc.Log.Information($"[AutoGather] Found user preset '{presetName}' for {fishName}");
+                    GatherBuddy.Log.Information($"[AutoGather] Found user preset '{presetName}' for {fishName}");
                     AutoHook.SetPreset?.Invoke(presetName);
                 }
                 else
                 {
-                    Svc.Log.Debug($"[AutoGather] No user preset found for fish ID {fishId}, will generate one");
+                    GatherBuddy.Log.Debug($"[AutoGather] No user preset found for fish ID {fishId}, will generate one");
                 }
             }
 
@@ -117,12 +116,12 @@ public partial class AutoGather
                     // At shadow node targeting fish with multiple predators - include all predators (skip first) + target
                     var predatorFish = target.Fish.Predators.Skip(1).Select(p => p.Item1).ToList();
                     fishList = predatorFish.Append(target.Fish).ToArray();
-                    Svc.Log.Debug($"[AutoGather] Building preset with {fishList.Length} fish for multi-predator chain: {string.Join(", ", fishList.Select(f => f.Name[GatherBuddy.Language]))}");
+                    GatherBuddy.Log.Debug($"[AutoGather] Building preset with {fishList.Length} fish for multi-predator chain: {string.Join(", ", fishList.Select(f => f.Name[GatherBuddy.Language]))}");
                 }
                 
                 presetName = $"GBR_{fishName.Replace(" ", "")}_{DateTime.Now:HHmmss}";
                 
-                Svc.Log.Information($"[AutoGather] Creating AutoHook preset '{presetName}' for {fishName}");
+                GatherBuddy.Log.Information($"[AutoGather] Creating AutoHook preset '{presetName}' for {fishName}");
                 
                 bool success;
                 if (presetFish.IsSpearFish)
@@ -137,7 +136,7 @@ public partial class AutoGather
                 
                 if (!success)
                 {
-                    Svc.Log.Error($"[AutoGather] Failed to create AutoHook preset");
+                    GatherBuddy.Log.Error($"[AutoGather] Failed to create AutoHook preset");
                     return;
                 }
                 
@@ -152,36 +151,36 @@ public partial class AutoGather
             {
                 if (AutoHook.SetAutoGigState == null)
                 {
-                    Svc.Log.Error("[AutoGather] SetAutoGigState IPC is null!");
+                    GatherBuddy.Log.Error("[AutoGather] SetAutoGigState IPC is null!");
                 }
                 else
                 {
                     AutoHook.SetAutoGigState.Invoke(true);
                     _autoHookSetupComplete = true;
-                    Svc.Log.Information("[AutoGather] Called SetAutoGigState(true) via IPC");
+                    GatherBuddy.Log.Information("[AutoGather] Called SetAutoGigState(true) via IPC");
                 }
             }
             else
             {
                 if (AutoHook.SetPluginState == null)
                 {
-                    Svc.Log.Error("[AutoGather] SetPluginState IPC is null!");
+                    GatherBuddy.Log.Error("[AutoGather] SetPluginState IPC is null!");
                 }
                 else
                 {
                     AutoHook.SetPluginState.Invoke(true);
                     AutoHook.SetAutoStartFishing?.Invoke(true);
                     _autoHookSetupComplete = true;
-                    Svc.Log.Information("[AutoGather] AutoHook enabled for fishing");
+                    GatherBuddy.Log.Information("[AutoGather] AutoHook enabled for fishing");
                 }
             }
             
             var presetType = isUserPreset ? "user" : "generated";
-            Svc.Log.Information($"[AutoGather] AutoHook preset '{presetName}' ({presetType}) for {fishName} selected and activated successfully");
+            GatherBuddy.Log.Information($"[AutoGather] AutoHook preset '{presetName}' ({presetType}) for {fishName} selected and activated successfully");
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"[AutoGather] Exception setting up AutoHook: {ex.Message}");
+            GatherBuddy.Log.Error($"[AutoGather] Exception setting up AutoHook: {ex.Message}");
         }
     }
 
@@ -196,24 +195,24 @@ public partial class AutoGather
             {
                 if (_isCurrentPresetUserOwned)
                 {
-                    Svc.Log.Debug($"[AutoGather] Preserving user-owned preset '{_currentAutoHookPresetName}'");
+                    GatherBuddy.Log.Debug($"[AutoGather] Preserving user-owned preset '{_currentAutoHookPresetName}'");
                 }
                 else
                 {
                     AutoHook.SetPreset?.Invoke(_currentAutoHookPresetName);
                     AutoHook.DeleteSelectedPreset?.Invoke();
-                    Svc.Log.Debug($"[AutoGather] Deleted GBR-generated preset '{_currentAutoHookPresetName}'");
+                    GatherBuddy.Log.Debug($"[AutoGather] Deleted GBR-generated preset '{_currentAutoHookPresetName}'");
                 }
             }
             
             AutoHook.SetPluginState?.Invoke(false);
             AutoHook.SetAutoStartFishing?.Invoke(false);
             AutoHook.SetAutoGigState?.Invoke(false);
-            Svc.Log.Debug("[AutoGather] AutoHook/AutoGig disabled");
+            GatherBuddy.Log.Debug("[AutoGather] AutoHook/AutoGig disabled");
             
             if (_currentAutoHookTarget.HasValue && _currentAutoHookTarget.Value.Fish?.IsSpearFish == true)
             {
-                Svc.Log.Debug("[AutoGather] Calling UpdateSpearfishingCatches from CleanupAutoHook");
+                GatherBuddy.Log.Debug("[AutoGather] Calling UpdateSpearfishingCatches from CleanupAutoHook");
                 UpdateSpearfishingCatches();
             }
             
@@ -224,7 +223,7 @@ public partial class AutoGather
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"[AutoGather] Exception cleaning up AutoHook: {ex.Message}");
+            GatherBuddy.Log.Error($"[AutoGather] Exception cleaning up AutoHook: {ex.Message}");
         }
     }
 
@@ -233,14 +232,14 @@ public partial class AutoGather
         try
         {
             // Resolve AutoHook config path: .../pluginConfigs/AutoHook.json
-            var pluginConfigsDir = Svc.PluginInterface.ConfigDirectory.Parent?.FullName;
+            var pluginConfigsDir = Dalamud.PluginInterface.ConfigDirectory.Parent?.FullName;
             if (string.IsNullOrEmpty(pluginConfigsDir))
                 return null;
 
             var configPath = Path.Combine(pluginConfigsDir, "AutoHook.json");
             if (!File.Exists(configPath))
             {
-                Svc.Log.Debug($"[AutoGather] AutoHook config not found at {configPath}");
+                GatherBuddy.Log.Debug($"[AutoGather] AutoHook config not found at {configPath}");
                 return null;
             }
 
@@ -250,7 +249,7 @@ public partial class AutoGather
             var customPresets = config["HookPresets"]?["CustomPresets"] as JArray;
             if (customPresets == null)
             {
-                Svc.Log.Debug("[AutoGather] No CustomPresets found in AutoHook config");
+                GatherBuddy.Log.Debug("[AutoGather] No CustomPresets found in AutoHook config");
                 return null;
             }
 
@@ -259,7 +258,7 @@ public partial class AutoGather
                 var presetName = preset?["PresetName"]?.ToString();
                 if (presetName != null && presetName.Equals(fishId, StringComparison.Ordinal))
                 {
-                    Svc.Log.Debug($"[AutoGather] Found matching preset in config: {presetName}");
+                    GatherBuddy.Log.Debug($"[AutoGather] Found matching preset in config: {presetName}");
                     return presetName;
                 }
             }
@@ -268,7 +267,7 @@ public partial class AutoGather
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"[AutoGather] Error reading AutoHook config: {ex.Message}");
+            GatherBuddy.Log.Error($"[AutoGather] Error reading AutoHook config: {ex.Message}");
             return null;
         }
     }

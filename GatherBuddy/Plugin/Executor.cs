@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -33,7 +33,7 @@ public class Executor
         Fish,
     }
 
-    private readonly CommandManager _commandManager = new(Dalamud.GameGui, Dalamud.SigScanner);
+    private readonly CommandManager _commandManager = new(Dalamud.GameGui, new SigScannerWrapper(Dalamud.SigScanner));
     private readonly MacroManager _macroManager = new();
     private readonly GatherBuddy _plugin;
     public readonly Identificator Identificator = new();
@@ -193,10 +193,10 @@ public class Executor
 
         if (GatherBuddy.Config.SkipTeleportIfClose
          && Dalamud.ClientState.TerritoryType == _location.Territory.Id
-         && Dalamud.ClientState.LocalPlayer != null)
+         && Dalamud.Objects.LocalPlayer is {} player)
         {
             // Check distance of player to node against distance of aetheryte to node.
-            var playerPos = Dalamud.ClientState.LocalPlayer.Position;
+            var playerPos = player.Position;
             var aetheryte = _location.ClosestAetheryte;
             var posX = Maps.NodeToMap(playerPos.X, _location.Territory.SizeFactor);
             var posY = Maps.NodeToMap(playerPos.Z, _location.Territory.SizeFactor);
@@ -332,7 +332,7 @@ public class Executor
 
     public bool DoCommand(string argument)
     {
-        if (Dalamud.ClientState.LocalPlayer == null || Dalamud.Conditions[ConditionFlag.BetweenAreas])
+        if (Dalamud.Objects.LocalPlayer is null || Dalamud.Conditions[ConditionFlag.BetweenAreas])
             return true;
 
         switch (argument)

@@ -2,9 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
-using ECommons.Automation;
-using ECommons.DalamudServices;
-using ECommons.UIHelpers;
+using GatherBuddy.Automation;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GatherBuddy.Enums;
 
@@ -41,7 +39,7 @@ public unsafe class GatheringReader(AtkUnitBase* addon) : AtkReader(addon)
             for (var i = 0; i < 8; ++i)
             {
                 var slot = ItemSlotReaders[i];
-                Svc.Log.Debug($"GatheringReader: Slot {i} - Item: {slot.Item?.Name.English ?? "None"} - HasBonus: {slot.HasBonus} - RequiresPerception: {slot.RequiresPerception} - HasGivingLandBuff: {slot.HasGivingLandBuff} - IsCollectable: {slot.IsCollectable} - Yield: {slot.Yield} - BoonChance: {slot.BoonChance}");
+                GatherBuddy.Log.Debug($"GatheringReader: Slot {i} - Item: {slot.Item?.Name.English ?? "None"} - HasBonus: {slot.HasBonus} - RequiresPerception: {slot.RequiresPerception} - HasGivingLandBuff: {slot.HasGivingLandBuff} - IsCollectable: {slot.IsCollectable} - Yield: {slot.Yield} - BoonChance: {slot.BoonChance}");
                 result.Add(new ItemSlot(i, slot, ItemSlotFlags, GatherChances, ItemLevel));
             }
 

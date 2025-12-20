@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -24,7 +24,8 @@ public partial class FishingParser : IDisposable
     public unsafe FishingParser(IGameInteropProvider provider)
     {
         FishingSpotNames = SetupFishingSpotNames();
-        _catchHook       = new UpdateFishCatch(Dalamud.SigScanner).CreateHook(provider, OnCatchUpdate);
+        var sigScannerWrapper = new SigScannerWrapper(Dalamud.SigScanner);
+        _catchHook       = new UpdateFishCatch(sigScannerWrapper).CreateHook(provider, OnCatchUpdate);
         var hookPtr = (IntPtr)ActionManager.MemberFunctionPointers.UseAction;
         _hookHook = provider.HookFromAddress<UseActionDelegate>(hookPtr, OnUseAction);
     }

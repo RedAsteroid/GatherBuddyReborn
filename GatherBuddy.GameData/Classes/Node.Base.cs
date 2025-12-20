@@ -95,11 +95,10 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         {
             if (!gatheringItemPoint.TryGetValue(n, out var gatherableList))
                 break;
-
+            //TODO: VERIFY HIDDEN CHANGE EFFECT???
             foreach (var g in gatherableList)
             {
                 if (data.GatherablesByGatherId.TryGetValue(g, out var gatherable)
-                 && gatherable.GatheringData.IsHidden
                  && !Items.Contains(gatherable))
                     Items.Add(gatherable);
             }

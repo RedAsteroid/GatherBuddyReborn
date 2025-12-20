@@ -1,4 +1,3 @@
-﻿using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -19,6 +18,8 @@ public class Dalamud
     [PluginService] public static ISigScanner             SigScanner      { get; private set; } = null!;
     [PluginService] public static IDataManager            GameData        { get; private set; } = null!;
     [PluginService] public static IClientState            ClientState     { get; private set; } = null!;
+    [PluginService] public static IObjectTable            Objects         { get; private set; } = null!;
+    [PluginService] public static IPlayerState            PlayerState     { get; private set; } = null!;
     [PluginService] public static IChatGui                Chat            { get; private set; } = null!;
     [PluginService] public static IFramework              Framework       { get; private set; } = null!;
     [PluginService] public static ICondition              Conditions      { get; private set; } = null!;
@@ -29,5 +30,11 @@ public class Dalamud
     [PluginService] public static ITextureProvider        Textures        { get; private set; } = null!;
     [PluginService] public static IContextMenu            ContextMenu     { get; private set; } = null!;
     [PluginService] public static INotificationManager    Notifications   { get; private set; } = null!;
+    [PluginService] public static IPluginLog              Log             { get; private set; } = null!;
+    [PluginService] public static IAddonLifecycle         AddonLifecycle  { get; private set; } = null!;
+    [PluginService] public static IGamepadState           GamepadState    { get; private set; } = null!;
+    [PluginService] public static IGameConfig             GameConfig      { get; private set; } = null!;
+    [PluginService] public static IGameInteropProvider    Hooking         { get; private set; } = null!;
+    [PluginService] public static IGameInventory          GameInventory   { get; private set; } = null!;
     // @formatter:on
 }

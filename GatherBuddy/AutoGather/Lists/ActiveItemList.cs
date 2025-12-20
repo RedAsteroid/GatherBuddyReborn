@@ -1,7 +1,6 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
-using ECommons.ExcelServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.Classes;
@@ -14,7 +13,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
-using ECommons.DalamudServices;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
@@ -86,7 +84,7 @@ namespace GatherBuddy.AutoGather.Lists
             if (IsUpdateNeeded())
                 DoUpdate();
 
-            //Svc.Log.Verbose($"Nearby nodes: {string.Join(", ", nearbyNodes.Select(x => x.ToString("X8")))}.");
+            //GatherBuddy.Log.Verbose($"Nearby nodes: {string.Join(", ", nearbyNodes.Select(x => x.ToString("X8")))}.");
             
             GatherTarget firstItemNeedingGathering;
             if (Plugin.Functions.InTheDiadem())
@@ -99,8 +97,8 @@ namespace GatherBuddy.AutoGather.Lists
                     var umbralWeatherType = (UmbralNodes.UmbralWeatherType)currentWeather;
                     var currentJob = Player.Job switch
                     {
-                        Job.MIN => GatheringType.Miner,
-                        Job.BTN => GatheringType.Botanist,
+                        16 /* MIN */ => GatheringType.Miner,
+                        17 /* BTN */ => GatheringType.Botanist,
                         _ => GatheringType.Unknown
                     };
                     
@@ -159,8 +157,8 @@ namespace GatherBuddy.AutoGather.Lists
                         
                         var currentJob = Player.Job switch
                         {
-                            Job.MIN => GatheringType.Miner,
-                            Job.BTN => GatheringType.Botanist,
+                            16 /* MIN */ => GatheringType.Miner,
+                            17 /* BTN */ => GatheringType.Botanist,
                             _ => GatheringType.Unknown
                         };
                         var umbralWeather = (UmbralNodes.UmbralWeatherType)currentWeather;
@@ -297,8 +295,8 @@ namespace GatherBuddy.AutoGather.Lists
                         x.Node == x.PreferredLocation ? 0
                         : x.Node.GatheringType.ToGroup() == (Player.Job switch
                         {
-                            Job.MIN => GatheringType.Miner,
-                            Job.BTN => GatheringType.Botanist,
+                            16 /* MIN */ => GatheringType.Miner,
+                            17 /* BTN */ => GatheringType.Botanist,
                             _ => GatheringType.Unknown
                         }) ? 1
                         : x.Node.GatheringType.ToGroup() == GatherBuddy.Config.PreferredGatheringType ? 2
@@ -323,8 +321,8 @@ namespace GatherBuddy.AutoGather.Lists
                 .OrderBy(x => x.Time == TimeInterval.Always)
                 .ThenBy(x => x.Node.GatheringType.ToGroup() != (Player.Job switch
                 {
-                    Job.MIN => GatheringType.Miner,
-                    Job.BTN => GatheringType.Botanist,
+                    16 /* MIN */ => GatheringType.Miner,
+                    17 /* BTN */ => GatheringType.Botanist,
                     _ => GatheringType.Unknown
                 }));
 
@@ -389,13 +387,13 @@ namespace GatherBuddy.AutoGather.Lists
                         {
                             // First predator met - shadow node spawns, use it
                             location = shadowSpot;
-                            Svc.Log.Debug($"[ActiveItemList] First predator met for {x.Fish.Name[GatherBuddy.Language]}, using shadow node");
+                            GatherBuddy.Log.Debug($"[ActiveItemList] First predator met for {x.Fish.Name[GatherBuddy.Language]}, using shadow node");
                         }
                         else if (shadowSpot.ParentNode != null)
                         {
                             // First predator not met - use parent node to gather it
                             location = shadowSpot.ParentNode;
-                            Svc.Log.Debug($"[ActiveItemList] First predator not met for {x.Fish.Name[GatherBuddy.Language]}, using parent node");
+                            GatherBuddy.Log.Debug($"[ActiveItemList] First predator not met for {x.Fish.Name[GatherBuddy.Language]}, using parent node");
                         }
                     }
                 }
@@ -413,7 +411,7 @@ namespace GatherBuddy.AutoGather.Lists
             
             AddUmbralItemsIfAvailable(adjustedServerTime, minerLevel, botanistLevel);
             
-            Svc.Log.Verbose($"Gatherable items: ({_gatherableItems.Count}): {string.Join(", ", _gatherableItems.Select(x => x.Item.Name))}.");
+            GatherBuddy.Log.Verbose($"Gatherable items: ({_gatherableItems.Count}): {string.Join(", ", _gatherableItems.Select(x => x.Item.Name))}.");
         }
 
         private bool RequiresHomeWorld((Gatherable Item, uint Quantity) valueTuple)
@@ -442,7 +440,7 @@ namespace GatherBuddy.AutoGather.Lists
 
             if (territory == Territory.Invalid)
             {
-                Svc.Log.Debug($"[ActiveItemList] Could not determine territory for {fish.Name[GatherBuddy.Language]}");
+                GatherBuddy.Log.Debug($"[ActiveItemList] Could not determine territory for {fish.Name[GatherBuddy.Language]}");
                 return true;
             }
 
@@ -452,7 +450,7 @@ namespace GatherBuddy.AutoGather.Lists
                 
                 if (!predatorUptime.InRange(now))
                 {
-                    Svc.Log.Debug($"[ActiveItemList] Predator {predatorFish.Name[GatherBuddy.Language]} window not active for {fish.Name[GatherBuddy.Language]}");
+                    GatherBuddy.Log.Debug($"[ActiveItemList] Predator {predatorFish.Name[GatherBuddy.Language]} window not active for {fish.Name[GatherBuddy.Language]}");
                     return false;
                 }
             }
@@ -544,9 +542,9 @@ namespace GatherBuddy.AutoGather.Lists
         {
             var currentJob = Player.Job switch
             {
-                Job.MIN => GatheringType.Miner,
-                Job.BTN => GatheringType.Botanist,
-                Job.FSH => GatheringType.Fisher,
+                16 /* MIN */ => GatheringType.Miner,
+                17 /* BTN */ => GatheringType.Botanist,
+                18 /* FSH */ => GatheringType.Fisher,
                 _ => GatheringType.Unknown
             };
             
@@ -592,9 +590,9 @@ namespace GatherBuddy.AutoGather.Lists
             var lastEorzeaHour     = _lastUpdateTime.TotalEorzeaHours();
             var currentJob = Player.Job switch
             {
-                Job.MIN => GatheringType.Miner,
-                Job.BTN => GatheringType.Botanist,
-                Job.FSH => GatheringType.Fisher,
+                16 /* MIN */ => GatheringType.Miner,
+                17 /* BTN */ => GatheringType.Botanist,
+                18 /* FSH */ => GatheringType.Fisher,
                 _ => GatheringType.Unknown
             };
 

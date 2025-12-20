@@ -1,13 +1,10 @@
-﻿using ECommons.EzIpcManager;
-using ECommons.Reflection;
+using GatherBuddy.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using ECommons.DalamudServices;
-using ECommons.EzSharedDataManager;
 
 #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
 namespace GatherBuddy.Plugin
@@ -15,7 +12,7 @@ namespace GatherBuddy.Plugin
     internal static class IPCSubscriber
     {
         public static bool IsReady(string pluginName)
-            => DalamudReflector.TryGetDalamudPlugin(pluginName, out _, false, true);
+            => ReflectionHelpers.TryGetDalamudPlugin(pluginName, out _);
     }
 
     internal static class VNavmesh
@@ -226,17 +223,17 @@ namespace GatherBuddy.Plugin
         private static bool _locked = false;
         internal static void Lock()
         {
-            if (!_locked && EzSharedData.TryGet<HashSet<string>>("YesAlready.StopRequests", out var stopRequests))
+            if (!_locked && Dalamud.PluginInterface.TryGetData<HashSet<string>>("YesAlready.StopRequests", out var stopRequests))
             {
-                stopRequests.Add(Svc.PluginInterface.InternalName);
+                stopRequests.Add(Dalamud.PluginInterface.InternalName);
                 _locked = true;
             }
         }
         internal static void Unlock()
         {
-            if (_locked && EzSharedData.TryGet<HashSet<string>>("YesAlready.StopRequests", out var stopRequests))
+            if (_locked && Dalamud.PluginInterface.TryGetData<HashSet<string>>("YesAlready.StopRequests", out var stopRequests))
             {
-                stopRequests.Remove(Svc.PluginInterface.InternalName);
+                stopRequests.Remove(Dalamud.PluginInterface.InternalName);
                 _locked = false;
             }
         }

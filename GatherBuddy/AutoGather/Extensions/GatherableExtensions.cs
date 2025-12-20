@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using ECommons.DalamudServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;

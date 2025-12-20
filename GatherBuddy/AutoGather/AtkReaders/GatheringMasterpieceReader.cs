@@ -1,5 +1,4 @@
-using ECommons.UIHelpers;
-using ECommons.UIHelpers.AddonMasterImplementations;
+using GatherBuddy.Automation;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GatherBuddy.Classes;
 

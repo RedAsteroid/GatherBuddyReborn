@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using Dalamud.Game;
 using Dalamud.Plugin.Services;
 
 namespace GatherBuddy.SeFunctions;
@@ -17,7 +16,7 @@ public class CommandManager
         _uiModulePtr    = gameGui.GetUIModule();
     }
 
-    public CommandManager(IGameGui gameGui, ISigScanner sigScanner)
+    public CommandManager(IGameGui gameGui, ISigScannerWrapper sigScanner)
         : this(gameGui, new ProcessChatBox(sigScanner))
     { }
 

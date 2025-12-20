@@ -1,4 +1,3 @@
-using Dalamud.Game;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Plugin;
 
@@ -15,7 +14,7 @@ public sealed class CurrentWeather : SeAddressBase
     // and the other three are the true weather (based on in-game compass / zone effects / etc).
     // You can use Bismark hard mode to differentiate these, as Bismark's weather
     // effects only affect the true weather.
-    public CurrentWeather(ISigScanner sigScanner)
+    public CurrentWeather(ISigScannerWrapper sigScanner)
         : base(sigScanner, "48 8B 05 ?? ?? ?? ?? 0F B6 12", 8)
     { }
 

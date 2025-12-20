@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
@@ -17,9 +17,8 @@ using Dalamud.Bindings.ImGui;
 using OtterGui;
 using OtterGui.Widgets;
 using ImRaii = OtterGui.Raii.ImRaii;
-using ECommons.ImGuiMethods;
-using ECommons;
 using GatherBuddy.Interfaces;
+using GatherBuddy.Automation;
 
 namespace GatherBuddy.Gui;
 
@@ -267,7 +266,11 @@ public partial class Interface
         ImGuiEx.InfoMarker("Auto-Gather Support Discord", null, FontAwesomeIcon.Comments.ToIconString(),   false);
         if (ImGuiEx.HoveredAndClicked())
         {
-            GenericHelpers.ShellStart("https://discord.gg/p54TZMPnC9");
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://discord.gg/p54TZMPnC9",
+                UseShellExecute = true
+            });
         }
     }
 
@@ -375,7 +378,8 @@ public partial class Interface
         var allEnabled = list.Items.All(i => list.EnabledItems[i]);
         if (ImGui.Checkbox("##AllEnabled", ref allEnabled))
         {
-            list.Items.Each(i => _plugin.AutoGatherListsManager.ChangeEnabled(list, i, allEnabled));
+            foreach (var i in list.Items)
+                _plugin.AutoGatherListsManager.ChangeEnabled(list, i, allEnabled);
         }
         ImGuiUtil.HoverTooltip((allEnabled ? "Disable" : "Enable" ) + " all items in the list");
 
@@ -426,3 +430,4 @@ public partial class Interface
         });
     }
 }
+

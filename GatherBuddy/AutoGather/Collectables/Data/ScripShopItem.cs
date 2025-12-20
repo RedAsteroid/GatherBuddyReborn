@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Text.Json.Serialization;
 using Dalamud.Interface.Textures;
-using ECommons.DalamudServices;
 using Lumina.Excel.Sheets;
+using GatherBuddy.Plugin;
 using NewtonsoftJsonIgnore = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace GatherBuddy.AutoGather.Collectables.Data;
@@ -26,7 +26,7 @@ public class ScripShopItem
     private Item? _itemCache;
     [JsonIgnore]
     [NewtonsoftJsonIgnore]
-    public Item Item => _itemCache ??= Svc.Data.GetExcelSheet<Item>().GetRow(ItemID);
+    public Item Item => _itemCache ??= Dalamud.GameData.GetExcelSheet<Item>().GetRow(ItemID);
     [JsonIgnore]
     [NewtonsoftJsonIgnore]
     public uint ItemId => ItemID;
@@ -35,5 +35,5 @@ public class ScripShopItem
     private ISharedImmediateTexture? _iconTextureCache;
     [JsonIgnore]
     [NewtonsoftJsonIgnore]
-    public ISharedImmediateTexture IconTexture => _iconTextureCache ??= Svc.Texture.GetFromGameIcon(new GameIconLookup((uint)Item.Icon));
+    public ISharedImmediateTexture IconTexture => _iconTextureCache ??= Dalamud.Textures.GetFromGameIcon(new GameIconLookup((uint)Item.Icon));
 }

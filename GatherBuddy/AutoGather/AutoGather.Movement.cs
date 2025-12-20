@@ -1,5 +1,5 @@
 using Dalamud.Game.ClientState.Conditions;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
@@ -12,13 +12,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Types;
-using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.SeFunctions;
 using GatherBuddy.Data;
-using ECommons.MathHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using GatherBuddy.Enums;
+using GatherBuddy.Utilities;
 using Aetheryte = GatherBuddy.Classes.Aetheryte;
 
 namespace GatherBuddy.AutoGather
@@ -61,7 +60,7 @@ namespace GatherBuddy.AutoGather
             if (!GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting)
                 TaskManager.Enqueue(StopNavigation);
             EnqueueActionWithDelay(doMount);
-            TaskManager.Enqueue(() => Svc.Condition[ConditionFlag.Mounted], 2000);
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.Mounted], 2000);
 
             // Reset navigation to find a better path if the mount can fly
             if (GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting && !Dalamud.Conditions[ConditionFlag.Diving])
@@ -171,7 +170,7 @@ namespace GatherBuddy.AutoGather
                             else {
                                 if (shouldSkipJobSwitch && targetGatheringType != JobAsGatheringType)
                                 {
-                                    Svc.Log.Information($"[Umbral] Skipping job switch at node after umbral gathering (staying on {JobAsGatheringType})");
+                                    GatherBuddy.Log.Information($"[Umbral] Skipping job switch at node after umbral gathering (staying on {JobAsGatheringType})");
                                 }
                                 EnqueueNodeInteraction(gameObject, targetItem);
                             }
@@ -264,7 +263,7 @@ namespace GatherBuddy.AutoGather
         private unsafe void SetRotation(Angle angle)
         {
             var playerObject = (GameObject*)Player.Object.Address;
-            Svc.Log.Debug($"Setting rotation to {angle.Rad}");
+            GatherBuddy.Log.Debug($"Setting rotation to {angle.Rad}");
             playerObject->SetRotation(angle.Rad);
         }
 
@@ -422,8 +421,8 @@ namespace GatherBuddy.AutoGather
 
             GatherBuddy.Log.Debug($"[MoveToTerritory] Teleporting to {aetheryte.Name}");
             EnqueueActionWithDelay(() => Teleporter.Teleport(aetheryte.Id));
-            TaskManager.Enqueue(() => Svc.Condition[ConditionFlag.BetweenAreas]);
-            TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.BetweenAreas]);
+            TaskManager.Enqueue(() => Dalamud.Conditions[ConditionFlag.BetweenAreas]);
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.BetweenAreas]);
             TaskManager.DelayNext(1500);
 
             return true;

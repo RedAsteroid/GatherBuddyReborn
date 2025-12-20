@@ -1,10 +1,10 @@
 using Dalamud.Plugin.Services;
-using ECommons.GameHelpers;
-using ECommons.MathHelpers;
+using GatherBuddy.Helpers;
 using GatherBuddy.CustomInfo;
 using System;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
+using GatherBuddy.Utilities;
 using GatherBuddy.Plugin;
 
 namespace GatherBuddy.AutoGather.Movement

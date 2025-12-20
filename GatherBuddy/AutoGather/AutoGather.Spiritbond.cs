@@ -1,11 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using Dalamud.Game.ClientState.Conditions;
-using ECommons.Automation;
-using ECommons.DalamudServices;
+using GatherBuddy.Automation;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Plugin;
-using static ECommons.UIHelpers.AddonMasterImplementations.AddonMaster;
+using static GatherBuddy.Automation.AddonMaster;
 
 namespace GatherBuddy.AutoGather;
 
@@ -57,7 +56,7 @@ public partial class AutoGather
         EnqueueActionWithDelay(() => { if (MaterializeAddon is var addon and not null) Callback.Fire(&addon->AtkUnitBase, true, 2, 0); });
         TaskManager.Enqueue(() => MaterializeDialogAddon != null, 1000);
         EnqueueActionWithDelay(() => { if (MaterializeDialogAddon is var addon and not null) new MaterializeDialog(addon).Materialize(); });
-        TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Occupied39]);
+        TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Occupied39]);
         TaskManager.DelayNext(_rng.Next(500, 2000));
 
         if (SpiritbondMax == 1) 

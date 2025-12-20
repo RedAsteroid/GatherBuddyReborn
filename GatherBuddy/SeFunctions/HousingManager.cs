@@ -1,4 +1,4 @@
-﻿using SeHousingManager = FFXIVClientStructs.FFXIV.Client.Game.HousingManager;
+using SeHousingManager = FFXIVClientStructs.FFXIV.Client.Game.HousingManager;
 
 namespace GatherBuddy.SeFunctions;
 

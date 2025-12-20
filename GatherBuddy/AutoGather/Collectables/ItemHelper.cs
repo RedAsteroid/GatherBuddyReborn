@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.Inventory;
-using ECommons;
-using ECommons.DalamudServices;
 using Lumina.Excel.Sheets;
+using GatherBuddy.Plugin;
 
 namespace GatherBuddy.AutoGather.Collectables;
 
@@ -19,7 +18,7 @@ public static class ItemHelper
         var inventoryItems = new List<GameInventoryItem>();
         for (int i = 0; i < inventoriesToFetch.Length; i++)
         {
-            inventoryItems.AddRange(Svc.GameInventory.GetInventoryItems(inventoriesToFetch[i]));
+            inventoryItems.AddRange(Dalamud.GameInventory.GetInventoryItems(inventoriesToFetch[i]));
         }
         return inventoryItems;
     }
@@ -31,8 +30,8 @@ public static class ItemHelper
     
         foreach (var invItem in inventoryItems)
         {
-            var luminaItem = Svc.Data.GetExcelSheet<Item>().FirstOrDefault(i => i.RowId == invItem.BaseItemId);
-            if (luminaItem.NotNull(out var t))
+            var luminaItem = Dalamud.GameData.GetExcelSheet<Item>().FirstOrDefault(i => i.RowId == invItem.BaseItemId);
+            if (luminaItem.RowId != 0)
                 luminaItems.Add(luminaItem);
         }
         return luminaItems;

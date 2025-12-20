@@ -1,7 +1,8 @@
-﻿using Dalamud.Interface.Components;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using GatherBuddy.AutoGather;
 using GatherBuddy.Config;
+using GatherBuddy.Plugin;
 using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
@@ -11,7 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using ECommons.ImGuiMethods;
+
 using GatherBuddy.Classes;
 using static GatherBuddy.AutoGather.AutoGather;
 
@@ -84,7 +85,7 @@ namespace GatherBuddy.Gui
                 var preset = ConfigPreset.FromBase64String(data);
                 if (preset == null)
                 {
-                    Notify.Error("Failed to load config preset from clipboard. Are you sure it's valid?");
+                    Communicator.PrintError("Failed to load config preset from clipboard. Are you sure it's valid?");
                     return false;
                 }
 
@@ -92,7 +93,7 @@ namespace GatherBuddy.Gui
 
                 Items.Insert(Items.Count - 1, preset);
                 Save();
-                Notify.Success($"Imported config preset {preset.Name} from clipboard successfully.");
+                Communicator.Print($"Imported config preset {preset.Name} from clipboard successfully.");
                 return true;
             }
 
@@ -310,13 +311,13 @@ namespace GatherBuddy.Gui
                 var current = _configPresetsSelector.Current;
                 if (current == null)
                 {
-                    Notify.Error("No config preset selected.");
+                    Communicator.PrintError("No config preset selected.");
                     return;
                 }
 
                 var text = current.ToBase64String();
                 ImGui.SetClipboardText(text);
-                Notify.Success($"Successfully copied {current.Name} to clipboard.");
+                Communicator.Print($"Successfully copied {current.Name} to clipboard.");
             }
 
             if (ImGui.Button("Check"))
@@ -823,7 +824,7 @@ namespace GatherBuddy.Gui
                     .Select(x => (name: x.item.Name.ExtractText(), x.rowid, count: GetInventoryItemCount(x.rowid)))
                     .OrderBy(x => x.count == 0)
                     .ThenBy(x => x.name)
-                    .Select(x => x with { name = $"{(x.rowid > 100000 ? " " : "")}{x.name} ({x.count})" })
+                    .Select(x => x with { name = $"{(x.rowid > 100000 ? "? " : "")}{x.name} ({x.count})" })
                     .ToList();
 
                 var       selected = (action7.ItemId > 0 ? list.FirstOrDefault(x => x.rowid == action7.ItemId).name : null) ?? string.Empty;
@@ -858,3 +859,6 @@ namespace GatherBuddy.Gui
         }
     }
 }
+
+
+
