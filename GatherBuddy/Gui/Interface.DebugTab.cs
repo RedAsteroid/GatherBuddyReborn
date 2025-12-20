@@ -203,7 +203,7 @@ public partial class Interface
             if (ImGui.Button("Test Enhanced Weather"))
             {
                 var enhancedWeather = EnhancedCurrentWeather.GetCurrentWeatherWithDebug();
-                var originalWeather = GatherBuddy.CurrentWeather.Current;
+                var originalWeather = GatherBuddy.CurrentWeather?.Current ?? 0;
                 
                 GatherBuddy.Log.Information($"[Weather Test] Enhanced: {enhancedWeather}, Original: {originalWeather}");
                 
@@ -259,6 +259,7 @@ public partial class Interface
             : "None");
         ImGuiUtil.DrawTableColumn("Current True Weather");
         ImGuiUtil.DrawTableColumn(Dalamud.ClientState.TerritoryType != 0
+         && GatherBuddy.CurrentWeather != null
          && GatherBuddy.GameData.Weathers.TryGetValue(GatherBuddy.CurrentWeather.Current, out var w)
                 ? w.Name
                 : "None");
@@ -523,8 +524,9 @@ public partial class Interface
             return;
 
         ImGui.TextUnformatted($"Waymark Manager: 0x{GatherBuddy.WaymarkManager.Address:X}");
+        var baseAddr = System.Diagnostics.Process.GetCurrentProcess().MainModule?.BaseAddress ?? IntPtr.Zero;
         ImGui.TextUnformatted(
-            $"Waymark Manager Offset: +0x{(ulong)GatherBuddy.WaymarkManager.Address - (ulong)Dalamud.SigScanner.Module.BaseAddress:X}");
+            $"Waymark Manager Offset: +0x{(ulong)GatherBuddy.WaymarkManager.Address - (ulong)baseAddr:X}");
         using var table = ImRaii.Table("##Waymarks", 9, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         if (!table)
             return;

@@ -1,4 +1,5 @@
 using System;
+using Dalamud.Game;
 using Dalamud.Plugin.Services;
 
 namespace GatherBuddy.SeFunctions;
@@ -12,18 +13,26 @@ public interface ISigScannerWrapper
 
 public class SigScannerWrapper : ISigScannerWrapper
 {
-    private readonly ISigScanner _sigScanner;
+    private readonly SigScanner _sigScanner;
 
-    public SigScannerWrapper(ISigScanner sigScanner)
+    public SigScannerWrapper(IGameInteropProvider interop)
     {
-        _sigScanner = sigScanner;
+        _sigScanner = new SigScanner();
     }
 
     public IntPtr GetStaticAddressFromSig(string signature, int offset = 0)
-        => _sigScanner.GetStaticAddressFromSig(signature, offset);
+    {
+        return _sigScanner.GetStaticAddressFromSig(signature, offset);
+    }
 
     public IntPtr ScanText(string signature)
-        => _sigScanner.ScanText(signature);
+    {
+        if (_sigScanner.TryScanText(signature, out var ptr))
+            return ptr;
+        
+        GatherBuddy.Log.Warning($"Failed to find signature: {signature}");
+        return IntPtr.Zero;
+    }
 
     public IntPtr ModuleBaseAddress 
         => _sigScanner.Module.BaseAddress;

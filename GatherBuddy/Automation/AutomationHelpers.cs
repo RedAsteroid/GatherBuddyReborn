@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using Dalamud.Game;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
@@ -115,6 +116,7 @@ public static unsafe class Chat
     private delegate void ProcessChatBoxDelegate(IntPtr uiModule, IntPtr message, IntPtr unused, byte a4);
     private delegate void SanitizeStringDelegate(Utf8String* stringPtr, int a2, nint a3);
 
+    private static readonly SigScanner _sigScanner = new SigScanner();
     private static ProcessChatBoxDelegate? _processChatBox;
     private static SanitizeStringDelegate? _sanitizeString;
 
@@ -146,7 +148,7 @@ public static unsafe class Chat
     {
         if (_processChatBox != null) return;
         
-        var addr = Dalamud.SigScanner.ScanText(SendChatSignature);
+        var addr = _sigScanner.ScanText(SendChatSignature);
         _processChatBox = Marshal.GetDelegateForFunctionPointer<ProcessChatBoxDelegate>(addr);
         GatherBuddy.Log.Debug($"[Chat] ProcessChatBox initialized at 0x{addr:X16}");
     }
@@ -155,7 +157,7 @@ public static unsafe class Chat
     {
         if (_sanitizeString != null) return;
         
-        var addr = Dalamud.SigScanner.ScanText(SanitizeStringSignature);
+        var addr = _sigScanner.ScanText(SanitizeStringSignature);
         _sanitizeString = Marshal.GetDelegateForFunctionPointer<SanitizeStringDelegate>(addr);
         GatherBuddy.Log.Debug($"[Chat] SanitizeString initialized at 0x{addr:X16}");
     }

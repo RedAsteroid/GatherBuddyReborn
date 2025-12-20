@@ -36,7 +36,7 @@ namespace GatherBuddy.AutoGather
 
         public static unsafe int GetInventoryItemCount(uint itemRowId)
         {
-            return InventoryManager.Instance()->GetInventoryItemCount(itemRowId < 100000 ? itemRowId : itemRowId - 100000, itemRowId >= 100000);
+            return InventoryManager.Instance()->GetInventoryItemCount(itemRowId < 1_000_000 ? itemRowId : itemRowId - 1_000_000, itemRowId >= 1_000_000);
         }
 
         private static uint[] GetItemFoodProps(Item item)
@@ -52,7 +52,7 @@ namespace GatherBuddy.AutoGather
 
         private static bool IsItemCordial(Item item)
         {
-            return item.ItemAction.ValueNullable?.RowId == 1055;
+            return item.RowId is 6141 or 12669 or 16911;
         }
 
         private static bool IsItemDoLFood(Item item)
@@ -109,8 +109,8 @@ namespace GatherBuddy.AutoGather
             }
             else
             {
-                var configuredItem = PossibleFoods.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(itemId));
-                if (itemId > 100000)
+                var configuredItem = PossibleFoods.FirstOrDefault(item => new[] { item.RowId, item.RowId + 1_000_000 }.Contains(itemId));
+                if (itemId > 1_000_000)
                 {
                     return buff.Param == configuredItem.ItemAction.ValueNullable?.DataHQ[1] + 10000;
                 }
@@ -130,8 +130,8 @@ namespace GatherBuddy.AutoGather
             }
             else
             {
-                var configuredItem = PossiblePotions.FirstOrDefault(item => new[] { item.RowId, item.RowId + 100000 }.Contains(itemId));
-                if (itemId > 100000)
+                var configuredItem = PossiblePotions.FirstOrDefault(item => new[] { item.RowId, item.RowId + 1_000_000 }.Contains(itemId));
+                if (itemId > 1_000_000)
                 {
                     return buff.Param == configuredItem.ItemAction.ValueNullable?.DataHQ[1] + 10000;
                 }
@@ -170,8 +170,7 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void UseItem(uint itemId)
         {
-            // When calling ActionManager UseAction, HQ have ids 1,000,000 more than NQ, whereas Lumina Excel is 100,000
-            ActionManager.Instance()->UseAction(ActionType.Item, itemId > 100000 ? itemId + 900000 : itemId, extraParam: 65535);
+            ActionManager.Instance()->UseAction(ActionType.Item, itemId, extraParam: 65535);
         }
 
         // Cordial, food and potion have no cast time and can be used while mounted
