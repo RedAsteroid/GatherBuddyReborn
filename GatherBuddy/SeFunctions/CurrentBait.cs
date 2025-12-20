@@ -1,4 +1,3 @@
-﻿using Dalamud.Game;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.WKS;
@@ -8,7 +7,7 @@ namespace GatherBuddy.SeFunctions;
 
 public sealed class CurrentBait : SeAddressBase
 {
-    public CurrentBait(ISigScanner sigScanner)
+    public CurrentBait(ISigScannerWrapper sigScanner)
         : base(sigScanner, "8B 0D ?? ?? ?? ?? 3B D9 75")
     {
         Dalamud.Interop.InitializeFromAttributes(this);

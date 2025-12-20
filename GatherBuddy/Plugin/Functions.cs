@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
-using ECommons.DalamudServices;
 using Lumina.Excel.Sheets;
 using OtterGui.Classes;
 
@@ -126,8 +125,8 @@ public static class Functions
 
     public static bool OnHomeWorld()
     {
-        var world = Dalamud.ClientState.LocalPlayer?.CurrentWorld;
-        var home = Dalamud.ClientState.LocalPlayer?.HomeWorld;
+        var world = Dalamud.Objects.LocalPlayer?.CurrentWorld;
+        var home = Dalamud.Objects.LocalPlayer?.HomeWorld;
         return world?.Value.RowId == home?.Value.RowId;
     }
 

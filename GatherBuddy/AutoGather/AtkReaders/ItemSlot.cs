@@ -1,8 +1,7 @@
-using ECommons;
-using ECommons.Automation;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GatherBuddy.Classes;
+using GatherBuddy.Automation;
 
 namespace GatherBuddy.AutoGather.AtkReaders;
 

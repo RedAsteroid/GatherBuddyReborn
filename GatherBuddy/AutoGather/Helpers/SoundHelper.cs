@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Media;
 using System.Reflection;
@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CSCore;
 using CSCore.Codecs.WAV;
 using CSCore.SoundOut;
-using ECommons.DalamudServices;
 
 namespace GatherBuddy.AutoGather.Helpers;
 
@@ -47,7 +46,7 @@ public class SoundHelper
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Error during honk: ");
+            GatherBuddy.Log.Error($"Error during honk: {ex}");
         }
     }
 

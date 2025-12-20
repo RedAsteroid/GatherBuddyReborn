@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using ECommons;
+using GatherBuddy.Automation;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -8,12 +8,12 @@ namespace GatherBuddy.AutoGather.Collectables;
 
 public unsafe class ScripShopWindowHandler
 {
-    public bool IsReady => GenericHelpers.TryGetAddonByName<AtkUnitBase>("InclusionShop", out var addon) &&
-                          GenericHelpers.IsAddonReady(addon);
+    public bool IsReady => Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("InclusionShop", out var addon) &&
+                          Automation.GenericHelpers.IsAddonReady(addon);
     
     public void OpenShop()
     {
-        if (GenericHelpers.TryGetAddonByName("SelectIconString", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("SelectIconString", out AtkUnitBase* addon))
         {
             var openShop = stackalloc AtkValue[]
             {
@@ -25,7 +25,7 @@ public unsafe class ScripShopWindowHandler
     
     public void SelectPage(int page)
     {
-        if (GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
         {
             var selectPage = stackalloc AtkValue[]
             {
@@ -51,7 +51,7 @@ public unsafe class ScripShopWindowHandler
     
     public void SelectSubPage(int subPage)
     {
-        if (GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
         {
             var selectSubPage = stackalloc AtkValue[]
             {
@@ -64,9 +64,9 @@ public unsafe class ScripShopWindowHandler
     
     public bool SelectItem(uint itemId, int amount)
     {
-        if (GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
         {
-            var shop = new ECommons.UIHelpers.AddonMasterImplementations.AddonMaster.InclusionShop(addon);
+            var shop = new Automation.AddonMaster.InclusionShop(addon);
             var shopItems = shop.ShopItems;
             var index = -1;
             
@@ -100,7 +100,7 @@ public unsafe class ScripShopWindowHandler
     
     public void PurchaseItem()
     {
-        if (GenericHelpers.TryGetAddonByName("ShopExchangeItemDialog", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("ShopExchangeItemDialog", out AtkUnitBase* addon))
         {
             var purchaseItem = stackalloc AtkValue[]
             {
@@ -113,7 +113,7 @@ public unsafe class ScripShopWindowHandler
     
     public int GetScripCount()
     {
-        if (GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
         {
             for (int i = 0; i < addon->UldManager.NodeListCount; i++)
             {
@@ -135,7 +135,7 @@ public unsafe class ScripShopWindowHandler
     
     public void CloseShop()
     {
-        if (GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
+        if (Automation.GenericHelpers.TryGetAddonByName("InclusionShop", out AtkUnitBase* addon))
         {
             addon->Close(true);
         }

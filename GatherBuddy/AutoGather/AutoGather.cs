@@ -5,15 +5,11 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Utility;
-using ECommons;
-using ECommons.Automation;
-using ECommons.Automation.LegacyTaskManager;
-using ECommons.DalamudServices;
-using ECommons.ExcelServices;
-using ECommons.EzIpcManager;
-using ECommons.GameHelpers;
-using ECommons.MathHelpers;
-using ECommons.UIHelpers.AddonMasterImplementations;
+
+using GatherBuddy.Automation;
+using GatherBuddy.Helpers;
+using GatherBuddy.Utilities;
+using GatherBuddy.Automation;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
@@ -49,15 +45,15 @@ namespace GatherBuddy.AutoGather
         public AutoGather(GatherBuddy plugin)
         {
             // Initialize the task manager
-            TaskManager                  =  new();
+            TaskManager                  =  new(Dalamud.Framework);
             TaskManager.ShowDebug        =  false;
             _plugin                      =  plugin;
             _soundHelper                 =  new SoundHelper();
             _advancedUnstuck             =  new();
             _activeItemList              =  new ActiveItemList(plugin.AutoGatherListsManager, this);
             ArtisanExporter              =  new Reflection.ArtisanExporter(plugin.AutoGatherListsManager);
-            Svc.Chat.CheckMessageHandled += OnMessageHandled;
-            //Svc.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Gathering", OnGatheringFinalize);
+            Dalamud.Chat.CheckMessageHandled += OnMessageHandled;
+            //Dalamud.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Gathering", OnGatheringFinalize);
             _plugin.FishRecorder.Parser.CaughtFish += OnFishCaught;
         }
         public Fish? LastCaughtFish { get; private set; }
@@ -76,7 +72,7 @@ namespace GatherBuddy.AutoGather
                     
                     if (currentCount >= targetQuantity)
                     {
-                        Svc.Log.Information($"[AutoGather] Target fish count reached ({currentCount}/{targetQuantity}), disabling auto-cast");
+                        GatherBuddy.Log.Information($"[AutoGather] Target fish count reached ({currentCount}/{targetQuantity}), disabling auto-cast");
                         AutoHook.SetAutoStartFishing?.Invoke(false);
                     }
                 }
@@ -93,7 +89,7 @@ namespace GatherBuddy.AutoGather
                 if (type is (XivChatType)2243)
                 {
                     var text = message.TextValue;
-                    var id = Svc.Data.GetExcelSheet<LogMessage>()
+                    var id = Dalamud.GameData.GetExcelSheet<LogMessage>()
                         ?.FirstOrDefault(x => x.Text.ToString() == text).RowId;
 
                     LureSuccess = GatherBuddy.GameData.Fishes.Values.FirstOrDefault(f => f.FishData?.Unknown_70_1 == text) != null;
@@ -276,7 +272,7 @@ namespace GatherBuddy.AutoGather
 
         public void DoAutoGather()
         {
-            var currentTerritory = Svc.ClientState.TerritoryType;
+            var currentTerritory = Dalamud.ClientState.TerritoryType;
             if (_lastTerritory != currentTerritory)
             {
                 _lastTerritory = currentTerritory;
@@ -324,7 +320,7 @@ namespace GatherBuddy.AutoGather
             {
                 var gatherTarget = _currentGatherTarget!;
                 // Mark the node as visited if possible
-                var targetNode = Svc.Targets.Target ?? Svc.Targets.PreviousTarget;
+                var targetNode = Dalamud.Targets.Target ?? Dalamud.Targets.PreviousTarget;
                 if (targetNode != null && targetNode.ObjectKind is ObjectKind.GatheringPoint)
                 {
                     _activeItemList.MarkVisited(targetNode);
@@ -373,20 +369,20 @@ namespace GatherBuddy.AutoGather
             }
 
 
-            try
-            {
-                if (!NavReady)
-                {
-                    AutoStatus = "Waiting for Navmesh...";
-                    return;
-                }
-            }
-            catch (Exception)
-            {
-                //GatherBuddy.Log.Error(e.Message);
-                AutoStatus = "vnavmesh communication failed. Do you have it installed??";
-                return;
-            }
+                        //try
+            //{
+            //    if (!NavReady)
+            //    {
+            //        AutoStatus = "Waiting for Navmesh...";
+            //        return;
+            //    }
+            //}
+            //catch (Exception)
+            //{
+            //    //GatherBuddy.Log.Error(e.Message);
+            //    AutoStatus = "vnavmesh communication failed. Do you have it installed??";
+            //    return;
+            //}
 
             if (HandleFishingCollectable())
                 return;
@@ -435,7 +431,7 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (IsGathering && Player.Job == Job.FSH && _activeItemList.ShouldUpdateWhileFishing())
+            if (IsGathering && Player.Job == 18 /* FSH */ && _activeItemList.ShouldUpdateWhileFishing())
             {
                 var nextAfterRefresh = _activeItemList.GetNextOrDefault(new List<uint>());
                 var currentFishId = _currentAutoHookTarget?.Fish?.ItemId ?? 0;
@@ -455,7 +451,7 @@ namespace GatherBuddy.AutoGather
                     var reason = shouldSwitchToNewTimed
                         ? "timed/weather fish available" 
                         : "current timed fish window ended";
-                    Svc.Log.Information($"[AutoGather] {reason} - quitting fishing to pursue new target");
+                    GatherBuddy.Log.Information($"[AutoGather] {reason} - quitting fishing to pursue new target");
                     
                     if (GatherBuddy.Config.AutoGatherConfig.UseAutoHook && AutoHook.Enabled)
                     {
@@ -484,7 +480,7 @@ namespace GatherBuddy.AutoGather
                 if (_currentGatherTarget == null)
                 {
                     if (!_activeItemList.IsInitialized)
-                        _currentGatherTarget = _activeItemList.GetNextOrDefault([Svc.Targets.Target!.DataId]).FirstOrDefault();
+                        _currentGatherTarget = _activeItemList.GetNextOrDefault([Dalamud.Targets.Target!.DataId]).FirstOrDefault();
                     else
                         _currentGatherTarget = _activeItemList.CurrentOrDefault;
                 }
@@ -498,7 +494,7 @@ namespace GatherBuddy.AutoGather
                 StopNavigation();
 
                 var fish = _activeItemList.GetNextOrDefault(new List<uint>()).Where(g => g.Fish != null);
-                if (fish.Any() && Player.Job == Job.FSH)
+                if (fish.Any() && Player.Job == 18 /* FSH */)
                 {
                     var isSpearfishing = fish.First().Fish?.IsSpearFish == true;
                     
@@ -542,7 +538,7 @@ namespace GatherBuddy.AutoGather
                     return;
                 }
 
-                if (!fish.Any() && Player.Job == Job.FSH)
+                if (!fish.Any() && Player.Job == 18 /* FSH */)
                 {
                     QueueQuitFishingTasks();
                 }
@@ -578,14 +574,14 @@ namespace GatherBuddy.AutoGather
 
             if (_wasGatheringSpearfish)
             {
-                Svc.Log.Debug("[AutoGather] Finished spearfishing, updating catches");
+                GatherBuddy.Log.Debug("[AutoGather] Finished spearfishing, updating catches");
                 _wasGatheringSpearfish = false;
-                Svc.Log.Debug($"[AutoGather] Was at shadow node: {_wasAtShadowNode}");
+                GatherBuddy.Log.Debug($"[AutoGather] Was at shadow node: {_wasAtShadowNode}");
                 
                 // If we just finished at a shadow node, clear session data FIRST to allow respawn
                 if (_wasAtShadowNode)
                 {
-                    Svc.Log.Information("[AutoGather] Finished fishing at shadow node, clearing session data to allow respawn");
+                    GatherBuddy.Log.Information("[AutoGather] Finished fishing at shadow node, clearing session data to allow respawn");
                     ClearSpearfishingSessionData();
                     _wasAtShadowNode = false;
                 }
@@ -621,12 +617,13 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            if (Player.Job is Job.BTN or Job.MIN or Job.FSH
+            if (Player.Job is 17 /* BTN */ or 16 /* MIN */ or 18 /* FSH */
              && !isPathing
-             && !Svc.Condition[ConditionFlag.Mounted])
+             && !Dalamud.Conditions[ConditionFlag.Mounted])
             {
                 if (SpiritbondMax > 0)
                 {
+                    GatherBuddy.Log.Debug($"[Materia] Triggering extraction. IsGathering={IsGathering}, SpiritbondMax={SpiritbondMax}");
                     if (IsGathering)
                     {
                         QueueQuitFishingTasks();
@@ -638,7 +635,7 @@ namespace GatherBuddy.AutoGather
 
                 if (FreeInventorySlots < 20 && HasReducibleItems())
                 {
-                    ReduceItems(false);
+                    ReduceItems(true);
                     return;
                 }
             }
@@ -660,7 +657,7 @@ namespace GatherBuddy.AutoGather
                 if (weatherChanged && isUmbralWeather && !wasUmbralWeather && hasUmbralItems && hasNormalDiademItems)
                 {
                     StopNavigation();
-                    Svc.Log.Information($"[Umbral] Weather changed to umbral ({currentWeather}) - leaving Diadem for clean state");
+                    GatherBuddy.Log.Information($"[Umbral] Weather changed to umbral ({currentWeather}) - leaving Diadem for clean state");
                     _lastUmbralWeather = currentWeather;
                     LeaveTheDiadem();
                     return;
@@ -669,7 +666,7 @@ namespace GatherBuddy.AutoGather
                 if (weatherChanged && !isUmbralWeather && wasUmbralWeather && hasUmbralItems && hasNormalDiademItems)
                 {
                     StopNavigation();
-                    Svc.Log.Information($"[Umbral] Weather changed to normal ({currentWeather}) - leaving Diadem for clean state");
+                    GatherBuddy.Log.Information($"[Umbral] Weather changed to normal ({currentWeather}) - leaving Diadem for clean state");
                     _lastUmbralWeather = currentWeather;
                     LeaveTheDiadem();
                     return;
@@ -679,7 +676,7 @@ namespace GatherBuddy.AutoGather
                 {
                     _hasGatheredUmbralThisSession = false;
                     _lastUmbralWeather = currentWeather;
-                    Svc.Log.Information($"[Umbral] Weather changed to normal with only umbral items - leaving Diadem");
+                    GatherBuddy.Log.Information($"[Umbral] Weather changed to normal with only umbral items - leaving Diadem");
                     StopNavigation();
                     LeaveTheDiadem();
                     return;
@@ -688,7 +685,7 @@ namespace GatherBuddy.AutoGather
                 _lastUmbralWeather = currentWeather;
             }
 
-            var nearbyNodes = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint && o.IsTargetable).Select(o => o.DataId);
+            var nearbyNodes = Dalamud.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint && o.IsTargetable).Select(o => o.DataId);
             
             var hasNormalDiademItemsInList = _activeItemList.Any(target => target.Gatherable != null && 
                 !UmbralNodes.UmbralNodeData.Any(entry => entry.ItemIds.Contains(target.Gatherable.ItemId)) &&
@@ -714,7 +711,7 @@ namespace GatherBuddy.AutoGather
                 
                 if (hasUmbralItems)
                 {
-                    Svc.Log.Information($"[Umbral] Gathered umbral node - leaving Diadem to reset session");
+                    GatherBuddy.Log.Information($"[Umbral] Gathered umbral node - leaving Diadem to reset session");
                     StopNavigation();
                     LeaveTheDiadem();
                     return;
@@ -771,7 +768,7 @@ namespace GatherBuddy.AutoGather
 
                     if (HasReducibleItems())
                     {
-                        if (Player.Job == Job.FSH)
+                        if (Player.Job == 18 /* FSH */)
                         {
                             if (IsGathering)
                             {
@@ -834,7 +831,7 @@ namespace GatherBuddy.AutoGather
                 return;
             }
 
-            var territoryId = Svc.ClientState.TerritoryType;
+            var territoryId = Dalamud.ClientState.TerritoryType;
             var targetTerritoryId = next.First().Node?.Territory.Id ?? next.First().FishingSpot?.Territory.Id ?? 0;
             
             if (((territoryId == 129 && targetTerritoryId == 128)
@@ -944,7 +941,7 @@ namespace GatherBuddy.AutoGather
             if ((territoryId == 478 && (next.First().Node?.Territory.Id == 399 || next.First().FishingSpot?.Territory.Id == 399))
              || (territoryId == 418 && (next.First().Node?.Territory.Id is 901 or 929 or 939 || next.First().FishingSpot?.Territory.Id is 901 or 929 or 939)) && Lifestream.Enabled)
             {
-                var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
+                var aetheryte = Dalamud.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
                     .OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
                 if (aetheryte != null)
                 {
@@ -1004,12 +1001,12 @@ namespace GatherBuddy.AutoGather
                     }
                 }
                 
-                var dutyNpc                    = Svc.Objects.FirstOrDefault(o => o.DataId == 1031694);
+                var dutyNpc                    = Dalamud.Objects.FirstOrDefault(o => o.DataId == 1031694);
                 var selectStringAddon          = Dalamud.GameGui.GetAddonByName("SelectString");
                 var talkAddon                  = Dalamud.GameGui.GetAddonByName("Talk");
                 var selectYesNoAddon           = Dalamud.GameGui.GetAddonByName("SelectYesno");
                 var contentsFinderConfirmAddon = Dalamud.GameGui.GetAddonByName("ContentsFinderConfirm");
-                Svc.Log.Verbose($"Addons: {selectStringAddon}, {talkAddon}, {selectYesNoAddon}, {contentsFinderConfirmAddon}");
+                GatherBuddy.Log.Verbose($"Addons: {selectStringAddon}, {talkAddon}, {selectYesNoAddon}, {contentsFinderConfirmAddon}");
                 if (dutyNpc != null && dutyNpc.Position.DistanceToPlayer() > 3)
                 {
                     AutoStatus = "Moving to Diadem NPC...";
@@ -1196,11 +1193,11 @@ namespace GatherBuddy.AutoGather
 
             if (Dalamud.Conditions[ConditionFlag.Gathering] 
              || Dalamud.Conditions[ConditionFlag.ExecutingGatheringAction]
-             || Svc.Condition[ConditionFlag.Occupied]
-             || Svc.Condition[ConditionFlag.Fishing]
-             || Svc.Condition[ConditionFlag.Casting]
-             || Svc.Condition[ConditionFlag.Mounting]
-             || Svc.Condition[ConditionFlag.Mounting71])
+             || Dalamud.Conditions[ConditionFlag.Occupied]
+             || Dalamud.Conditions[ConditionFlag.Fishing]
+             || Dalamud.Conditions[ConditionFlag.Casting]
+             || Dalamud.Conditions[ConditionFlag.Mounting]
+             || Dalamud.Conditions[ConditionFlag.Mounting71])
             {
                 AutoStatus = "Waiting for current action to complete before teleport...";
                 return;
@@ -1259,7 +1256,7 @@ namespace GatherBuddy.AutoGather
             
             if (shouldSkipJobSwitch)
             {
-                Svc.Log.Information($"[Umbral] Skipping job switch in Diadem after umbral gathering (staying on {JobAsGatheringType})");
+                GatherBuddy.Log.Information($"[Umbral] Skipping job switch in Diadem after umbral gathering (staying on {JobAsGatheringType})");
             }
             
             if (JobAsGatheringType != targetGatheringType && !shouldSkipJobSwitch)
@@ -1298,7 +1295,7 @@ namespace GatherBuddy.AutoGather
         private void DoFishMovement(IEnumerable<GatherTarget> next)
         {
             var fish = next.First(ne => ne.Fish != null);
-            var territoryId = Svc.ClientState.TerritoryType;
+            var territoryId = Dalamud.ClientState.TerritoryType;
             var isCurrentDiadem = territoryId is 901 or 929 or 939;
             var isTargetDiadem = fish.FishingSpot?.Territory.Id is 901 or 929 or 939;
             
@@ -1360,7 +1357,7 @@ namespace GatherBuddy.AutoGather
             
             if (territoryId == 418 && fish.FishingSpot?.Territory.Id is 901 or 929 or 939 && Lifestream.Enabled)
             {
-                var aetheryte = Svc.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
+                var aetheryte = Dalamud.Objects.Where(x => x.ObjectKind == ObjectKind.Aetheryte && x.IsTargetable)
                     .OrderBy(x => x.Position.DistanceToPlayer()).FirstOrDefault();
                 if (aetheryte != null)
                 {
@@ -1425,7 +1422,7 @@ namespace GatherBuddy.AutoGather
                         }
                     }
                     
-                    var dutyNpc                    = Svc.Objects.FirstOrDefault(o => o.DataId == 1031694);
+                    var dutyNpc                    = Dalamud.Objects.FirstOrDefault(o => o.DataId == 1031694);
                     var selectStringAddon          = Dalamud.GameGui.GetAddonByName("SelectString");
                     var talkAddon                  = Dalamud.GameGui.GetAddonByName("Talk");
                     var selectYesNoAddon           = Dalamud.GameGui.GetAddonByName("SelectYesno");
@@ -1541,7 +1538,7 @@ namespace GatherBuddy.AutoGather
 
             if (fishingSpotData.Expiration < DateTime.Now)
             {
-                Svc.Log.Debug("[AutoGather] Time for a new fishing spot!");
+                GatherBuddy.Log.Debug("[AutoGather] Time for a new fishing spot!");
                 var oldPosition = fishingSpotData.Position;
 
                 const float MinRelocationDistance = 10.0f;
@@ -1562,7 +1559,7 @@ namespace GatherBuddy.AutoGather
                 var newRot = positionData.Value.Rotation;
                 var dist = Vector3.Distance(newPos, oldPosition);
 
-                Svc.Log.Debug($"[AutoGather] Relocating fishing spot for '{fish.FishingSpot.Name}' " +
+                GatherBuddy.Log.Debug($"[AutoGather] Relocating fishing spot for '{fish.FishingSpot.Name}' " +
                               $"from {oldPosition} to {newPos}, distance={dist}");
 
                 FishingSpotData[fish] = (newPos, newRot, DateTime.MaxValue);
@@ -1597,7 +1594,7 @@ namespace GatherBuddy.AutoGather
                     }
                     else if ((DateTime.Now - firstAttempt).TotalSeconds > 5)
                     {
-                        Svc.Log.Warning("[AutoGather] Failed to dismount at fishing spot for 5+ seconds, forcing unstuck to find landable spot");
+                        GatherBuddy.Log.Warning("[AutoGather] Failed to dismount at fishing spot for 5+ seconds, forcing unstuck to find landable spot");
                         _fishingSpotDismountAttempts.Remove(fishingSpotData.Position);
                         _advancedUnstuck.ForceFishing();
                         AutoStatus = "Can't land here, finding landable spot...";
@@ -1626,11 +1623,11 @@ namespace GatherBuddy.AutoGather
                 {
                     var newExpiration = DateTime.Now.AddMinutes(GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes);
                     FishingSpotData[fish] = (fishingSpotData.Position, fishingSpotData.Rotation, newExpiration);
-                    Svc.Log.Information($"[AutoGather] Started fishing spot timer: {GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes} minutes");
+                    GatherBuddy.Log.Information($"[AutoGather] Started fishing spot timer: {GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes} minutes");
                 }
                 else
                 {
-                    Svc.Log.Debug($"Fishing Spot is valid for {(fishingSpotData.Expiration - DateTime.Now).TotalSeconds} seconds");
+                    GatherBuddy.Log.Debug($"Fishing Spot is valid for {(fishingSpotData.Expiration - DateTime.Now).TotalSeconds} seconds");
                 }
 
                 StopNavigation();
@@ -1721,7 +1718,7 @@ namespace GatherBuddy.AutoGather
             
             const float RecentlyGatheredDistance = 5f;
             
-            var allVisibleNodes = Svc.Objects
+            var allVisibleNodes = Dalamud.Objects
                 .Where(o => o.ObjectKind == ObjectKind.GatheringPoint)
                 .Where(o => !IsBlacklisted(o.Position))
                 .Where(o => !_diademRecentlyGatheredNodes.Any(recent => Vector3.Distance(recent, o.Position) < RecentlyGatheredDistance))
@@ -1829,7 +1826,7 @@ namespace GatherBuddy.AutoGather
             
             AutoStatus = "Searching for next Diadem node...";
             
-            var currentTerritoryId = Svc.ClientState.TerritoryType;
+            var currentTerritoryId = Dalamud.ClientState.TerritoryType;
             if (!Functions.InTheDiadem())
             {
                 AutoStatus = "Not in Diadem, aborting...";
@@ -1886,7 +1883,7 @@ namespace GatherBuddy.AutoGather
                  ?? [])
                 .ToHashSet();
 
-            var visibleNodes = Svc.Objects
+            var visibleNodes = Dalamud.Objects
                 .Where(o => allPositions.Contains(o.Position))
                 .ToList();
 
@@ -2154,11 +2151,11 @@ namespace GatherBuddy.AutoGather
             }
 
             if (job is GatheringType.Miner or GatheringType.Botanist
-                && Player.Job == Job.FSH
+                && Player.Job == 18 /* FSH */
                 && GatherBuddy.Config.AutoGatherConfig.UseAutoHook
                 && AutoHook.Enabled)
             {
-                Svc.Log.Debug($"[AutoGather] Swapping from FSH to {job}, disabling AutoHook.");
+                GatherBuddy.Log.Debug($"[AutoGather] Swapping from FSH to {job}, disabling AutoHook.");
                 try
                 {
                     AutoHook.SetPluginState(false);
@@ -2195,11 +2192,11 @@ namespace GatherBuddy.AutoGather
 
                 if (!stillEnabled)
                 {
-                    Svc.Log.Debug($"[AutoGather] AutoHook fully disabled after {attempt} attempt(s).");
+                    GatherBuddy.Log.Debug($"[AutoGather] AutoHook fully disabled after {attempt} attempt(s).");
                     return;
                 }
 
-                Svc.Log.Debug($"[AutoGather] AutoHook still enabled (plugin={pluginOn}, autoStart={autoStartOn}), " +
+                GatherBuddy.Log.Debug($"[AutoGather] AutoHook still enabled (plugin={pluginOn}, autoStart={autoStartOn}), " +
                               $"attempt {attempt}/{maxAttempts} – sending IPC disable.");
 
                 AutoHook.SetAutoStartFishing?.Invoke(false);
@@ -2207,7 +2204,7 @@ namespace GatherBuddy.AutoGather
 
                 if (attempt >= maxAttempts)
                 {
-                    Svc.Log.Warning("[AutoGather] Failed to fully disable AutoHook after max attempts.");
+                    GatherBuddy.Log.Warning("[AutoGather] Failed to fully disable AutoHook after max attempts.");
                     return;
                 }
 
@@ -2351,7 +2348,7 @@ namespace GatherBuddy.AutoGather
                 {
                     if (!_autoRetainerMultiModeEnabled)
                     {
-                        var player = Svc.ClientState.LocalPlayer;
+                        var player = Dalamud.Objects.LocalPlayer;
                         if (player != null)
                             _originalCharacterNameWorld = $"{player.Name}@{player.HomeWorld.Value.Name}";
                         
@@ -2372,7 +2369,7 @@ namespace GatherBuddy.AutoGather
                     
                     if (!string.IsNullOrEmpty(_originalCharacterNameWorld))
                     {
-                        var currentPlayer = Svc.ClientState.LocalPlayer;
+                        var currentPlayer = Dalamud.Objects.LocalPlayer;
                         if (currentPlayer != null)
                         {
                             var currentCharacter = $"{currentPlayer.Name}@{currentPlayer.HomeWorld.Value.Name}";
@@ -2446,8 +2443,8 @@ namespace GatherBuddy.AutoGather
         {
             _advancedUnstuck.Dispose();
             _activeItemList.Dispose();
-            Svc.Chat.CheckMessageHandled -= OnMessageHandled;
-            //Svc.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "Gathering", OnGatheringFinalize);
+            Dalamud.Chat.CheckMessageHandled -= OnMessageHandled;
+            //Dalamud.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "Gathering", OnGatheringFinalize);
         }
     }
 }

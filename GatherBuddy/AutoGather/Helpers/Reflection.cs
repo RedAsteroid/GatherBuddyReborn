@@ -4,12 +4,10 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Dalamud.Plugin;
-using ECommons.DalamudServices;
-using ECommons.ExcelServices;
-using ECommons.Reflection;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.Gui;
 using GatherBuddy.Plugin;
+using GatherBuddy.Utility;
 
 namespace GatherBuddy.AutoGather.Helpers
 {
@@ -27,10 +25,10 @@ namespace GatherBuddy.AutoGather.Helpers
             public IDalamudPlugin? ArtisanAssemblyInstance;
 
             public bool ArtisanAssemblyEnabled
-                => DalamudReflector.TryGetDalamudPlugin("Artisan", out _, false, true);
+                => ReflectionHelpers.TryGetDalamudPlugin("Artisan", out _);
 
             public bool TouchArtisanAssembly
-                => DalamudReflector.TryGetDalamudPlugin("Artisan", out ArtisanAssemblyInstance, out _, false, true);
+                => ReflectionHelpers.TryGetDalamudPlugin("Artisan", out ArtisanAssemblyInstance);
 
             public Dictionary<int, string> GetArtisanListNames()
             {
@@ -52,7 +50,7 @@ namespace GatherBuddy.AutoGather.Helpers
                 }
                 catch (Exception e)
                 {
-                    Svc.Log.Error(e, "Error while getting Artisan List names: ");
+                    GatherBuddy.Log.Error($"Error while getting Artisan List names: {e}");
                     return listNames;
                 }
             }
@@ -75,7 +73,7 @@ namespace GatherBuddy.AutoGather.Helpers
                         var targetList = artisanCraftingLists.Cast<object>().SingleOrDefault(l => (int)l.GetFoP("ID") == listKvp.Key);
                         if (targetList == null)
                         {
-                            Svc.Log.Error($"Artisan list '{listKvp.Value}' ({listKvp.Key}) could not be found");
+                            GatherBuddy.Log.Error($"Artisan list '{listKvp.Value}' ({listKvp.Key}) could not be found");
                             return false;
                         }
 
@@ -99,7 +97,7 @@ namespace GatherBuddy.AutoGather.Helpers
                 }
                 catch (Exception e)
                 {
-                    Svc.Log.Error(e, "Error while importing Artisan List: ");
+                    GatherBuddy.Log.Error($"Error while importing Artisan List: {e}");
                     throw;
                 }
             }
@@ -126,7 +124,7 @@ namespace GatherBuddy.AutoGather.Helpers
             //             var targetList = artisanCraftingLists.Cast<object>().SingleOrDefault(l => l.GetFoP("Name").ToString() == listName);
             //             if (targetList == null)
             //             {
-            //                 Svc.Log.Error("Artisan Crafting List not found. Artisan List name must be identical to the Auto-Gather List name.");
+            //                 GatherBuddy.Log.Error("Artisan Crafting List not found. Artisan List name must be identical to the Auto-Gather List name.");
             //                 return null;
             //             }
             //
@@ -149,7 +147,7 @@ namespace GatherBuddy.AutoGather.Helpers
             //     }
             //     catch (Exception e)
             //     {
-            //         Svc.Log.Error(e, "Error while importing Artisan List: ");
+            //         GatherBuddy.Log.Error(e, "Error while importing Artisan List: ");
             //         throw;
             //     }
             // }

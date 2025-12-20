@@ -1,10 +1,9 @@
 using System;
 using System.Text.RegularExpressions;
 using Dalamud.Memory;
-using ECommons;
-using ECommons.DalamudServices;
-using ECommons.UIHelpers.AddonMasterImplementations;
+using GatherBuddy.Automation;
 using Lumina.Excel.Sheets;
+using GatherBuddy.Plugin;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -12,13 +11,13 @@ namespace GatherBuddy.AutoGather.Collectables;
 
 public unsafe class CollectableWindowHandler
 {
-    public unsafe bool IsReady => GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
-                                  GenericHelpers.IsAddonReady(addon);
+    public unsafe bool IsReady => Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
+                                  Automation.GenericHelpers.IsAddonReady(addon);
 
     public unsafe void SelectJob(uint id)
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
-            GenericHelpers.IsAddonReady(addon))
+        if (Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
+            Automation.GenericHelpers.IsAddonReady(addon))
         {
             var selectJob = stackalloc AtkValue[]
             {
@@ -31,8 +30,8 @@ public unsafe class CollectableWindowHandler
 
     public unsafe void SelectItem(string itemName)
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
-            GenericHelpers.IsAddonReady(addon))
+        if (Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
+            Automation.GenericHelpers.IsAddonReady(addon))
         {
             var turnIn = new TurninWindow(addon);
             var index = turnIn.GetItemIndexOf(itemName);
@@ -53,7 +52,7 @@ public unsafe class CollectableWindowHandler
 
     public unsafe void SelectItemById(uint itemId)
     {
-        var item = Svc.Data.GetExcelSheet<Item>().GetRow(itemId);
+        var item = Dalamud.GameData.GetExcelSheet<Item>().GetRow(itemId);
         var itemName = item.Name.ToString();
         GatherBuddy.Log.Debug($"[CollectableWindowHandler] SelectItemById({itemId}) -> '{itemName}'");
         SelectItem(itemName);
@@ -61,8 +60,8 @@ public unsafe class CollectableWindowHandler
     
     public unsafe void SubmitItem()
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
-            GenericHelpers.IsAddonReady(addon))
+        if (Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
+            Automation.GenericHelpers.IsAddonReady(addon))
         {
             var submitItem = stackalloc AtkValue[]
             {
@@ -75,8 +74,8 @@ public unsafe class CollectableWindowHandler
     
     public unsafe void CloseWindow()
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
-            GenericHelpers.IsAddonReady(addon))
+        if (Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) &&
+            Automation.GenericHelpers.IsAddonReady(addon))
         {
             addon->Close(true);
         }
@@ -86,8 +85,8 @@ public unsafe class CollectableWindowHandler
     {
         try
         {
-            if (!GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) ||
-                !GenericHelpers.IsAddonReady(addon))
+            if (!Automation.GenericHelpers.TryGetAddonByName<AtkUnitBase>("CollectablesShop", out var addon) ||
+                !Automation.GenericHelpers.IsAddonReady(addon))
                 return -1;
 
             for (int i = 0; i < addon->UldManager.NodeListCount; i++)

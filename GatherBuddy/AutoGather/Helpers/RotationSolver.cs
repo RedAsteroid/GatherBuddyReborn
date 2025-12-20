@@ -1,5 +1,4 @@
-﻿using ECommons.DalamudServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
 using System.Collections.Generic;
@@ -7,8 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Actions = GatherBuddy.AutoGather.AutoGather.Actions;
-using ECommons.ExcelServices;
-using ECommons;
 using GatherBuddy.AutoGather.AtkReaders;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Data;
@@ -42,7 +39,7 @@ namespace GatherBuddy.AutoGather.Helpers
 
         private sealed record class GlobalState
         {
-            public Job PlayerJob { get; init; }
+            public uint PlayerJob { get; init; }
             public int PlayerLevel { get; init; }
             public uint MaxGP { get; init; }
             public uint InitialGP { get; init; }
@@ -258,7 +255,7 @@ namespace GatherBuddy.AutoGather.Helpers
 
         public static async Task<IEnumerable<Actions.BaseAction?>> SolveAsync(ItemSlot slot, ConfigPreset config, GatheringReader gatheringWindow)
         {
-            Debug.Assert(Svc.Framework.IsInFrameworkUpdateThread);
+            Debug.Assert(Dalamud.Framework.IsInFrameworkUpdateThread);
 
             var isUmbralItem = slot.Item != null && Data.UmbralNodes.IsUmbralItem(slot.Item.ItemId);
             if (slot.IsRare && !isUmbralItem)
@@ -328,7 +325,7 @@ namespace GatherBuddy.AutoGather.Helpers
 
         //Prevents accessing Player.Job from a worker thread
         private static string GetActionName(GlobalState global, Actions.BaseAction? action)
-            => (global.PlayerJob == Job.BTN ? action?.Names.Botanist : action?.Names.Miner) ?? "Gather";
+            => (global.PlayerJob == 17 /* BTN */ ? action?.Names.Botanist : action?.Names.Miner) ?? "Gather";
 
         private static async Task SolveForRegularNodes(State state)
         {
@@ -540,7 +537,7 @@ namespace GatherBuddy.AutoGather.Helpers
         {
             get
             {
-                if (!Svc.Framework.IsInFrameworkUpdateThread)
+                if (!Dalamud.Framework.IsInFrameworkUpdateThread)
                 {
                     GatherBuddy.Log.Error("BUG: RotationSolver.TheGivingLandCooldown is accessed from a worker thread.");
                     return 0f;
@@ -553,7 +550,7 @@ namespace GatherBuddy.AutoGather.Helpers
 
         private static uint CalculateBoonChance(uint glvl)
         {
-            if (!Svc.Framework.IsInFrameworkUpdateThread)
+            if (!Dalamud.Framework.IsInFrameworkUpdateThread)
             {
                 GatherBuddy.Log.Error("BUG: RotationSolver.CalculateBoonChance is accessed from a worker thread.");
                 return 0;

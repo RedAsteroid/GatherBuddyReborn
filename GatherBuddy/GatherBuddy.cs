@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,13 +24,11 @@ using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
 using GatherBuddy.Spearfishing;
 using GatherBuddy.Weather;
+using SigScannerWrapper = GatherBuddy.SeFunctions.SigScannerWrapper;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Log;
-using ECommons;
-using ECommons.DalamudServices;
 using GatherBuddy.AutoGather;
-using Module = ECommons.Module;
 
 namespace GatherBuddy;
 
@@ -92,7 +90,6 @@ public partial class GatherBuddy : IDalamudPlugin
         try
         {
             Dalamud.Initialize(pluginInterface);
-            ECommonsMain.Init(pluginInterface, this, Module.DalamudReflector);
             Icons.Init(Dalamud.GameData, Dalamud.Textures);
             Log     = new Logger();
             Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "";
@@ -106,11 +103,12 @@ public partial class GatherBuddy : IDalamudPlugin
 
             WeatherManager         = new WeatherManager(GameData);
             UptimeManager          = new UptimeManager(GameData);
-            FishLog                = new FishLog(Dalamud.SigScanner, Dalamud.GameData);
+            var sigScannerWrapper  = new SigScannerWrapper(Dalamud.SigScanner);
+            FishLog                = new FishLog(sigScannerWrapper, Dalamud.GameData);
             EventFramework         = new EventFramework();
-            CurrentBait            = new CurrentBait(Dalamud.SigScanner);
-            CurrentWeather         = new CurrentWeather(Dalamud.SigScanner);
-            TugType                = new SeTugType(Dalamud.SigScanner);
+            CurrentBait            = new CurrentBait(sigScannerWrapper);
+            CurrentWeather         = new CurrentWeather(sigScannerWrapper);
+            TugType                = new SeTugType(sigScannerWrapper);
             Executor               = new Executor(this);
             ContextMenu            = new ContextMenu(this, Dalamud.ContextMenu, Executor);
             GatherGroupManager     = GatherGroup.GatherGroupManager.Load();
@@ -172,12 +170,12 @@ public partial class GatherBuddy : IDalamudPlugin
     private void Update(IFramework framework)
     {
         var prev = LastObjectsLength;
-        LastObjectsLength = Svc.Objects.Length;
+        LastObjectsLength = Dalamud.Objects.Length;
         //Scan objects every 5 secons or when the number of objects change
         if (prev != LastObjectsLength || (DateTime.Now - LastObjectsScan).TotalSeconds >= 5)
         {
             LastObjectsScan = DateTime.Now;
-            var objs = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
+            var objs = Dalamud.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
             foreach (var obj in objs)
                 WorldData.AddLocation(obj.DataId, obj.Position);
         }
@@ -194,7 +192,8 @@ public partial class GatherBuddy : IDalamudPlugin
 
     void IDisposable.Dispose()
     {
-        Dalamud.Framework.Update -= Update;
+        if (Dalamud.Framework != null)
+            Dalamud.Framework.Update -= Update;
         FishRecorder?.Dispose();
         ContextMenu?.Dispose();
         UptimeManager?.Dispose();
@@ -211,7 +210,7 @@ public partial class GatherBuddy : IDalamudPlugin
         DisposeCommands();
         Time?.Dispose();
         HttpClient?.Dispose();
-        ECommonsMain.Dispose();
+        Plugin.EzIPC.Dispose();
     }
 
     // Collect all relevant files for GatherBuddy configuration

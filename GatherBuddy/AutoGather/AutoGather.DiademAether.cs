@@ -4,9 +4,7 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
-using ECommons.DalamudServices;
-using ECommons.GameFunctions;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -38,7 +36,7 @@ namespace GatherBuddy.AutoGather
         
         private IGameObject? FindNearbyEnemyForAether()
         {
-            var player = Svc.ClientState.LocalPlayer;
+            var player = Dalamud.Objects.LocalPlayer;
             if (player == null) 
                 return null;
 
@@ -46,7 +44,7 @@ namespace GatherBuddy.AutoGather
             IGameObject? best = null;
             float bestDistSq = AetherTargetScanRadius * AetherTargetScanRadius;
 
-            foreach (var obj in Svc.Objects)
+            foreach (var obj in Dalamud.Objects)
             {
                 if (obj is not IBattleNpc bnpc)
                     continue;
@@ -107,51 +105,51 @@ namespace GatherBuddy.AutoGather
                 var enemyId = enemy.GameObjectId;
                 TargetByGameObject(enemy);
                 _lastAetherTarget = DateTime.UtcNow;
-                Svc.Log.Debug($"[Diadem] Targeting enemy {enemy.Name} (ID: {enemyId}) at {enemy.Position}");
+                GatherBuddy.Log.Debug($"[Diadem] Targeting enemy {enemy.Name} (ID: {enemyId}) at {enemy.Position}");
                 
                 TaskManager.DelayNext(100);
                 
                 TaskManager.Enqueue(() =>
                 {
-                    var currentTarget = Svc.Targets.Target;
+                    var currentTarget = Dalamud.Targets.Target;
                     if (currentTarget == null || currentTarget.GameObjectId != enemyId)
                     {
-                        Svc.Log.Debug($"[Diadem] Target not set properly. Current: {currentTarget?.Name ?? "null"}");
+                        GatherBuddy.Log.Debug($"[Diadem] Target not set properly. Current: {currentTarget?.Name ?? "null"}");
                         return true;
                     }
                     
-                    Svc.Log.Debug($"[Diadem] Target confirmed: {currentTarget.Name}, distance: {Vector3.Distance(Player.Position, currentTarget.Position):F1}y");
+                    GatherBuddy.Log.Debug($"[Diadem] Target confirmed: {currentTarget.Name}, distance: {Vector3.Distance(Player.Position, currentTarget.Position):F1}y");
                     return true;
                 });
                 
                 EnqueueActionWithDelay(() =>
                 {
-                    var currentTarget = Svc.Targets.Target;
+                    var currentTarget = Dalamud.Targets.Target;
                     if (currentTarget == null)
                     {
-                        Svc.Log.Debug($"[Diadem] No target when trying to fire");
+                        GatherBuddy.Log.Debug($"[Diadem] No target when trying to fire");
                         return;
                     }
                     
                     var amInstance = ActionManager.Instance();
                     if (amInstance == null)
                     {
-                        Svc.Log.Debug($"[Diadem] ActionManager.Instance() is null");
+                        GatherBuddy.Log.Debug($"[Diadem] ActionManager.Instance() is null");
                         return;
                     }
                     
                     var targetId = currentTarget.GameObjectId;
                     var actionStatus = amInstance->GetActionStatus(ActionType.Action, AethercannonActionId);
-                    Svc.Log.Debug($"[Diadem] Firing at target ID {targetId}, action status: {actionStatus}");
+                    GatherBuddy.Log.Debug($"[Diadem] Firing at target ID {targetId}, action status: {actionStatus}");
                     
                     if (actionStatus == 0)
                     {
                         var result = amInstance->UseAction(ActionType.Action, AethercannonActionId, targetId);
-                        Svc.Log.Debug($"[Diadem] UseAction returned: {result}");
+                        GatherBuddy.Log.Debug($"[Diadem] UseAction returned: {result}");
                     }
                     else
                     {
-                        Svc.Log.Debug($"[Diadem] Cannot use action, status code: {actionStatus}");
+                        GatherBuddy.Log.Debug($"[Diadem] Cannot use action, status code: {actionStatus}");
                     }
                 });
                 

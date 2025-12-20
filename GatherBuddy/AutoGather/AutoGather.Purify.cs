@@ -2,10 +2,8 @@ using System;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Plugin;
 using Dalamud.Game.ClientState.Conditions;
-using PurifyResult = ECommons.UIHelpers.AddonMasterImplementations.AddonMaster.PurifyResult;
-using ECommons.Automation;
-using ECommons.DalamudServices;
-using ECommons.EzSharedDataManager;
+using GatherBuddy.Automation;
+using PurifyResult = GatherBuddy.Automation.AddonMaster.PurifyResult;
 
 namespace GatherBuddy.AutoGather
 {
@@ -13,7 +11,7 @@ namespace GatherBuddy.AutoGather
     {
         private bool HasReducibleItems()
         {
-            if (!GatherBuddy.Config.AutoGatherConfig.DoReduce || Svc.Condition[ConditionFlag.Mounted])
+            if (!GatherBuddy.Config.AutoGatherConfig.DoReduce || Dalamud.Conditions[ConditionFlag.Mounted])
                 return false;
 
             if (!QuestManager.IsQuestComplete(67633)) // No Longer a Collectable
@@ -75,10 +73,10 @@ namespace GatherBuddy.AutoGather
             }
 
             TaskManager.Enqueue(ReduceFirstItem,                                3000, true, "Reduce first item");
-            TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Occupied39], 5000, true, "Wait until first item reduction is complete");
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Occupied39], 5000, true, "Wait until first item reduction is complete");
             TaskManager.DelayNext(delay);
             TaskManager.Enqueue(StartAutoReduction,                             1000, true, "Start auto reduction");
-            TaskManager.Enqueue(() => !Svc.Condition[ConditionFlag.Occupied39], 180000, true, "Wait until all items have been reduced");
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Occupied39], 180000, true, "Wait until all items have been reduced");
             TaskManager.DelayNext(delay);
             TaskManager.Enqueue(() =>
             {

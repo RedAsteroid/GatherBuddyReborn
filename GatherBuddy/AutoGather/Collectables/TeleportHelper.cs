@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using Dalamud.Plugin.Services;
-using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using GatherBuddy.Plugin;
 using Lumina.Excel.Sheets;
 
 namespace GatherBuddy.AutoGather.Collectables;
@@ -20,7 +20,7 @@ public static class TeleportHelper
             var tpInfos = tp->TeleportList;
             foreach (var tpInfo in tpInfos)
             {
-                var aetheryteName = Svc.Data.GetExcelSheet<Aetheryte>()
+                var aetheryteName = Dalamud.GameData.GetExcelSheet<Aetheryte>()
                     .FirstOrDefault(x => x.RowId == tpInfo.AetheryteId).PlaceName.ValueNullable?.Name
                     .ToString();
                 

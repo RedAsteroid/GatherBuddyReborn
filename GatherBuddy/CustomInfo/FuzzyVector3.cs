@@ -1,11 +1,11 @@
-﻿using GatherBuddy.Plugin;
+using GatherBuddy.Plugin;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 
 namespace GatherBuddy.CustomInfo
 {

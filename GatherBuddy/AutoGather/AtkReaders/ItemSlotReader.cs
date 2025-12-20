@@ -1,6 +1,6 @@
 using System;
 using Dalamud.Game.Text.SeStringHandling;
-using ECommons.UIHelpers;
+using GatherBuddy.Automation;
 using GatherBuddy.Classes;
 
 namespace GatherBuddy.AutoGather.AtkReaders;

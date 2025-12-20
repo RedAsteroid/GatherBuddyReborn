@@ -1,4 +1,4 @@
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using GatherBuddy.AutoGather.Extensions;
 using GatherBuddy.AutoGather.AtkReaders;
@@ -6,7 +6,6 @@ using GatherBuddy.Classes;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ECommons.DalamudServices;
 
 namespace GatherBuddy.AutoGather
 {
@@ -116,7 +115,7 @@ namespace GatherBuddy.AutoGather
                 if (item.GatheringData.Unknown3 is 3 or 4 or 6)
                     minScore = targetScore;
 
-                Svc.Log.Verbose($"Using target collectability {targetScore} and minimum collectability {minScore} for {item.Name}.");
+                GatherBuddy.Log.Verbose($"Using target collectability {targetScore} and minimum collectability {minScore} for {item.Name}.");
                 return (targetScore, minScore);
             }
 

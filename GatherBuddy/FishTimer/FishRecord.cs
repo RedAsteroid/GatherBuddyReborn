@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ECommons.MathHelpers;
 using GatherBuddy.Classes;
+using GatherBuddy.Utilities;
 using GatherBuddy.Enums;
 using GatherBuddy.Models;
 using GatherBuddy.Structs;

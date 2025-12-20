@@ -4,10 +4,7 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
-using ECommons;
-using ECommons.Automation.LegacyTaskManager;
-using ECommons.DalamudServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using GatherBuddy.AutoGather.Collectables.Data;
@@ -78,7 +75,7 @@ public class CollectableManager : IDisposable
         _condition = condition;
         _windowHandler = new CollectableWindowHandler();
         _scripShopWindowHandler = new ScripShopWindowHandler();
-        _taskManager = new TaskManager();
+        _taskManager = new TaskManager(framework);
         _taskManager.ShowDebug = false;
     }
     
@@ -215,12 +212,12 @@ public class CollectableManager : IDisposable
     
     private void CheckInventory()
     {
-        var shopSubSheet = Svc.Data.GetSubrowExcelSheet<CollectablesShopItem>();
+        var shopSubSheet = Dalamud.GameData.GetSubrowExcelSheet<CollectablesShopItem>();
         var shopItemIds = shopSubSheet == null
             ? new HashSet<uint>()
             : shopSubSheet.SelectMany(s => s).Select(r => r.Item.RowId).ToHashSet();
 
-        var fishSheet = Svc.Data.GetExcelSheet<FishParameter>();
+        var fishSheet = Dalamud.GameData.GetExcelSheet<FishParameter>();
         var fishItemIds = fishSheet == null
             ? new HashSet<uint>()
             : fishSheet.Select(f => f.Item.RowId).ToHashSet();
@@ -237,7 +234,7 @@ public class CollectableManager : IDisposable
             var itemId = group.Key;
             var count = group.Count();
             
-            var item = Svc.Data.GetExcelSheet<Item>().GetRow(itemId);
+            var item = Dalamud.GameData.GetExcelSheet<Item>().GetRow(itemId);
             if (item.RowId == 0)
                 continue;
 
@@ -246,7 +243,7 @@ public class CollectableManager : IDisposable
                 continue;
                 
             var itemName = item.Name.ToString();
-            var jobId = ItemJobResolver.GetJobIdForItem(itemName, Svc.Data);
+            var jobId = ItemJobResolver.GetJobIdForItem(itemName, Dalamud.GameData);
             
             if (jobId != -1)
             {
@@ -269,7 +266,7 @@ public class CollectableManager : IDisposable
     
     private void MoveToShop()
     {
-        if (Svc.Condition[ConditionFlag.BetweenAreas] || Svc.Condition[ConditionFlag.BetweenAreas51])
+        if (Dalamud.Conditions[ConditionFlag.BetweenAreas] || Dalamud.Conditions[ConditionFlag.BetweenAreas51])
         {
             return;
         }
@@ -284,13 +281,13 @@ public class CollectableManager : IDisposable
         
         var distance = Vector3.Distance(playerPos, shop.Location);
         
-        if (distance <= 2f && Svc.ClientState.TerritoryType == shop.TerritoryId)
+        if (distance <= 2f && Dalamud.ClientState.TerritoryType == shop.TerritoryId)
         {
             _state = CollectableState.WaitingForShopWindow;
             return;
         }
         
-        if (Svc.ClientState.TerritoryType != shop.TerritoryId && !_teleportAttempted)
+        if (Dalamud.ClientState.TerritoryType != shop.TerritoryId && !_teleportAttempted)
         {
             GatherBuddy.Log.Information($"[CollectableManager] Teleporting to {shop.Name} (Aetheryte {shop.AetheryteId})");
             if (Teleporter.Teleport(shop.AetheryteId))
@@ -333,7 +330,7 @@ public class CollectableManager : IDisposable
             return;
         }
         
-        if (Svc.ClientState.TerritoryType == shop.TerritoryId && (DateTime.UtcNow - _lastAction) > TimeSpan.FromSeconds(5))
+        if (Dalamud.ClientState.TerritoryType == shop.TerritoryId && (DateTime.UtcNow - _lastAction) > TimeSpan.FromSeconds(5))
         {
             try
             {
@@ -353,7 +350,7 @@ public class CollectableManager : IDisposable
         var shop = _config.CollectableConfig.PreferredCollectableShop;
         var playerPos = Player.Position;
         
-        if (Svc.ClientState.TerritoryType != shop.TerritoryId)
+        if (Dalamud.ClientState.TerritoryType != shop.TerritoryId)
         {
             _state = CollectableState.MovingToShop;
             return;
@@ -406,7 +403,7 @@ public class CollectableManager : IDisposable
                 return;
                 
             var shop = _config.CollectableConfig.PreferredCollectableShop;
-            var gameObj = Svc.Objects.FirstOrDefault(a => a.DataId == shop.NpcId);
+            var gameObj = Dalamud.Objects.FirstOrDefault(a => a.DataId == shop.NpcId);
             
             if (gameObj == null)
             {
@@ -679,7 +676,7 @@ public class CollectableManager : IDisposable
                 return;
             
             var shop = _config.CollectableConfig.PreferredCollectableShop;
-            var gameObj = Svc.Objects.FirstOrDefault(a => a.DataId == shop.ScripShopNpcId);
+            var gameObj = Dalamud.Objects.FirstOrDefault(a => a.DataId == shop.ScripShopNpcId);
             
             if (gameObj == null)
             {

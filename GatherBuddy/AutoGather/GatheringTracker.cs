@@ -1,4 +1,3 @@
-﻿using ECommons.DalamudServices;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Addon.Lifecycle;
 using System;
@@ -95,22 +94,23 @@ namespace GatherBuddy.AutoGather
             for (var i = 0; i < 8; i++) Items[i] = new(this, i);
             ResetArgs();
 
-            Svc.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "Gathering", Handler);
-            //Svc.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Gathering", Handler);
-            Svc.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Gathering", Handler);
+            Dalamud.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "Gathering", Handler);
+            Dalamud.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Gathering", Handler);
+            Dalamud.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Gathering", Handler);
         }
 
         private unsafe void Handler(AddonEvent type, AddonArgs args)
         {
-            switch (args)
+            switch (type)
             {
-                case AddonSetupArgs sArgs:
-                    ProcessArgs(sArgs.AtkValueSpan);
+                case AddonEvent.PostSetup:
+                case AddonEvent.PostRefresh:
+                    if (args is AddonSetupArgs sArgs)
+                        ProcessArgs(sArgs.AtkValueSpan);
+                    else if (args is AddonRefreshArgs rArgs)
+                        ProcessArgs(rArgs.AtkValueSpan);
                     break;
-                case AddonRefreshArgs rArgs:
-                    ProcessArgs(rArgs.AtkValueSpan);
-                    break;
-                case AddonFinalizeArgs:
+                case AddonEvent.PreFinalize:
                     ResetArgs();
                     break;
             }
@@ -284,9 +284,9 @@ namespace GatherBuddy.AutoGather
 
         public void Dispose()
         {
-            Svc.AddonLifecycle.UnregisterListener(AddonEvent.PostRefresh, "Gathering", Handler);
-            Svc.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "Gathering", Handler);
-            Svc.AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "Gathering", Handler);
+            Dalamud.AddonLifecycle.UnregisterListener(AddonEvent.PostRefresh, "Gathering", Handler);
+            Dalamud.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "Gathering", Handler);
+            Dalamud.AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "Gathering", Handler);
         }
 
         public IEnumerator<ItemSlot> GetEnumerator() => Items.AsEnumerable().GetEnumerator();

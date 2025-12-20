@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
-using ECommons.ExcelServices;
-using ECommons.GameHelpers;
-using ECommons.MathHelpers;
 using GatherBuddy.Classes;
+using GatherBuddy.Helpers;
+using GatherBuddy.Utilities;
 using GatherBuddy.Enums;
 using GatherBuddy.FishTimer.Parser;
 using GatherBuddy.Models;
@@ -70,10 +69,10 @@ public partial class FishRecorder
 
     private void CheckBuffs()
     {
-        if (Dalamud.ClientState.LocalPlayer?.StatusList == null)
+        if (Dalamud.Objects.LocalPlayer?.StatusList is not {} statusList)
             return;
 
-        foreach (var buff in Dalamud.ClientState.LocalPlayer.StatusList)
+        foreach (var buff in statusList)
         {
             Record.Flags |= buff.StatusId switch
             {
@@ -98,10 +97,10 @@ public partial class FishRecorder
 
     private void UpdateLure()
     {
-        if (Dalamud.ClientState.LocalPlayer?.StatusList == null)
+        if (Dalamud.Objects.LocalPlayer?.StatusList is not { } statusList)
             return;
 
-        foreach (var buff in Dalamud.ClientState.LocalPlayer.StatusList)
+        foreach (var buff in statusList)
         {
             Record.Flags |= buff.StatusId switch
             {
@@ -183,7 +182,12 @@ public partial class FishRecorder
         Record.FishingSpot   = spot;
         Record.Position      = Player.Position;
         Record.RotationAngle = new Angle(Player.Rotation);
-        Record.World         = ExcelWorldHelper.Get(Player.CurrentWorld)!.Value;
+        var worldName = Player.CurrentWorld;
+        if (worldName != null)
+        {
+            var world = Dalamud.GameData.GetExcelSheet<World>().FirstOrDefault(w => w.Name.ToString().Equals(worldName, StringComparison.OrdinalIgnoreCase));
+            Record.World = world;
+        }
         if (Record.HasSpot)
             Step |= CatchSteps.IdentifiedSpot;
 
@@ -300,7 +304,7 @@ public partial class FishRecorder
 
     private void UpdateLureStatus()
     {
-        if (Dalamud.ClientState.LocalPlayer?.StatusList.FirstOrDefault(s => s.StatusId is 3972 or 3973) is { } currentStatus
+        if (Dalamud.Objects.LocalPlayer?.StatusList.FirstOrDefault(s => s.StatusId is 3972 or 3973) is { } currentStatus
          && currentStatus.Param != _currentLureStack)
         {
             _currentLureStack = (byte)currentStatus.Param;

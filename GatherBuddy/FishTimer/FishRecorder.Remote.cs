@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,8 +8,8 @@ using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ECommons.MathHelpers;
 using GatherBuddy.Classes;
+using GatherBuddy.Utilities;
 using GatherBuddy.Models;
 using Lumina.Data.Parsing;
 using Newtonsoft.Json;

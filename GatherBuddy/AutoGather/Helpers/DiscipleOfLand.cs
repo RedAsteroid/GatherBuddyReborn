@@ -1,15 +1,14 @@
-using ECommons.ExcelServices;
-using ECommons.Throttlers;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using System;
+using GatherBuddy.Utilities;
 
 namespace GatherBuddy.AutoGather
 {
     public static class DiscipleOfLand
     {
-        private static readonly sbyte _minerExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)Job.MIN).ExpArrayIndex;
-        private static readonly sbyte _botanistExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)Job.BTN).ExpArrayIndex;
-        private static readonly sbyte _fisherExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)Job.FSH).ExpArrayIndex;
+        private static readonly sbyte _minerExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)16 /* MIN */).ExpArrayIndex;
+        private static readonly sbyte _botanistExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)17 /* BTN */).ExpArrayIndex;
+        private static readonly sbyte _fisherExpArrayIndex = Dalamud.GameData.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow((uint)18 /* FSH */).ExpArrayIndex;
 
         public static unsafe int MinerLevel => PlayerState.Instance()->ClassJobLevels[_minerExpArrayIndex];
         public static unsafe int BotanistLevel => PlayerState.Instance()->ClassJobLevels[_botanistExpArrayIndex];
@@ -20,7 +19,7 @@ namespace GatherBuddy.AutoGather
 
         public static unsafe void RefreshNextTreasureMapAllowance()
         {
-            if (EzThrottler.Throttle("RequestResetTimestamps", 1000))
+            if (Throttler.Throttle("RequestResetTimestamps", 1000))
             {
                 UIState.Instance()->RequestResetTimestamps();
             }

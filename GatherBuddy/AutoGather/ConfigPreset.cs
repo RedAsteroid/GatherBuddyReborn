@@ -1,6 +1,5 @@
-﻿using GatherBuddy.Classes;
+using GatherBuddy.Classes;
 using System;
-using ECommons.DalamudServices;
 using Newtonsoft.Json;
 
 namespace GatherBuddy.AutoGather
@@ -255,7 +254,7 @@ namespace GatherBuddy.AutoGather
             }
             catch (Exception ex)
             {
-                Svc.Log.Debug($"Failed to deserialize config preset: {ex}");
+                GatherBuddy.Log.Debug($"Failed to deserialize config preset: {ex}");
                 return null;
             }
         }

@@ -1,5 +1,5 @@
-﻿using Dalamud.Game.ClientState.Objects.Enums;
-using ECommons.GameHelpers;
+using Dalamud.Game.ClientState.Objects.Enums;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GatherBuddy.Plugin;
 using Dalamud.Bindings.ImGui;
@@ -12,8 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
-using ECommons.DalamudServices;
-using ECommons.ImGuiMethods;
+
 using FFXIVClientStructs.FFXIV.Client.UI;
 using GatherBuddy.CustomInfo;
 using Newtonsoft.Json;
@@ -80,7 +79,7 @@ namespace GatherBuddy.AutoGather
                 ImGui.TableHeadersRow();
 
                 var playerPosition = Player.Object?.Position ?? Vector3.Zero;
-                foreach (var node in Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint)
+                foreach (var node in Dalamud.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint)
                              .OrderBy(o => Vector3.Distance(o.Position, playerPosition)))
                 {
                     ImGui.TableNextRow();
@@ -222,3 +221,4 @@ namespace GatherBuddy.AutoGather
         }
     }
 }
+

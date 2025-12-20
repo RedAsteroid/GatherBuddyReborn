@@ -4,8 +4,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Utility;
-using ECommons.DalamudServices;
-using ECommons.ImGuiMethods;
+
 using FFXIVClientStructs.STD;
 using GatherBuddy.Alarms;
 using GatherBuddy.AutoGather;
@@ -1165,11 +1164,11 @@ public partial class Interface
             
             if (success)
             {
-                Svc.Chat.Print($"[GatherBuddy] Generated preset '{presetName}' for {fish.Name[GatherBuddy.Language]}");
+                Dalamud.Chat.Print($"[GatherBuddy] Generated preset '{presetName}' for {fish.Name[GatherBuddy.Language]}");
             }
             else
             {
-                Svc.Chat.PrintError($"[GatherBuddy] Failed to generate preset for {fish.Name[GatherBuddy.Language]}");
+                Dalamud.Chat.PrintError($"[GatherBuddy] Failed to generate preset for {fish.Name[GatherBuddy.Language]}");
             }
         }
     }
@@ -1427,3 +1426,4 @@ public partial class Interface
         }
     }
 }
+

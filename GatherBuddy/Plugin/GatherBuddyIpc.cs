@@ -1,4 +1,3 @@
-﻿using ECommons.EzIpcManager;
 using System;
 using System.Diagnostics;
 
@@ -45,15 +44,15 @@ public sealed class GatherBuddyIpc : IDisposable
         => GatherBuddy.AutoGather.Waiting;
 
     [EzIPCEvent]
-    public readonly Action AutoGatherWaiting;
+    public Action AutoGatherWaiting;
 
     [EzIPCEvent]
-    public readonly Action<bool> AutoGatherEnabledChanged;
+    public Action<bool> AutoGatherEnabledChanged;
 
 #pragma warning restore CA1822 // Mark members as static
 
     public void Dispose()
     {
-        // EzIPC will handle disposal automatically through ECommonsMain.Dispose()
+        // EzIPC disposal is handled in GatherBuddy.cs Dispose method
     }
 }

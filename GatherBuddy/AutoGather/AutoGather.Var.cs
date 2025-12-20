@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using Dalamud.Game.ClientState.Conditions;
-using ECommons.ExcelServices;
-using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -16,10 +15,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
-using ECommons;
-using ECommons.DalamudServices;
-using ECommons.MathHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using GatherBuddy.Utilities;
 using GatherBuddy.AutoGather.AtkReaders;
 using LuminaTerritoryType = Lumina.Excel.Sheets.TerritoryType;
 
@@ -28,13 +25,13 @@ namespace GatherBuddy.AutoGather
     public partial class AutoGather
     {
         public bool IsPathing
-            => VNavmesh.Path.IsRunning();
+            => GatherBuddy.Config.AutoGatherConfig.UseNavigation && VNavmesh.Path.IsRunning();
 
         public bool IsPathGenerating
-            => VNavmesh.Nav.PathfindInProgress();
+            => GatherBuddy.Config.AutoGatherConfig.UseNavigation && VNavmesh.Nav.PathfindInProgress();
 
         public bool NavReady
-            => VNavmesh.Nav.IsReady();
+            => GatherBuddy.Config.AutoGatherConfig.UseNavigation && VNavmesh.Nav.IsReady();
 
         private bool IsBlacklisted(Vector3 g)
         {
@@ -56,12 +53,12 @@ namespace GatherBuddy.AutoGather
         public bool LureSuccess { get; private set; } = false;
 
         public unsafe GatheringReader? GatheringWindowReader
-            => GenericHelpers.TryGetAddonByName("Gathering", out AtkUnitBase* addon)
+            => Automation.GenericHelpers.TryGetAddonByName("Gathering", out AtkUnitBase* addon)
                 ? new GatheringReader(addon)
                 : null;
 
         public unsafe GatheringMasterpieceReader? MasterpieceReader
-            => GenericHelpers.TryGetAddonByName("GatheringMasterpiece", out AtkUnitBase* add)
+            => Automation.GenericHelpers.TryGetAddonByName("GatheringMasterpiece", out AtkUnitBase* add)
                 ? new GatheringMasterpieceReader(add)
                 : null;
 
@@ -78,13 +75,13 @@ namespace GatherBuddy.AutoGather
             get
             {
                 var job = Player.Job;
-                switch (job)
+                return job switch
                 {
-                    case Job.MIN: return GatheringType.Miner;
-                    case Job.BTN: return GatheringType.Botanist;
-                    case Job.FSH: return GatheringType.Fisher;
-                    default:      return GatheringType.Unknown;
-                }
+                    16 => GatheringType.Miner,     // MIN
+                    17 => GatheringType.Botanist,  // BTN
+                    18 => GatheringType.Fisher,    // FSH
+                    _ => GatheringType.Unknown
+                };
             }
         }
 
@@ -96,19 +93,19 @@ namespace GatherBuddy.AutoGather
             if (Dalamud.Conditions[ConditionFlag.InFlight] || Dalamud.Conditions[ConditionFlag.Diving])
                 return true;
 
-            if (GatherBuddy.Config.AutoGatherConfig.ForceWalking || Dalamud.ClientState.LocalPlayer == null)
+            if (GatherBuddy.Config.AutoGatherConfig.ForceWalking || Dalamud.Objects.LocalPlayer == null)
             {
                 return false;
             }
 
             if (Functions.InTheDiadem())
             {
-                return Vector3.Distance(Dalamud.ClientState.LocalPlayer.Position, destination)
+                return Vector3.Distance(Dalamud.Objects.LocalPlayer.Position, destination)
                  >= GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
             }
 
             var territory = Dalamud.ClientState.TerritoryType;
-            var territoryRow = Svc.Data.GameData.GetExcelSheet<LuminaTerritoryType>();
+            var territoryRow = Dalamud.GameData.GameData.GetExcelSheet<LuminaTerritoryType>();
             if (territoryRow == null)
                 return false;
 
@@ -120,7 +117,7 @@ namespace GatherBuddy.AutoGather
             if (aetherCurrentComp == 0)
                 return false;
 
-            return playerState->IsAetherCurrentZoneComplete(aetherCurrentComp) && Vector3.Distance(Dalamud.ClientState.LocalPlayer.Position, destination)
+            return playerState->IsAetherCurrentZoneComplete(aetherCurrentComp) && Vector3.Distance(Dalamud.Objects.LocalPlayer.Position, destination)
              >= GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
         }
 
@@ -242,7 +239,7 @@ namespace GatherBuddy.AutoGather
         {
             get
             {
-                if (Dalamud.ClientState.LocalPlayer == null)
+                if (Dalamud.Objects.LocalPlayer == null)
                     return false;
                 if (Dalamud.Conditions[ConditionFlag.BetweenAreas]
                  || Dalamud.Conditions[ConditionFlag.BetweenAreas51]
@@ -261,7 +258,7 @@ namespace GatherBuddy.AutoGather
                  || Dalamud.Conditions[ConditionFlag.Mounting] // Mounting up
                     //Node is open? Fades off shortly after closing the node, can't use items (but can mount) while it's set
                  || Dalamud.Conditions[85] && !Dalamud.Conditions[ConditionFlag.Gathering]
-                 || Dalamud.ClientState.LocalPlayer.IsDead
+                 || Dalamud.Objects.LocalPlayer.IsDead
                  || Player.IsAnimationLocked)
                     return false;
 
@@ -270,7 +267,7 @@ namespace GatherBuddy.AutoGather
         }
 
         private static unsafe bool HasGivingLandBuff
-            => Dalamud.ClientState.LocalPlayer?.StatusList.Any(s => s.StatusId == 1802) ?? false;
+            => Dalamud.Objects.LocalPlayer?.StatusList.Any(s => s.StatusId == 1802) ?? false;
 
         public static unsafe bool IsGivingLandOffCooldown
             => ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, Actions.GivingLand.ActionId);

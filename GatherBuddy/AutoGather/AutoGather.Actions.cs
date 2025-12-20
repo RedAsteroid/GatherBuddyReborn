@@ -1,4 +1,4 @@
-﻿using ECommons.GameHelpers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using GatherBuddy.Classes;
 using System;
@@ -6,10 +6,8 @@ using System.Linq;
 using GatherBuddy.CustomInfo;
 using System.Collections.Generic;
 using Dalamud.Game.ClientState.Objects.Enums;
-using ECommons;
-using ECommons.DalamudServices;
-using ECommons.Throttlers;
-using ECommons.UIHelpers.AddonMasterImplementations;
+using GatherBuddy.Automation;
+using GatherBuddy.Utilities;
 using GatherBuddy.AutoGather.AtkReaders;
 using GatherBuddy.AutoGather.Helpers;
 using GatherBuddy.AutoGather.Extensions;
@@ -214,7 +212,7 @@ namespace GatherBuddy.AutoGather
                 }
             }
 
-            if (EzThrottler.Throttle("GBR Fishing", 500))
+            if (Throttler.Throttle("GBR Fishing", 500))
             {
                 switch (state)
                 {
@@ -245,7 +243,7 @@ namespace GatherBuddy.AutoGather
                 switch (switchResult)
                 {
                     case CurrentBait.ChangeBaitReturn.InvalidBait:
-                        Svc.Log.Error("Invalid bait selected: " + bait);
+                        GatherBuddy.Log.Error("Invalid bait selected: " + bait);
                         AbortAutoGather();
                         break;
                     case CurrentBait.ChangeBaitReturn.NotInInventory:
@@ -257,7 +255,7 @@ namespace GatherBuddy.AutoGather
                     case CurrentBait.ChangeBaitReturn.AlreadyEquipped:
                         break;
                     case CurrentBait.ChangeBaitReturn.UnknownError:
-                        Svc.Log.Error("Unknown error when switching bait. Auto-gather cannot continue.");
+                        GatherBuddy.Log.Error("Unknown error when switching bait. Auto-gather cannot continue.");
                         AbortAutoGather();
                         break;
                 }
@@ -578,9 +576,9 @@ namespace GatherBuddy.AutoGather
                 return false;
 
             var yield = slot.Yield;
-            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == Actions.Bountiful.EffectId))
+            if (Dalamud.Objects.LocalPlayer!.StatusList.Any(s => s.StatusId == Actions.Bountiful.EffectId))
                 yield -= 1;
-            if (Dalamud.ClientState.LocalPlayer!.StatusList.Any(s => s.StatusId == Actions.BountifulII.EffectId))
+            if (Dalamud.Objects.LocalPlayer!.StatusList.Any(s => s.StatusId == Actions.BountifulII.EffectId))
                 yield -= CalculateBountifulBonus(slot.Item);
             if (yield < config.SolidAge.MinYieldTotal)
                 return false;

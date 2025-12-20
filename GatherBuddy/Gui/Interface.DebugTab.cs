@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -8,7 +8,6 @@ using GatherBuddy.AutoGather;
 using System.Text.RegularExpressions;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game;
-using ECommons.DalamudServices;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Enums;
@@ -27,11 +26,8 @@ using ImGuiTable = OtterGui.ImGuiTable;
 using ImRaii = OtterGui.Raii.ImRaii;
 using System.Text;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using ECommons.Reflection;
 using System.Reflection;
 using System.Collections;
-using ECommons;
-using ECommons.ExcelServices;
 using GatherBuddy.AutoGather.Lists;
 using GatherBuddy.SeFunctions;
 using Newtonsoft.Json;
@@ -789,7 +785,7 @@ public partial class Interface
         {
             using var group = ImRaii.Group();
             ImGui.Text("Gatherables within 200 yalms");
-            var gatherables = Svc.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
+            var gatherables = Dalamud.Objects.Where(o => o.ObjectKind == ObjectKind.GatheringPoint);
             foreach (var obj in gatherables)
             {
                 ImGui.PushID(obj.GameObjectId.ToString());

@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
-using ECommons.GameHelpers;
-using ECommons.Throttlers;
+using GatherBuddy.Helpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
+using GatherBuddy.Utilities;
 
 namespace GatherBuddy.AutoGather
 {
@@ -52,7 +52,7 @@ namespace GatherBuddy.AutoGather
 
         private static bool IsItemCordial(Item item)
         {
-            return item.ItemAction.ValueNullable?.Type == 1055;
+            return item.ItemAction.ValueNullable?.RowId == 1055;
         }
 
         private static bool IsItemDoLFood(Item item)
@@ -78,7 +78,7 @@ namespace GatherBuddy.AutoGather
         {
             if (item.ItemUICategory.RowId != 63)
                 return false;
-            return item.ItemAction.ValueNullable?.Type == 816 && item.ItemAction.ValueNullable?.Data[0] is 302 or 303 or 1752 or 5330;
+            return item.ItemAction.ValueNullable?.RowId == 816 && item.ItemAction.ValueNullable?.Data[0] is 302 or 303 or 1752 or 5330;
         }
 
         private static bool IsItemDoLSquadronManual(Item item)
@@ -177,9 +177,7 @@ namespace GatherBuddy.AutoGather
         // Cordial, food and potion have no cast time and can be used while mounted
         private bool DoUseConsumablesWithoutCastTime(ConfigPreset config, bool skipThrottle = false)
         {
-            // Check if consumables need to be refreshed every 5 seconds
-            // Give sufficient time for buffs to activate otherwise items could be used multiple times and wasted
-            if (EzThrottler.Throttle("DoUseConsumablesWithoutCastTime", 5000) || skipThrottle)
+            if (Throttler.Throttle("DoUseConsumablesWithoutCastTime", 5000) || skipThrottle)
             {
                 if (config.Consumables.Cordial.Enabled
                     && config.Consumables.Cordial.ItemId > 0
