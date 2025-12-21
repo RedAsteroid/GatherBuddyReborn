@@ -260,7 +260,7 @@ public class GameData
 
     private static OceanRoute[] SetupOceanRoutes(IDataManager manager, IReadOnlyDictionary<uint, FishingSpot> fishingSpots)
     {
-        var routeSheet = manager.GetExcelSheet<IKDRoute>(ClientLanguage.English);
+        var routeSheet = manager.GetExcelSheet<IKDRoute>(ClientLanguage.ChineseSimplified);
         var spotSheet  = manager.GetExcelSheet<IKDSpot>();
         var ret        = new OceanRoute[routeSheet.Count - 1];
 

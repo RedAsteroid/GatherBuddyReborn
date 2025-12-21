@@ -20,7 +20,7 @@ public partial class FishingParser
         if (FishingSpotNames.TryGetValue(fishingSpotName, out var fishingSpot))
             BeganFishing?.Invoke(fishingSpot);
         // Hack against 'The' special cases.
-        else if (GatherBuddy.Language == ClientLanguage.English
+        else if (GatherBuddy.Language == ClientLanguage.ChineseSimplified
               && fishingSpotName.StartsWith("the ")
               && FishingSpotNames.TryGetValue(fishingSpotName[4..], out fishingSpot))
             BeganFishing?.Invoke(fishingSpot);
@@ -34,7 +34,7 @@ public partial class FishingParser
         if (FishingSpotNames.TryGetValue(fishingSpotName, out var fishingSpot))
             IdentifiedSpot?.Invoke(fishingSpot);
         // Hack against 'The' special cases.
-        else if (GatherBuddy.Language == ClientLanguage.English
+        else if (GatherBuddy.Language == ClientLanguage.ChineseSimplified
               && fishingSpotName.StartsWith("the ")
               && FishingSpotNames.TryGetValue(fishingSpotName[4..], out fishingSpot))
             IdentifiedSpot?.Invoke(fishingSpot);
