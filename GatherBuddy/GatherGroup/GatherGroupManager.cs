@@ -247,7 +247,6 @@ public class GatherGroupManager
                 }
             }
 
-            changes |= manager.SetDefaults();
             if (changes)
             {
                 Dalamud.Notifications.AddNotification(new Notification()
@@ -259,6 +258,9 @@ public class GatherGroupManager
                     Type          = NotificationType.Error,
                 });
             }
+
+            if (manager.SetDefaults() && !changes)
+                manager.Save();
         }
         catch (Exception e)
         {
