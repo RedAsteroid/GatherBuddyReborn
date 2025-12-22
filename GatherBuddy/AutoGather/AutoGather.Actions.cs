@@ -233,7 +233,7 @@ namespace GatherBuddy.AutoGather
             var bait = GetCorrectBaitId(target);
             if (bait == 0)
             {
-                Communicator.Print($"No bait found in inventory. Auto-fishing cannot continue.");
+                Communicator.Print($"物品栏中没有鱼饵, 无法继续自动钓鱼。");
                 AbortAutoGather();
             }
 
@@ -248,7 +248,7 @@ namespace GatherBuddy.AutoGather
                         break;
                     case CurrentBait.ChangeBaitReturn.NotInInventory:
                         Communicator.Print(
-                            $"Bait '{target.Fish!.InitialBait.Name}' for fish '{target.Fish!.Name[GatherBuddy.Language]}' not in inventory. Auto-fishing cannot continue.");
+                            $"用于钓鱼: '{target.Fish!.Name[GatherBuddy.Language]}' 的鱼饵 '{target.Fish!.InitialBait.Name}' 不在背包中. 无法继续自动钓鱼。");
                         AbortAutoGather();
                         break;
                     case CurrentBait.ChangeBaitReturn.Success:
@@ -430,7 +430,7 @@ namespace GatherBuddy.AutoGather
                                         ActionSequence = task.Result.GetEnumerator();
                                     return task.IsCompleted;
                                 });
-                                AutoStatus = "Calculating best action sequence...";
+                                AutoStatus = "正在计算最佳技能队列...";
                                 return;
                             }
                         }

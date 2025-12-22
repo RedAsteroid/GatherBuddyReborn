@@ -369,7 +369,7 @@ public class GatherWindow : Window
     {
         var       colorId = GatherBuddy.AutoGather.Enabled ? ColorId.GatherWindowAvailable.Value() : ColorId.GatherWindowText.Value();
         using var color = ImRaii.PushColor(ImGuiCol.Text, colorId);
-        if (ImGui.Selectable($"Auto-Gather: {GatherBuddy.AutoGather.AutoStatus}###toggle-button"))
+        if (ImGui.Selectable($"自动采集: {GatherBuddy.AutoGather.AutoStatus}###toggle-button"))
         {
             GatherBuddy.AutoGather.Enabled = !GatherBuddy.AutoGather.Enabled;
         }
@@ -378,7 +378,7 @@ public class GatherWindow : Window
             _plugin.Interface.Toggle();
         }
         color.Pop();
-        ImGuiUtil.HoverTooltip("Click to enable/disable auto-gather. Right click to toggle interface");
+        ImGuiUtil.HoverTooltip("点击以启用/禁用自动采集, 右键以开关插件界面");
         using var table = ImRaii.Table("##table", GatherBuddy.Config.ShowGatherWindowTimers ? 2 : 1);
         if (!table)
             return;

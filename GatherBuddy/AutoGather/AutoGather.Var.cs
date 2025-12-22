@@ -145,7 +145,7 @@ namespace GatherBuddy.AutoGather
             }
         }
 
-        public  string      AutoStatus { get; private set; } = "Idle";
+        public  string      AutoStatus { get; private set; } = "ø’œ–÷–";
         public  int         LastCollectability = 0;
         public  int         LastIntegrity      = 0;
         private bool LuckUsed;

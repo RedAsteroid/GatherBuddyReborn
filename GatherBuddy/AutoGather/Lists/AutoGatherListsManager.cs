@@ -278,7 +278,7 @@ public partial class AutoGatherListsManager : IDisposable
         catch (Exception e)
         {
             GatherBuddy.Log.Error($"Error deserializing auto gather lists:\n{e}");
-            Communicator.PrintError($"[GatherBuddy Reborn] Auto gather lists failed to load and have been reset.");
+            Communicator.PrintError($"[GatherBuddy Reborn] 自动采集列表加载失败, 已执行重置。");
             ret.Save();
         }
 

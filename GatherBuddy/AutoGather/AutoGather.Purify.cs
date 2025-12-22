@@ -18,7 +18,7 @@ namespace GatherBuddy.AutoGather
             {
                 GatherBuddy.Config.AutoGatherConfig.DoReduce = false;
                 Communicator.PrintError(
-                    "[GatherBuddyReborn] Aetherial reduction is enabled, but the relevant quest has not been completed yet. The feature has been disabled.");
+                    "[GatherBuddyReborn] 启用了自动精选功能, 但未完成相关任务。此功能已禁用。");
                 return false;
             }
 
@@ -62,7 +62,7 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void ReduceItems(bool reduceAll, Action? onComplete = null)
         {
-            AutoStatus = "Aetherial reduction";
+            AutoStatus = "精选收藏品中";
             var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
             TaskManager.Enqueue(StopNavigation);
             if (PurifyItemSelectorAddon == null)

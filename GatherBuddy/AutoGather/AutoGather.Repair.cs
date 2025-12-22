@@ -74,7 +74,7 @@ public unsafe partial class AutoGather
 
         if (!GatherBuddy.Config.AutoGatherConfig.DoRepair)
         {
-            Communicator.PrintError("Your gear is almost broken. Repair it before enabling Auto-Gather.");
+            Communicator.PrintError("装备耐久度过低, 修理后再启用自动采集。");
             AbortAutoGather("Repairs needed.");
             return true;
         }
@@ -90,7 +90,7 @@ public unsafe partial class AutoGather
             return true;
         }
 
-        AutoStatus = "Repairing...";
+        AutoStatus = "正在修理装备...";
         StopNavigation();
 
         var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
@@ -141,7 +141,7 @@ public unsafe partial class AutoGather
 
         if (!GatherBuddy.Config.AutoGatherConfig.DoRepair)
         {
-            Communicator.PrintError("Your gear is almost broken. Repair it before enabling Auto-Gather.");
+            Communicator.PrintError("装备耐久度过低, 修理后再启用自动采集。");
             AbortAutoGather("Repairs needed.");
             return true;
         }
@@ -157,7 +157,7 @@ public unsafe partial class AutoGather
             return true;
         }
 
-        AutoStatus = "Repairing...";
+        AutoStatus = "正在修理装备...";
         _lastRepairTime = DateTime.Now;
         var delay = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
         

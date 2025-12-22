@@ -1,23 +1,24 @@
 using Dalamud.Game.ClientState.Conditions;
-using GatherBuddy.Helpers;
+using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using GatherBuddy.Automation;
 using GatherBuddy.Classes;
 using GatherBuddy.CustomInfo;
 using GatherBuddy.Data;
+using GatherBuddy.Data;
+using GatherBuddy.Enums;
+using GatherBuddy.Helpers;
 using GatherBuddy.Interfaces;
 using GatherBuddy.Plugin;
 using GatherBuddy.SeFunctions;
+using GatherBuddy.SeFunctions;
+using GatherBuddy.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Objects.Types;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using GatherBuddy.SeFunctions;
-using GatherBuddy.Data;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using GatherBuddy.Enums;
-using GatherBuddy.Utilities;
 using Aetheryte = GatherBuddy.Classes.Aetheryte;
 
 namespace GatherBuddy.AutoGather
@@ -29,12 +30,17 @@ namespace GatherBuddy.AutoGather
             TaskManager.Enqueue(StopNavigation);
 
             var am = ActionManager.Instance();
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.GeneralAction, 23); }, "下坐骑");
 
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "Wait for not in flight");
-            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.Mount, 0); }, "Dismount 2");
-            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "Wait for dismount");
-            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(500); } );//Prevent "Unable to execute command while jumping."
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.InFlight] && CanAct, 1000, "等待飞行状态取消");
+            TaskManager.Enqueue(() => { if (Dalamud.Conditions[ConditionFlag.Mounted]) am->UseAction(ActionType.GeneralAction, 23); }, "下坐骑 2");
+            TaskManager.Enqueue(() => !Dalamud.Conditions[ConditionFlag.Mounted] && CanAct, 1000, "等待坐骑状态取消");
+            // 添加移动补偿防止其他玩家看到你浮空
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.ExecuteCommand($"/automove on"); }, "下坐骑补偿 3");
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(100); });
+            // 停止移动
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) Chat.ExecuteCommand($"/automove off"); }, "下坐骑补偿 4");
+            TaskManager.Enqueue(() => { if (!Dalamud.Conditions[ConditionFlag.Mounted]) TaskManager.DelayNextImmediate(400); });
         }
 
         private unsafe void EnqueueMountUp()
@@ -88,7 +94,7 @@ namespace GatherBuddy.AutoGather
                 var waitGP = targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.CollectableMinGP;
                 waitGP |= !targetItem.ItemData.IsCollectable && Player.Object.CurrentGp < config.GatherableMinGP;
 
-                if (Dalamud.Conditions[ConditionFlag.Mounted] && (waitGP || GetConsumablesWithCastTime(config) > 0))
+                if (Dalamud.Conditions[ConditionFlag.Mounted]) // && (waitGP || GetConsumablesWithCastTime(config) > 0) 移除等待GP或使用物品条件，默认执行下坐骑逻辑，防止其他玩家看到你空中飞人，或是所有人叠一个位置采集
                 {
                     //Try to dismount early. It would help with nodes where it is not possible to dismount at vnavmesh's provided floor point
                     EnqueueDismount();
@@ -114,7 +120,7 @@ namespace GatherBuddy.AutoGather
                 else if (waitGP)
                 {
                     StopNavigation();
-                    AutoStatus = "Waiting for GP to regenerate...";
+                    AutoStatus = "等待采集力恢复中...";
                 }
                 else
                 {
@@ -131,7 +137,7 @@ namespace GatherBuddy.AutoGather
                         // Check perception requirement before interacting with node
                         if (DiscipleOfLand.Perception < targetItem.GatheringData.PerceptionReq)
                         {
-                            Communicator.PrintError($"Insufficient Perception to gather this item. Required: {targetItem.GatheringData.PerceptionReq}, current: {DiscipleOfLand.Perception}");
+                            Communicator.PrintError($"鉴别力不足无法采集该物品. 需求: {targetItem.GatheringData.PerceptionReq}, 当前: {DiscipleOfLand.Perception}");
                             AbortAutoGather();
                             return;
                         }
@@ -415,7 +421,7 @@ namespace GatherBuddy.AutoGather
             var aetheryte = FindClosestAetheryte(location);
             if (aetheryte == null)
             {
-                Communicator.PrintError("Couldn't find an attuned aetheryte to teleport to.");
+                Communicator.PrintError("无法找到可用的以太之光进行传送。");
                 return false;
             }
 
