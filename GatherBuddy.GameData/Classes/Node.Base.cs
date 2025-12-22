@@ -95,12 +95,15 @@ public partial class GatheringNode : IComparable<GatheringNode>, ILocation
         {
             if (!gatheringItemPoint.TryGetValue(n, out var gatherableList))
                 break;
-            //TODO: VERIFY HIDDEN CHANGE EFFECT???
             foreach (var g in gatherableList)
             {
                 if (data.GatherablesByGatherId.TryGetValue(g, out var gatherable)
                  && !Items.Contains(gatherable))
+                {
+                    if (NodeType == NodeType.Ephemeral && gatherable.IsCrystal)
+                        continue;
                     Items.Add(gatherable);
+                }
             }
         }
 

@@ -60,8 +60,14 @@ public static unsafe class AddonMaster
 
         public void Yes()
         {
-            if (Addon->YesButton != null && Addon->YesButton->IsEnabled)
+            if (Addon->YesButton != null)
             {
+                if (!Addon->YesButton->IsEnabled)
+                {
+                    GatherBuddy.Log.Debug($"[AddonMaster.SelectYesno] Force enabling Yes button");
+                    var flagsPtr = (ushort*)&Addon->YesButton->AtkComponentBase.OwnerNode->AtkResNode.NodeFlags;
+                    *flagsPtr ^= 1 << 5;
+                }
                 Callback.Fire(Base, true, 0);
             }
         }
