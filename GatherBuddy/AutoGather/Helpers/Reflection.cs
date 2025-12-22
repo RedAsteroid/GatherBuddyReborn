@@ -81,7 +81,7 @@ namespace GatherBuddy.AutoGather.Helpers
 
                         AutoGatherList list = new AutoGatherList();
                         list.Name        = listKvp.Value;
-                        list.Description = "Imported from Artisan";
+                        list.Description = "来自 Artisan 导入的制作清单";
                         foreach (var (itemId, quantity) in matList)
                         {
                             var gatherable = GatherBuddy.GameData.Gatherables.FirstOrDefault(g => g.Key == itemId);
@@ -90,7 +90,7 @@ namespace GatherBuddy.AutoGather.Helpers
                             list.Add(gatherable.Value, (uint)quantity);
                         }
                         _listsManager.AddList(list);
-                        Communicator.Print($"List '{listKvp.Value}' imported successfully!");
+                        Communicator.Print($"列表 '{listKvp.Value}' 成功导入!");
                         return true;
                     }
                     return false;

@@ -36,9 +36,9 @@ public static unsafe class Teleporter
             return true;
         }
 
-        Communicator.PrintError("Could not teleport to ",
-            GatherBuddy.GameData.Aetherytes.TryGetValue(aetheryte, out var a) ? a.Name : "Unknown Aetheryte", GatherBuddy.Config.SeColorNames,
-            " not attuned.");
+        Communicator.PrintError("无法传送到至 ",
+            GatherBuddy.GameData.Aetherytes.TryGetValue(aetheryte, out var a) ? a.Name : "未知以太之光", GatherBuddy.Config.SeColorNames,
+            " 未共鸣。");
         return false;
     }
 

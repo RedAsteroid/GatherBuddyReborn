@@ -158,8 +158,8 @@ public readonly struct BitfieldUptime : IEquatable<BitfieldUptime>
                 }
                 else
                 {
-                    ret =  ret.Replace(" and ", ", ");
-                    ret += " and ";
+                    ret =  ret.Replace(" ”Î ", ", ");
+                    ret += " ”Î ";
                 }
             }
 

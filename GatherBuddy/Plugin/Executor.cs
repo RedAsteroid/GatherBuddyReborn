@@ -106,7 +106,7 @@ public class Executor
             _visitedLocations.Clear();
         _keepVisitedLocations = true;
         if (_item == null)
-            Communicator.Print("No previous gather command registered.");
+            Communicator.Print("没有可用的上一次的采集指令。");
     }
 
     private void DoIdentify()
@@ -156,7 +156,7 @@ public class Executor
                 var umbralInfo = UmbralNodes.GetUmbralItemInfo(item.ItemId);
                 if (umbralInfo.HasValue)
                 {
-                    Communicator.Print($"Umbral item {item.Name[GatherBuddy.Language]} will be gathered during {umbralInfo.Value.Weather} weather in Diadem.");
+                    Communicator.Print($"灵风物品: {item.Name[GatherBuddy.Language]} 将在云冠群岛的 {umbralInfo.Value.Weather} 天气期间采集。");
                     return null; // Return null but don't show "no location" error
                 }
             }
@@ -227,14 +227,14 @@ public class Executor
         };
         if (set == null)
         {
-            Communicator.PrintError("No job type associated with location ", _location.Name, GatherBuddy.Config.SeColorArguments, ".");
+            Communicator.PrintError("此位置没有关联任何职业: ", _location.Name, GatherBuddy.Config.SeColorArguments, ".");
             return;
         }
 
         if (set.Length == 0)
         {
-            Communicator.PrintError("No gear set for ", _location.GatheringType.ToString(), GatherBuddy.Config.SeColorArguments,
-                " configured.");
+            Communicator.PrintError("未设置任何套装: ", _location.GatheringType.ToString(), GatherBuddy.Config.SeColorArguments,
+                "");
             return;
         }
 
@@ -359,15 +359,15 @@ public class Executor
                 return true;
             case GatherBuddy.AutoCommand:
                 GatherBuddy.AutoGather.Enabled = !GatherBuddy.AutoGather.Enabled;
-                Communicator.Print(GatherBuddy.AutoGather.Enabled ? "Auto-gathering enabled." : "Auto-gathering disabled.");
+                Communicator.Print(GatherBuddy.AutoGather.Enabled ? "启用自动采集" : "禁用自动采集");
                 return true;
             case GatherBuddy.AutoOnCommand:
                 GatherBuddy.AutoGather.Enabled = true;
-                Communicator.Print("Auto-gathering enabled.");
+                Communicator.Print("启用自动采集");
                 return true;
             case GatherBuddy.AutoOffCommand:
                 GatherBuddy.AutoGather.Enabled = false;
-                Communicator.Print("Auto-gathering disabled.");
+                Communicator.Print("禁用自动采集");
                 return true;
             default: return false;
         }
@@ -445,14 +445,14 @@ public class Executor
     {
         if (territory.Aetherytes.Count == 0)
         {
-            Communicator.PrintError(string.Empty, territory.Name, GatherBuddy.Config.SeColorArguments, " has no valid aetheryte.");
+            Communicator.PrintError(string.Empty, territory.Name, GatherBuddy.Config.SeColorArguments, " 没有可传送的以太之光。");
             return;
         }
 
         var aetheryte = territory.Aetherytes.FirstOrDefault(a => Teleporter.IsAttuned(a.Id));
         if (aetheryte == null)
         {
-            Communicator.PrintError("Not attuned to any aetheryte in ", territory.Name, GatherBuddy.Config.SeColorArguments, ".");
+            Communicator.PrintError("没有与此区域的任何以太之光进行共鸣: ", territory.Name, GatherBuddy.Config.SeColorArguments, ".");
             return;
         }
 
