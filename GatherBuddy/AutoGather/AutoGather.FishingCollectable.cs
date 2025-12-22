@@ -18,7 +18,8 @@ namespace GatherBuddy.AutoGather
             "collectability of",
             "収集価値",
             "Sammlerwert",
-            "Valeur de collection"
+            "Valeur de collection",
+            "收藏价值"
         ];
 
         private unsafe bool HandleFishingCollectable()

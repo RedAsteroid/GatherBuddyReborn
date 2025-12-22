@@ -79,11 +79,11 @@ public class GatherWindow : Window
     {
         var sb = new StringBuilder();
         sb.Append(loc == null
-            ? "Unknown Location\nUnknown Territory\nUnknown Aetheryte\n"
-            : $"{loc.Name}\n{loc.Territory.Name}\n{loc.ClosestAetheryte?.Name ?? "No Aetheryte"}\n");
+            ? "未知位置\n未知地图\n未知以太之光\n"
+            : $"{loc.Name}\n{loc.Territory.Name}\n{loc.ClosestAetheryte?.Name ?? "无以太之光"}\n");
 
         sb.Append(time.Equals(TimeInterval.Always)
-            ? "Always Up"
+            ? "常驻"
             : $"{time.Start}\n{time.End}\n{time.DurationString()}\n{TimeInterval.DurationString(time.Start > GatherBuddy.Time.ServerTime ? time.Start : time.End, GatherBuddy.Time.ServerTime, false)}");
 
         return sb.ToString();

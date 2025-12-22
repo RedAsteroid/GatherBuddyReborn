@@ -36,12 +36,20 @@ public static class UmbralNodes
         (33839, CloudedNodeType.CloudedLushVegetation, UmbralWeatherType.UmbralDuststorms, [29945, 31317, 32046]),
     };
 
+    public static readonly Dictionary<UmbralWeatherType, string> UmbralWeatherNames = new()
+    {
+        { UmbralWeatherType.UmbralFlare, "灵烈火" },
+        { UmbralWeatherType.UmbralDuststorms, "灵飘尘" },
+        { UmbralWeatherType.UmbralLevin, "灵飞电" },
+        { UmbralWeatherType.UmbralTempest, "灵罡风" },
+    };
+
     public static readonly Dictionary<CloudedNodeType, string> NodeNames = new()
     {
-        { CloudedNodeType.CloudedRockyOutcrop, "Clouded Rocky Outcrop" },
-        { CloudedNodeType.CloudedMineralDeposit, "Clouded Mineral Deposit" },
-        { CloudedNodeType.CloudedMatureTree, "Clouded Mature Tree" },
-        { CloudedNodeType.CloudedLushVegetation, "Clouded Lush Vegetation" },
+        { CloudedNodeType.CloudedRockyOutcrop, "梦幻的石场" },
+        { CloudedNodeType.CloudedMineralDeposit, "梦幻的矿脉" },
+        { CloudedNodeType.CloudedMatureTree, "梦幻的良材" },
+        { CloudedNodeType.CloudedLushVegetation, "梦幻的草场" },
     };
 
     public static GatheringType GetGatheringType(CloudedNodeType nodeType)

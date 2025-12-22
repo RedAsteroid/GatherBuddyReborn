@@ -554,7 +554,7 @@ namespace GatherBuddy.AutoGather
                 catch (NoCollectableActionsException)
                 {
                     Communicator.PrintError(
-                        "当前无可用的收藏品价值上升技能, 请检查设置中相关技能的启用情况");
+                        "当前无可用的收藏品价值上升技能, 请确保配置中至少启用了一个收藏品技能。");
                     AbortAutoGather();
                 }
 
@@ -971,12 +971,18 @@ namespace GatherBuddy.AutoGather
                                     .ToString();
                                 break;
                             case 418:
-                                name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString()
-                                    .Split(" ")[1];
+                                name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString(); // 国服提取结果 "天穹街"，只有1个单词不用切分
                                 break;
                         }
 
-                        TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                        if (name == "天穹街") // 修改进入逻辑
+                        {
+                            TaskManager.Enqueue(() => Lifestream.ExecuteCommand("firmament"));
+                        }
+                        else
+                        {
+                            TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                        }
                         TaskManager.DelayNext(1000);
                         TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
                     }
@@ -1382,10 +1388,16 @@ namespace GatherBuddy.AutoGather
                     }
                         AutoStatus = "传送中...";
                         StopNavigation();
-                        string name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString()
-                            .Split(" ")[1];
+                        string name = Dalamud.GameData.GetExcelSheet<TerritoryType>().GetRow(886).PlaceName.Value.Name.ToString();  // 国服提取结果 "天穹街"，只有1个单词不用切分
 
-                        TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                        if (name == "天穹街") // 修改进入逻辑
+                        {
+                            TaskManager.Enqueue(() => Lifestream.ExecuteCommand("firmament"));
+                        }
+                        else
+                        {
+                            TaskManager.Enqueue(() => Lifestream.AethernetTeleport(name));
+                        }
                         TaskManager.DelayNext(1000);
                         TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
                     }
@@ -1693,7 +1705,8 @@ namespace GatherBuddy.AutoGather
                             
                             if (distance > CloseEnoughDistance)
                             {
-                                AutoStatus = $"正在赶往特殊天气采集点: {nodeId} (天气: {currentUmbralWeather}, {distance:F0}y)...";
+                                var weatherName = UmbralNodes.UmbralWeatherNames[currentUmbralWeather]; // 使用字典映射获取天气名称
+                                AutoStatus = $"正在赶往特殊天气采集点: {nodeId} (天气: {weatherName}, {distance:F0}y)...";
                                 
                                 if (!Dalamud.Conditions[ConditionFlag.Mounted] && distance >= GatherBuddy.Config.AutoGatherConfig.MountUpDistance)
                                 {
@@ -1983,11 +1996,16 @@ namespace GatherBuddy.AutoGather
 
         private unsafe void LeaveTheDiadem()
         {
-            AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentsFinderMenu)->Show();
+
+            if (Throttler.Throttle("LeaveTheDiadem", 1500, true)) // 节流，否则会被反复开关(等待上游修复)
+            {
+                AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentsFinderMenu)->Show();
+            }
+
             if (GenericHelpers.TryGetAddonByName("ContentsFinderMenu", out AtkUnitBase* addon))
             {
                 TaskManager.Enqueue(() => Callback.Fire(addon, true,  0));
-                TaskManager.Enqueue(() => Callback.Fire(addon, false, -2));
+                //TaskManager.Enqueue(() => Callback.Fire(addon, false, -2)); // 会导致菜单被直接关闭
                 TaskManager.DelayNext(1000);
                 TaskManager.Enqueue(() => Callback.Fire((AtkUnitBase*)(nint)Dalamud.GameGui.GetAddonByName("SelectYesno"), true, 0));
                 TaskManager.Enqueue(() => GenericHelpers.IsScreenReady());
