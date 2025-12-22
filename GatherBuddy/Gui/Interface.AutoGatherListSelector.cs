@@ -104,7 +104,7 @@ public partial class Interface
         private void ImportFromClipboardButton(Vector2 size)
         {
             const string importName = "importListName";
-            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Clipboard.ToIconString(), size, "从剪切板导入自动采集列表", false, true))
+            if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Clipboard.ToIconString(), size, "从剪贴板导入自动采集列表", false, true))
                 ImGui.OpenPopup(importName);
 
             string name = string.Empty;
@@ -157,7 +157,7 @@ public partial class Interface
 
         private void ExportListContext(FileSystem<AutoGatherList>.Leaf leaf)
         {
-            if (ImGui.MenuItem("导出到剪切板"))
+            if (ImGui.MenuItem("导出到剪贴板"))
             {
                 try
                 {

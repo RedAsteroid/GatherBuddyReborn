@@ -1342,7 +1342,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("钓鱼窗口"))
+            if (ImGui.TreeNodeEx("捕鱼计时器窗口"))
             {
                 ConfigFunctions.DrawKeepRecordsBox();
                 ConfigFunctions.DrawShowLocalTimeInRecordsBox();
