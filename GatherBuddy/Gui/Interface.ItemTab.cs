@@ -38,18 +38,18 @@ public partial class Interface
             {
                 _globalScale     = ImGuiHelpers.GlobalScale;
                 _nameColumnWidth = (Items.Max(i => TextWidth(i.Data.Name[GatherBuddy.Language])) + ItemSpacing.X + LineIconSize.X) / Scale;
-                _nextUptimeColumnWidth = Math.Max(TextWidth("99:99 Minutes") / Scale,
-                    TextWidth(_nextUptimeColumn.Label) / Scale + Table.ArrowWidth);
+                _nextUptimeColumnWidth = Math.Max(TextWidth("99:99 分钟") / Scale,
+                    TextWidth(_nextUptimeColumn.Label) / Scale + Table.ArrowWidth + 5); // 下次时间: +5 调整宽度，匹配中文
                 _closestAetheryteColumnWidth = GatherBuddy.GameData.Aetherytes.Values.Max(a => TextWidth(a.Name)) / Scale;
                 _levelColumnWidth = Math.Max(TextWidth("99*****") / Scale,
                     TextWidth(_levelColumn.Label) / Scale + Table.ArrowWidth);
                 _jobColumnWidth = Math.Max(TextWidth(_jobColumn.Label) / Scale + Table.ArrowWidth,
                     Enum.GetNames<GatheringType>().Where(s => s != "Spearfishing").Max(TextWidth) / Scale);
-                _typeColumnWidth = Math.Max(TextWidth(_typeColumn.Label) / Scale + Table.ArrowWidth,
+                _typeColumnWidth = Math.Max(TextWidth(_typeColumn.Label) / Scale + Table.ArrowWidth + 5, // 采集点类型: +5 调整宽度，匹配中文
                     Enum.GetNames<NodeType>().Max(TextWidth) / Scale);
-                _expansionColumnWidth   = TextWidth(_expansionColumn.Label) / Scale + Table.ArrowWidth;
+                _expansionColumnWidth   = TextWidth(_expansionColumn.Label) / Scale + Table.ArrowWidth + 5;  // 版本: +5 调整宽度，匹配中文
                 _folkloreColumnWidth    = Items.Max(i => TextWidth(i.Folklore)) / Scale;
-                _uptimeColumnWidth      = Items.Max(i => TextWidth(i.Uptimes)) / Scale;
+                _uptimeColumnWidth      = Items.Max(i => TextWidth(i.Uptimes)) / Scale + 10;
                 _bestNodeColumnWidth    = GatherBuddy.GameData.GatheringNodes.Values.Max(a => TextWidth(a.Name)) / Scale;
                 _bestZoneColumnWidth    = GatherBuddy.GameData.Territories.Values.Max(a => TextWidth(a.Name)) / Scale;
                 _itemIdColumnWidth      = Math.Max(TextWidth("999999") / Scale, TextWidth(_itemIdColumn.Label) / Scale + Table.ArrowWidth);
@@ -57,19 +57,19 @@ public partial class Interface
             }
         }
 
-        private static readonly NameColumn        _nameColumn        = new() { Label = "Item Name..." };
-        private static readonly NextUptimeColumn  _nextUptimeColumn  = new() { Label = "Next Uptime" };
-        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "Aetheryte" };
-        private static readonly LevelColumn       _levelColumn       = new() { Label = "Lvl..." };
-        private static readonly JobColumn         _jobColumn         = new() { Label = "Gathering" };
-        private static readonly TypeColumn        _typeColumn        = new() { Label = "Node Type" };
-        private static readonly ExpansionColumn   _expansionColumn   = new() { Label = "Exp." };
-        private static readonly FolkloreColumn    _folkloreColumn    = new() { Label = "Folklore" };
-        private static readonly UptimesColumn     _uptimesColumn     = new() { Label = "Uptimes" };
-        private static readonly BestNodeColumn    _bestNodeColumn    = new() { Label = "Best Node" };
-        private static readonly BestZoneColumn    _bestZoneColumn    = new() { Label = "Best Zone" };
-        private static readonly ItemIdColumn      _itemIdColumn      = new() { Label = "Item Id" };
-        private static readonly GatheringIdColumn _gatheringIdColumn = new() { Label = "G. Id" };
+        private static readonly NameColumn        _nameColumn        = new() { Label = "物品名称..." };
+        private static readonly NextUptimeColumn  _nextUptimeColumn  = new() { Label = "下次时间" };
+        private static readonly AetheryteColumn   _aetheryteColumn   = new() { Label = "以太之光" };
+        private static readonly LevelColumn       _levelColumn       = new() { Label = "等级..." };
+        private static readonly JobColumn         _jobColumn         = new() { Label = "采集类型" };
+        private static readonly TypeColumn        _typeColumn        = new() { Label = "采集点类型" };
+        private static readonly ExpansionColumn   _expansionColumn   = new() { Label = "版本" };
+        private static readonly FolkloreColumn    _folkloreColumn    = new() { Label = "传承录" };
+        private static readonly UptimesColumn     _uptimesColumn     = new() { Label = "出现时段" };
+        private static readonly BestNodeColumn    _bestNodeColumn    = new() { Label = "最佳采集点" };
+        private static readonly BestZoneColumn    _bestZoneColumn    = new() { Label = "最佳区域" };
+        private static readonly ItemIdColumn      _itemIdColumn      = new() { Label = "物品 ID" };
+        private static readonly GatheringIdColumn _gatheringIdColumn = new() { Label = "采集品 ID" };
 
         private class ItemFilterColumn : ColumnFlags<ItemFilter, ExtendedGatherable>
         {
@@ -145,7 +145,7 @@ public partial class Interface
             {
                 Flags |= ImGuiTableColumnFlags.DefaultSort;
                 SetFlags(ItemFilter.Available, ItemFilter.Unavailable);
-                SetNames("Currently Available", "Currently Unavailable");
+                SetNames("当前可采集", "当前不可采集");
             }
 
             public override void DrawColumn(ExtendedGatherable item, int _)
@@ -166,7 +166,7 @@ public partial class Interface
         private sealed class AetheryteColumn : ColumnString<ExtendedGatherable>
         {
             public override string ToName(ExtendedGatherable item)
-                => item.Uptime.Item1.ClosestAetheryte?.Name ?? "None";
+                => item.Uptime.Item1.ClosestAetheryte?.Name ?? "无";
 
             public override float Width
                 => _closestAetheryteColumnWidth * ImGuiHelpers.GlobalScale;
@@ -176,7 +176,7 @@ public partial class Interface
                 var aetheryte = item.Uptime.Item1.ClosestAetheryte;
                 if (aetheryte == null)
                 {
-                    ImGui.Text("None");
+                    ImGui.Text("无");
                     return;
                 }
 
@@ -219,10 +219,13 @@ public partial class Interface
                 => _jobColumnWidth * ImGuiHelpers.GlobalScale;
 
             public JobColumn()
-                => SetFlagsAndNames(ItemFilter.Mining, ItemFilter.Quarrying, ItemFilter.Logging, ItemFilter.Harvesting);
+            {
+                SetFlags(ItemFilter.Mining, ItemFilter.Quarrying, ItemFilter.Logging, ItemFilter.Harvesting);
+                SetNames("采矿", "碎石", "伐木", "割草"); // 使用中文名称显示采集类型
+            }
 
             public override void DrawColumn(ExtendedGatherable item, int _)
-                => ImGui.Text(item.Data.GatheringType.ToString());
+                => ImGui.Text(EnumLocalization.Get(item.Data.GatheringType)); // 使用枚举本地化显示采集类型
 
             public override int Compare(ExtendedGatherable lhs, ExtendedGatherable rhs)
                 => lhs.Data.GatheringType.CompareTo(rhs.Data.GatheringType);
@@ -249,10 +252,13 @@ public partial class Interface
                 => _typeColumnWidth * ImGuiHelpers.GlobalScale;
 
             public TypeColumn()
-                => SetFlagsAndNames(ItemFilter.Regular, ItemFilter.Unspoiled, ItemFilter.Ephemeral, ItemFilter.Legendary);
+            {
+                SetFlags(ItemFilter.Regular, ItemFilter.Unspoiled, ItemFilter.Ephemeral, ItemFilter.Legendary);
+                SetNames("常规", "未知", "限时", "传说"); // 使用中文名称显示采集点类型
+            }
 
             public override void DrawColumn(ExtendedGatherable item, int _)
-                => ImGui.Text(item.Data.NodeType.ToString());
+                => ImGui.Text(EnumLocalization.Get(item.Data.NodeType)); // 使用枚举本地化显示采集类型
 
             public override int Compare(ExtendedGatherable lhs, ExtendedGatherable rhs)
                 => lhs.Data.NodeType.CompareTo(rhs.Data.NodeType);
@@ -279,7 +285,7 @@ public partial class Interface
             {
                 SetFlags(ItemFilter.ARealmReborn, ItemFilter.Heavensward, ItemFilter.Stormblood, ItemFilter.Shadowbringers,
                     ItemFilter.Endwalker, ItemFilter.Dawntrail);
-                SetNames("A Realm Reborn", "Heavensward", "Stormblood", "Shadowbringers", "Endwalker", "Dawntrail");
+                SetNames("重生之境", "苍穹之禁城", "红莲之狂潮", "暗影之逆焰", "晓月之终途", "金曦之遗辉");
             }
 
             public override void DrawColumn(ExtendedGatherable item, int _)
@@ -427,15 +433,15 @@ public partial class Interface
     private void DrawItemTab()
     {
         using var id  = ImRaii.PushId("Gatherables");
-        using var tab = ImRaii.TabItem("Gatherables");
-        ImGuiUtil.HoverTooltip("Breaking rocks with a pickaxe or felling trees counts as gathering, why do you ask?\n"
-          + "Find all information about botanist and miner items you could ever need.");
+        using var tab = ImRaii.TabItem("可采集物品");
+        ImGuiUtil.HoverTooltip("用镐子敲碎岩石或砍倒树木都算作采集, 你为什么这么问？\n"
+          + "在这里你能找到关于园艺工和采矿工的所有物品信息。");
         if (!tab)
             return;
 
         _itemTable.ExtraHeight = GatherBuddy.Config.ShowStatusLine ? ImGui.GetTextLineHeight() : 0;
         _itemTable.Draw(ImGui.GetTextLineHeightWithSpacing());
-        DrawStatusLine(_itemTable, "Items");
+        DrawStatusLine(_itemTable, "物品");
         DrawClippy();
     }
 }

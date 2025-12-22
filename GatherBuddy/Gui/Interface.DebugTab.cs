@@ -612,7 +612,7 @@ public partial class Interface
     {
         using var id = ImRaii.PushId("Debug");
         using var tab = ImRaii.TabItem("Debug");
-        ImGuiUtil.HoverTooltip("I really hope there is a good reason for you seeing this.");
+        ImGuiUtil.HoverTooltip("我真希望你不是随便点到这里来的。");
 
         if (!tab)
             return;

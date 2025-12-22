@@ -37,13 +37,13 @@ public partial class Interface
         {
             var tmp = oldName;
             ImGui.SetNextItemWidth(SetInputWidth);
-            if (ImGui.InputText($"{jobName} Set", ref tmp, 15) && tmp != oldName)
+            if (ImGui.InputText($"{jobName} 套装", ref tmp, 15) && tmp != oldName)
             {
                 setName(tmp);
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip($"Set the name of your {jobName.ToLowerInvariant()} set. Can also be the numerical id instead.");
+            ImGuiUtil.HoverTooltip($"设置你的 {jobName.ToLowerInvariant()} 套装的名称或编号。");
         }
 
         private static void DrawCheckbox(string label, string description, bool oldValue, Action<bool> setter)
@@ -61,36 +61,35 @@ public partial class Interface
 
         // Auto-Gather Config
         public static void DrawAutoGatherBox()
-            => DrawCheckbox("Enable Gathering Window Interaction (DISABLING THIS IS UNSUPPORTED)",
-                "Toggle whether to automatically gather items. (Disable this for 'nav only mode')",
+            => DrawCheckbox("启用采集窗口交互(不推荐禁用此功能)",
+                "是否启用自动采集物品。(\"仅寻路模式\"中建议禁用)",
                 GatherBuddy.Config.AutoGatherConfig.DoGathering, b => GatherBuddy.Config.AutoGatherConfig.DoGathering = b);
 
         public static void DrawGoHomeBox()
         {
-            DrawCheckbox("Go home when done",                       "Uses the '/li auto' command to take you home when done gathering",
+            DrawCheckbox("采集完成时回家", "当采集完成时, 自动使用 '/li auto' 指令回家",
                 GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenDone = b);
             ImGui.SameLine();
             ImGuiEx.PluginAvailabilityIndicator([new("Lifestream")]);
-            DrawCheckbox("Go home when idle",                       "Uses the '/li auto' command to take you home when waiting for timed nodes",
+            DrawCheckbox("空闲时回家", "当等待下一限时采集点出现时, 自动使用 '/li auto' 指令回家",
                 GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle, b => GatherBuddy.Config.AutoGatherConfig.GoHomeWhenIdle = b);
             ImGui.SameLine();
             ImGuiEx.PluginAvailabilityIndicator([new("Lifestream")]);
         }
 
         public static void DrawUseSkillsForFallabckBox()
-            => DrawCheckbox("Use skills for fallback items", "Use skills when gathering items from fallback presets",
+            => DrawCheckbox("为备选采集列表物品使用技能", "当采集备选采集列表内的物品时, 自动使用相关的采集技能",
                 GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems,
                 b => GatherBuddy.Config.AutoGatherConfig.UseSkillsForFallbackItems = b);
 
         public static void DrawAbandonNodesBox()
-            => DrawCheckbox("Abandon nodes without needed items",
-                "Stop gathering and abandon the node when you have gathered enough items,\n"
-              + "or if the node didn't have any needed items on the first place.",
+            => DrawCheckbox("无所需物品时取消采集点",
+                "当采集点没有目标物品或你已经采集了足够的目标物品时, 停止采集并取消采集点",
                 GatherBuddy.Config.AutoGatherConfig.AbandonNodes, b => GatherBuddy.Config.AutoGatherConfig.AbandonNodes = b);
 
         public static void DrawCheckRetainersBox()
         {
-            DrawCheckbox("Check Retainer Inventories", "Use Allagan Tools to check retainer inventories when doing inventory calculations",
+            DrawCheckbox("检查雇员库存", "在进行库存计算时, 使用 Allagan Tools 插件检查雇员的库存。",
                 GatherBuddy.Config.AutoGatherConfig.CheckRetainers, b => GatherBuddy.Config.AutoGatherConfig.CheckRetainers = b);
             ImGui.SameLine();
             ImGuiEx.PluginAvailabilityIndicator([new("InventoryTools", "Allagan Tools")]);
@@ -100,7 +99,7 @@ public partial class Interface
         {
             ImGui.SetNextItemWidth(150);
             var volume = GatherBuddy.Config.AutoGatherConfig.SoundPlaybackVolume;
-            if (ImGui.DragInt("Playback Volume", ref volume, 1, 0, 100))
+            if (ImGui.DragInt("播放音量", ref volume, 1, 0, 100))
             {
                 if (volume < 0)
                     volume = 0;
@@ -111,46 +110,46 @@ public partial class Interface
             }
 
             ImGuiUtil.HoverTooltip(
-                "The volume of the sound played when auto-gathering shuts down because your list is complete.\nHold CTRL and click to enter custom value");
+                "自动采集在列表完成后停止时播放的提示音音量。\n按住 Ctrl 并点击可输入自定义数值。");
         }
 
         public static void DrawHonkModeBox()
-            => DrawCheckbox("Play a sound when done gathering", "Play a sound when auto-gathering shuts down because your list is complete",
+            => DrawCheckbox("采集完成时播放音效", "完成列表采集后结束自动采集并播放音效",
                 GatherBuddy.Config.AutoGatherConfig.HonkMode,   b => GatherBuddy.Config.AutoGatherConfig.HonkMode = b);
 
         public static void DrawRepairBox()
-            => DrawCheckbox("Repair gear when needed",        "Repair gear when it is almost broken",
+            => DrawCheckbox("自动修理装备", "装备耐久度过低时进行修理",
                 GatherBuddy.Config.AutoGatherConfig.DoRepair, b => GatherBuddy.Config.AutoGatherConfig.DoRepair = b);
 
         public static void DrawRepairThreshold()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.RepairThreshold;
-            if (ImGui.DragInt("Repair Threshold", ref tmp, 1, 1, 100))
+            if (ImGui.DragInt("修理阈值", ref tmp, 1, 1, 100))
             {
                 GatherBuddy.Config.AutoGatherConfig.RepairThreshold = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("The percentage of durability at which you will repair your gear.");
+            ImGuiUtil.HoverTooltip("当装备耐久度低于此百分比时自动修理。");
         }
 
         public static void DrawFishingSpotMinutes()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes;
-            if (ImGui.DragInt("Max Fishing Spot Minutes", ref tmp, 1, 1, 40))
+            if (ImGui.DragInt("最大钓点停留时间", ref tmp, 1, 1, 40))
             {
                 GatherBuddy.Config.AutoGatherConfig.MaxFishingSpotMinutes = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("The maximum number of minutes you will fish at a fishing spot.");
+            ImGuiUtil.HoverTooltip("在单个钓点进行钓鱼的最长时间(分钟)");
         }
 
         public static void DrawAutoretainerBox()
         {
-            DrawCheckbox("Wait for AutoRetainer Multi-mode", "Pause GBR automatically when AutoRetainer has retainers to process during Multi-mode",
+            DrawCheckbox("等待 AutoRetainer 多角色模式", "在 AutoRetainer 多角色模式处理雇员期间自动暂停 GBR。",
                 GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode, b => GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiMode = b);
             ImGui.SameLine();
             ImGuiEx.PluginAvailabilityIndicator([new ImGuiEx.RequiredPluginInfo("AutoRetainer")]);
@@ -160,18 +159,18 @@ public partial class Interface
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiModeThreshold;
-            if (ImGui.DragInt("AutoRetainer Threshold (Seconds)", ref tmp, 1, 0, 3600))
+            if (ImGui.DragInt("AutoRetainer 阈值 (秒)", ref tmp, 1, 0, 3600))
             {
                 GatherBuddy.Config.AutoGatherConfig.AutoRetainerMultiModeThreshold = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("How many seconds before a retainer venture completes GBR should pause and wait for MultiMode.");
+            ImGuiUtil.HoverTooltip("GBR 会在雇员探险完成前的指定秒数暂停, 以等待多角色模式处理。");
         }
 
         public static void DrawAutoretainerTimedNodeDelayBox()
-            => DrawCheckbox("Delay AutoRetainer for timed nodes",
-                "Wait to process retainers until after active/upcoming timed nodes are gathered.",
+            => DrawCheckbox("为限时采集点延迟 AutoRetainer",
+                "在处理雇员前, 先完成当前/即将到来的限时采集点。",
                 GatherBuddy.Config.AutoGatherConfig.AutoRetainerDelayForTimedNodes,
                 b => GatherBuddy.Config.AutoGatherConfig.AutoRetainerDelayForTimedNodes = b);
 
@@ -179,7 +178,7 @@ public partial class Interface
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.LifestreamCommand;
-            if (ImGui.InputText("Lifestream Command", ref tmp, 100))
+            if (ImGui.InputText("Lifestream 命令", ref tmp, 100))
             {
                 if (string.IsNullOrEmpty(tmp))
                     tmp = "auto";
@@ -188,76 +187,76 @@ public partial class Interface
             }
 
             ImGuiUtil.HoverTooltip(
-                "The command used when idling or done gathering. DO NOT include '/li'\nBe careful when changing this, GBR does not validate this command!");
+                "用于空闲或采集完成时执行的命令, 请勿包含 ‘/li’。\n修改此命令需谨慎, GBR 不会验证命令的有效性。");
         }
 
         public static void DrawFishCollectionBox()
-            => DrawCheckbox("Opt-in to fishing data collection",
-                "With this enabled, whenever you catch a fish the data for that fish will be uploaded to a remote server\n"
-              + "The purpose of this data collection is to allow for a usable auto-fishing feature to be built\n"
-              + "No personal information about you or your character will be collected, only data relevant to the caught fish\n"
-              + "You can opt-out again at any time by simply disabling this checkbox.", GatherBuddy.Config.AutoGatherConfig.FishDataCollection,
+            => DrawCheckbox("参与钓鱼数据收集",
+                "启用后, 每当你钓到一条鱼, 其相关数据都会上传到远程服务器。\n"
+              + "这些数据用于构建可用的自动钓鱼功能。\n"
+              + "不会收集与你或你的角色相关的任何个人信息, 只会上传与所钓鱼类相关的数据。\n"
+              + "你可以随时取消参与, 只需关闭此复选框即可。", GatherBuddy.Config.AutoGatherConfig.FishDataCollection,
                 b => GatherBuddy.Config.AutoGatherConfig.FishDataCollection = b);
 
         public static void DrawMaterialExtraction()
-            => DrawCheckbox("Enable materia extraction",
-                "Automatically extract materia from items with a complete spiritbond",
+            => DrawCheckbox("自动精制魔晶石",
+                "自动在装备精炼度达到 100% 时精制魔晶石",
                 GatherBuddy.Config.AutoGatherConfig.DoMaterialize,
                 b => GatherBuddy.Config.AutoGatherConfig.DoMaterialize = b);
 
         public static void DrawAetherialReduction()
-            => DrawCheckbox("Enable Aetherial Reduction",
-                "Automatically perform Aetherial Reduction when idling or the inventory is full",
+            => DrawCheckbox("自动精选",
+                "自动在空闲状态或物品栏已满时进行精选",
                 GatherBuddy.Config.AutoGatherConfig.DoReduce,
                 b => GatherBuddy.Config.AutoGatherConfig.DoReduce = b);
 
         public static void DrawUseFlagBox()
-            => DrawCheckbox("Disable map marker navigation",            "Whether or not to navigate using map markers (timed nodes only)",
+            => DrawCheckbox("禁用地图标记导航", "是否使用地图标记进行导航(仅限时采集点)",
                 GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing, b => GatherBuddy.Config.AutoGatherConfig.DisableFlagPathing = b);
 
         public static void DrawFarNodeFilterDistance()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance;
-            if (ImGui.DragFloat("Far Node Filter Distance", ref tmp, 0.1f, 0.1f, 100f))
+            if (ImGui.DragFloat("过远采集点距离过滤", ref tmp, 0.1f, 0.1f, 100f))
             {
                 GatherBuddy.Config.AutoGatherConfig.FarNodeFilterDistance = tmp;
                 GatherBuddy.Config.Save();
             }
 
             ImGuiUtil.HoverTooltip(
-                "When looking for non-empty nodes GBR will filter out any nodes that are closer to you than this. Prevents checking nodes you can already see are empty.");
+                "寻找非空采集点时, GBR 将忽略距离低于此数值的采集点, 以避免重复检查已知为空的节点。");
         }
 
         public static void DrawTimedNodePrecog()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog;
-            if (ImGui.DragInt("Timed Node Precognition (Seconds)", ref tmp, 1, 0, 600))
+            if (ImGui.DragInt("限时采集点提前时间(秒)", ref tmp, 1, 0, 600))
             {
                 GatherBuddy.Config.AutoGatherConfig.TimedNodePrecog = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("How far in advance of the node actually being up GBR should consider the node to be up");
+            ImGuiUtil.HoverTooltip("GBR 会在采集点实际出现前的多少秒, 将其视为已出现。");
         }
 
         public static void DrawExecutionDelay()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = (int)GatherBuddy.Config.AutoGatherConfig.ExecutionDelay;
-            if (ImGui.DragInt("Execution delay (Milliseconds)", ref tmp, 1, 0, 1500))
+            if (ImGui.DragInt("执行延迟(毫秒)", ref tmp, 1, 0, 1500))
             {
                 GatherBuddy.Config.AutoGatherConfig.ExecutionDelay = (uint)Math.Min(Math.Max(0, tmp), 10000);
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("Delay executing each action by the specified amount.");
+            ImGuiUtil.HoverTooltip("使用任一技能前需要等待的时间");
         }
 
         public static void DrawUseGivingLandOnCooldown()
-            => DrawCheckbox("Gather any crystals when The Giving Land is off cooldown",
-                "Gather random crystals on any regular node when The Giving Land is avaiable regardles of current target item.",
+            => DrawCheckbox("大地的恩惠 可用时采集任意水晶",
+                "大地的恩惠 可用时, 在任意普通采集点采集任意水晶, 无视当前目标物品",
                 GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown,
                 b => GatherBuddy.Config.AutoGatherConfig.UseGivingLandOnCooldown = b);
 
@@ -265,18 +264,18 @@ public partial class Interface
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.MountUpDistance;
-            if (ImGui.DragFloat("Mount Up Distance", ref tmp, 0.1f, 0.1f, 100f))
+            if (ImGui.DragFloat("需要上坐骑的距离", ref tmp, 0.1f, 0.1f, 100f))
             {
                 GatherBuddy.Config.AutoGatherConfig.MountUpDistance = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("The distance at which you will mount up to move to a node.");
+            ImGuiUtil.HoverTooltip("前往采集点的距离达到此值时自动上坐骑");
         }
 
         public static void DrawMoveWhileMounting()
-            => DrawCheckbox("Move while mounting up",
-                "Begin pathfinding to the next node while summoning a mount",
+            => DrawCheckbox("上坐骑时开始移动",
+                "召唤坐骑期间就开始寻路到下一个采集点",
                 GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting,
                 b => GatherBuddy.Config.AutoGatherConfig.MoveWhileMounting = b);
 
@@ -284,34 +283,34 @@ public partial class Interface
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetCooldown;
-            if (ImGui.DragFloat("Anti-Stuck Cooldown", ref tmp, 0.1f, 0.1f, 10f))
+            if (ImGui.DragFloat("防卡冷却(秒)", ref tmp, 0.1f, 0.1f, 10f))
             {
                 GatherBuddy.Config.AutoGatherConfig.NavResetCooldown = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("The time in seconds before the navigation system will reset if you are stuck.");
+            ImGuiUtil.HoverTooltip("在角色被判定为卡住后, 寻路系统将在指定秒数后重置。");
         }
 
         public static void DrawForceWalkingBox()
-            => DrawCheckbox("Force Walking",                      "Force walking to nodes instead of using mounts.",
+            => DrawCheckbox("强制行走", "前往采集点时强制步行, 而不是使用坐骑。",
                 GatherBuddy.Config.AutoGatherConfig.ForceWalking, b => GatherBuddy.Config.AutoGatherConfig.ForceWalking = b);
 
         public static void DrawUseNavigationBox()
-            => DrawCheckbox("Use vnavmesh Navigation",             "Use vnavmesh Navigation to move your character automatically",
+            => DrawCheckbox("使用 vnavmesh 寻路", "使用 vnavmesh 寻路以自动移动角色。",
                 GatherBuddy.Config.AutoGatherConfig.UseNavigation, b => GatherBuddy.Config.AutoGatherConfig.UseNavigation = b);
 
         public static void DrawStuckThreshold()
         {
             ImGui.SetNextItemWidth(150);
             var tmp = GatherBuddy.Config.AutoGatherConfig.NavResetThreshold;
-            if (ImGui.DragFloat("Stuck Threshold", ref tmp, 0.1f, 0.1f, 10f))
+            if (ImGui.DragFloat("卡住阈值(秒)", ref tmp, 0.1f, 0.1f, 10f))
             {
                 GatherBuddy.Config.AutoGatherConfig.NavResetThreshold = tmp;
                 GatherBuddy.Config.Save();
             }
 
-            ImGuiUtil.HoverTooltip("The time in seconds before the navigation system will consider you stuck.");
+            ImGuiUtil.HoverTooltip("寻路系统在经过指定秒数后会将你判定为卡住。");
         }
 
         public static void DrawSortingMethodCombo()
@@ -319,8 +318,8 @@ public partial class Interface
             var v = GatherBuddy.Config.AutoGatherConfig.SortingMethod;
             ImGui.SetNextItemWidth(150);
 
-            using var combo = ImRaii.Combo("Item Sorting Method", v.ToString());
-            ImGuiUtil.HoverTooltip("What method to use when sorting items internally");
+            using var combo = ImRaii.Combo("物品排序方法", v.ToString());
+            ImGuiUtil.HoverTooltip("内部排序物品时所使用的方法");
             if (!combo)
                 return;
 
@@ -339,13 +338,13 @@ public partial class Interface
 
         // General Config
         public static void DrawOpenOnStartBox()
-            => DrawCheckbox("Open Config UI On Start",
-                "Toggle whether the GatherBuddy GUI should be visible after you start the game.",
+            => DrawCheckbox("启动时打开设置界面",
+                "切换是否在启动游戏时自动显示 GatherBuddy 配置界面。",
                 GatherBuddy.Config.OpenOnStart, b => GatherBuddy.Config.OpenOnStart = b);
 
         public static void DrawLockPositionBox()
-            => DrawCheckbox("Lock Config UI Movement",
-                "Toggle whether the GatherBuddy GUI movement should be locked.",
+            => DrawCheckbox("锁定设置界面移动",
+                "切换是否锁定 GatherBuddy 界面的移动。",
                 GatherBuddy.Config.MainWindowLockPosition, b =>
                 {
                     GatherBuddy.Config.MainWindowLockPosition = b;
@@ -353,8 +352,8 @@ public partial class Interface
                 });
 
         public static void DrawLockResizeBox()
-            => DrawCheckbox("Lock Config UI Size",
-                "Toggle whether the GatherBuddy GUI size should be locked.",
+            => DrawCheckbox("锁定设置界面尺寸",
+                "切换是否锁定 GatherBuddy 界面的尺寸。",
                 GatherBuddy.Config.MainWindowLockResize, b =>
                 {
                     GatherBuddy.Config.MainWindowLockResize = b;
@@ -362,8 +361,8 @@ public partial class Interface
                 });
 
         public static void DrawRespectEscapeBox()
-            => DrawCheckbox("Escape Closes Main Window",
-                "Toggle whether pressing escape while having the main window focused shall close it.",
+            => DrawCheckbox("ESC 关闭主界面",
+                "切换在主界面聚焦时按下 ESC 是否会关闭界面。",
                 GatherBuddy.Config.CloseOnEscape, b =>
                 {
                     GatherBuddy.Config.CloseOnEscape = b;
@@ -371,74 +370,73 @@ public partial class Interface
                 });
 
         public static void DrawGearChangeBox()
-            => DrawCheckbox("Enable Gear Change",
-                "Toggle whether to automatically switch gear to the correct job gear for a node.\nUses Miner Set, Botanist Set and Fisher Set.",
+            => DrawCheckbox("启用套装切换",
+                "切换是否在前往采集点时自动更换为对应职业的套装\n使用采矿工套装，园艺工套装以及捕鱼人套装。",
                 GatherBuddy.Config.UseGearChange, b => GatherBuddy.Config.UseGearChange = b);
 
         public static void DrawTeleportBox()
-            => DrawCheckbox("Enable Teleport",
-                "Toggle whether to automatically teleport to a chosen node.",
+            => DrawCheckbox("启用传送",
+                "切换是否自动传送到选定的采集点。",
                 GatherBuddy.Config.UseTeleport, b => GatherBuddy.Config.UseTeleport = b);
 
         public static void DrawMapOpenBox()
-            => DrawCheckbox("Open Map With Location",
-                "Toggle whether to automatically open the map of the territory of the chosen node with its gathering location highlighted.",
+            => DrawCheckbox("打开带位置的地图",
+                "切换是否自动打开目标采集点所在区域的地图, 并高亮其采集位置。",
                 GatherBuddy.Config.UseCoordinates, b => GatherBuddy.Config.UseCoordinates = b);
 
         public static void DrawPlaceMarkerBox()
-            => DrawCheckbox("Place Flag Marker on Map",
-                "Toggle whether to automatically set a red flag marker on the approximate location of the chosen node without opening the map.",
+            => DrawCheckbox("在地图上放置旗帜标记",
+                "切换是否在不打开地图的情况下, 在目标采集点的大致位置放置红色旗帜标记。",
                 GatherBuddy.Config.UseFlag, b => GatherBuddy.Config.UseFlag = b);
 
         public static void DrawMapMarkerPrintBox()
-            => DrawCheckbox("Print Map Location",
-                "Toggle whether to automatically write a map link to the approximate location of the chosen node to chat.",
+            => DrawCheckbox("打印地图位置",
+                "切换是否自动在聊天栏发送目标采集点的大致位置地图链接。",
                 GatherBuddy.Config.WriteCoordinates, b => GatherBuddy.Config.WriteCoordinates = b);
 
         public static void DrawPlaceWaymarkBox()
-            => DrawCheckbox("Place Custom Waymarks",
-                "Toggle whether to place custom Waymarks you set manually set up for certain locations.",
+            => DrawCheckbox("放置自定义场景标记",
+                "切换是否在特定位置放置你手动设置的自定义场景标记。",
                 GatherBuddy.Config.PlaceCustomWaymarks, b => GatherBuddy.Config.PlaceCustomWaymarks = b);
 
         public static void DrawPrintUptimesBox()
-            => DrawCheckbox("Print Node Uptimes On Gather",
-                "Print the uptimes of nodes you try to /gather in the chat if they are not always up.",
+            => DrawCheckbox("采集时打印采集点出现时间",
+                "当你尝试 /gather 某采集点时, 如果该点不是常驻点, 则在聊天栏打印其出现时间。",
                 GatherBuddy.Config.PrintUptime, b => GatherBuddy.Config.PrintUptime = b);
 
         public static void DrawSkipTeleportBox()
-            => DrawCheckbox("Skip Nearby Teleports",
-                "Skips teleports if you are in the same map and closer to the target than the selected aetheryte already.",
+            => DrawCheckbox("跳过附近传送",
+                "如果你已在同一张地图且距离目标比所选以太之光更近, 则跳过传送。",
                 GatherBuddy.Config.SkipTeleportIfClose, b => GatherBuddy.Config.SkipTeleportIfClose = b);
 
         public static void DrawShowStatusLineBox()
-            => DrawCheckbox("Show Status Line",
-                "Show a status line below the gatherables and fish tables.",
+            => DrawCheckbox("显示状态线",
+                "在可采集物与鱼类列表下方显示状态线。",
                 GatherBuddy.Config.ShowStatusLine, v => GatherBuddy.Config.ShowStatusLine = v);
 
         public static void DrawHideClippyBox()
-            => DrawCheckbox("Hide GatherClippy Button",
-                "Permanently hide the GatherClippy Button in the Gatherables and Fish tabs.",
+            => DrawCheckbox("隐藏 使用帮助 按钮",
+                "永久隐藏可采集物与鱼类标签页中在窗口右下角的 使用帮助 按钮。",
                 GatherBuddy.Config.HideClippy, v => GatherBuddy.Config.HideClippy = v);
 
         private const string ChatInformationString =
-            "Note that the message only gets printed to your chat log, regardless of the selected channel"
-          + " - other people will not see your 'Say' message.";
+            "请注意, 此消息只会显示在你的聊天记录中, 与所选频道无关——其他玩家不会看到你的『说』频道消息。";
 
         public static void DrawPrintTypeSelector()
-            => DrawChatTypeSelector("Chat Type for Messages",
-                "The chat type used to print regular messages issued by GatherBuddy.\n"
+            => DrawChatTypeSelector("消息的聊天类型",
+                "用于打印由 GatherBuddy 发出的常规消息的聊天类型。\n"
               + ChatInformationString,
                 GatherBuddy.Config.ChatTypeMessage, t => GatherBuddy.Config.ChatTypeMessage = t);
 
         public static void DrawErrorTypeSelector()
-            => DrawChatTypeSelector("Chat Type for Errors",
-                "The chat type used to print error messages issued by GatherBuddy.\n"
+            => DrawChatTypeSelector("错误的聊天类型",
+                "用于打印由 GatherBuddy 发出的错误消息的聊天类型。\n"
               + ChatInformationString,
                 GatherBuddy.Config.ChatTypeError, t => GatherBuddy.Config.ChatTypeError = t);
 
         public static void DrawContextMenuBox()
-            => DrawCheckbox("Add In-Game Context Menus",
-                "Add a 'Gather' entry to in-game right-click context menus for gatherable items.",
+            => DrawCheckbox("添加游戏内右键菜单",
+                "在游戏内右键菜单中为可采集物品添加\"采集\"条目。",
                 GatherBuddy.Config.AddIngameContextMenus, b =>
                 {
                     GatherBuddy.Config.AddIngameContextMenus = b;
@@ -451,29 +449,29 @@ public partial class Interface
         public static void DrawPreferredJobSelect()
         {
             var v       = GatherBuddy.Config.PreferredGatheringType;
-            var current = v == GatheringType.Multiple ? "No Preference" : v.ToString();
+            var current = v == GatheringType.Multiple ? "无偏好" : EnumLocalization.Get(v); // 使用字典映射
             ImGui.SetNextItemWidth(SetInputWidth);
-            using var combo = ImRaii.Combo("Preferred Job", current);
+            using var combo = ImRaii.Combo("偏好职业", current);
             ImGuiUtil.HoverTooltip(
-                "Choose your job preference when gathering items that can be gathered by miners as well as botanists.\n"
-              + "This effectively turns the regular gather command to /gathermin or /gatherbtn when an item can be gathered by both, "
-              + "ignoring the other options even on successive tries.");
+                "在采集采矿工和园艺工都可以采集物品时, 选择你的职业偏好。\n"
+              + "启用后, 普通的 /gather 指令会在该物品可由两职业采集时自动变为 /gathermin 或 /gatherbtn ,\n"
+              + "并在连续尝试中忽略其他选项。");
             if (!combo)
                 return;
 
-            if (ImGui.Selectable("No Preference", v == GatheringType.Multiple) && v != GatheringType.Multiple)
+            if (ImGui.Selectable("无偏好", v == GatheringType.Multiple) && v != GatheringType.Multiple)
             {
                 GatherBuddy.Config.PreferredGatheringType = GatheringType.Multiple;
                 GatherBuddy.Config.Save();
             }
 
-            if (ImGui.Selectable(GatheringType.Miner.ToString(), v == GatheringType.Miner) && v != GatheringType.Miner)
+            if (ImGui.Selectable(EnumLocalization.Get(GatheringType.Miner), v == GatheringType.Miner) && v != GatheringType.Miner) // 使用字典映射
             {
                 GatherBuddy.Config.PreferredGatheringType = GatheringType.Miner;
                 GatherBuddy.Config.Save();
             }
 
-            if (ImGui.Selectable(GatheringType.Botanist.ToString(), v == GatheringType.Botanist) && v != GatheringType.Botanist)
+            if (ImGui.Selectable(EnumLocalization.Get(GatheringType.Botanist), v == GatheringType.Botanist) && v != GatheringType.Botanist) // 使用字典映射
             {
                 GatherBuddy.Config.PreferredGatheringType = GatheringType.Botanist;
                 GatherBuddy.Config.Save();
@@ -481,19 +479,19 @@ public partial class Interface
         }
 
         public static void DrawPrintClipboardBox()
-            => DrawCheckbox("Print Clipboard Information",
-                "Print to the chat whenever you save an object to the clipboard. Failures will be printed regardless.",
+            => DrawCheckbox("打印剪贴板信息",
+                "当你保存一个对象到剪贴板时, 不论是否可行都尝试打印到聊天栏中。",
                 GatherBuddy.Config.PrintClipboardMessages, b => GatherBuddy.Config.PrintClipboardMessages = b);
 
         // Weather Tab
         public static void DrawWeatherTabNamesBox()
-            => DrawCheckbox("Show Names in Weather Tab",
-                "Toggle whether to write the names in the table for the weather tab, or just the icons with names on hover.",
+            => DrawCheckbox("在天气标签页显示名称",
+                "切换是否在天气标签页的表格中显示名称, 或者仅仅显示在鼠标悬浮时会显示名字的图标。",
                 GatherBuddy.Config.ShowWeatherNames, b => GatherBuddy.Config.ShowWeatherNames = b);
 
         // Alarms
         public static void DrawAlarmToggle()
-            => DrawCheckbox("Enable Alarms", "Toggle all alarms on or off.", GatherBuddy.Config.AlarmsEnabled,
+            => DrawCheckbox("启用闹钟", "切换所有闹钟开关", GatherBuddy.Config.AlarmsEnabled,
                 b =>
                 {
                     if (b)
@@ -505,11 +503,11 @@ public partial class Interface
         private static bool _gatherDebug = false;
 
         public static void DrawAlarmsInDutyToggle()
-            => DrawCheckbox("Enable Alarms in Duty", "Set whether alarms should trigger while you are bound by a duty.",
+            => DrawCheckbox("在副本任务中启用闹钟", "设置当你在副本任务中时闹钟是否应该触发。",
                 GatherBuddy.Config.AlarmsInDuty,     b => GatherBuddy.Config.AlarmsInDuty = b);
 
         public static void DrawAlarmsOnlyWhenLoggedInToggle()
-            => DrawCheckbox("Enable Alarms Only In-Game",  "Set whether alarms should trigger while you are not logged into any character.",
+            => DrawCheckbox("仅在游戏内启用闹钟", "设置当你未登入任何角色时闹钟是否应该触发。",
                 GatherBuddy.Config.AlarmsOnlyWhenLoggedIn, b => GatherBuddy.Config.AlarmsOnlyWhenLoggedIn = b);
 
         private static void DrawAlarmPicker(string label, string description, Sounds current, Action<Sounds> setter)
@@ -522,65 +520,65 @@ public partial class Interface
         }
 
         public static void DrawWeatherAlarmPicker()
-            => DrawAlarmPicker("Weather Change Alarm", "Choose a sound that is played every 8 Eorzea hours on regular weather changes.",
+            => DrawAlarmPicker("天气改变闹钟提醒", "选择一个在每 8 个艾欧泽亚时间的正常天气改变的时候播放的声音。",
                 GatherBuddy.Config.WeatherAlarm,       _plugin.AlarmManager.SetWeatherAlarm);
 
         public static void DrawHourAlarmPicker()
-            => DrawAlarmPicker("Eorzea Hour Change Alarm", "Choose a sound that is played every time the current Eorzea hour changes.",
+            => DrawAlarmPicker("艾欧泽亚时间改变闹钟提醒", "选择一个在当前艾欧泽亚时间改变的时候播放的声音。",
                 GatherBuddy.Config.HourAlarm,              _plugin.AlarmManager.SetHourAlarm);
 
         // Fish Timer
         public static void DrawFishTimerBox()
-            => DrawCheckbox("Show Fish Timer",
-                "Toggle whether to show the fish timer window while fishing.",
+            => DrawCheckbox("显示捕鱼计时器",
+                "切换是否在钓鱼时显示捕鱼计时器。",
                 GatherBuddy.Config.ShowFishTimer, b => GatherBuddy.Config.ShowFishTimer = b);
 
         public static void DrawFishTimerEditBox()
-            => DrawCheckbox("Edit Fish Timer",
-                "Enable editing the fish timer window.",
+            => DrawCheckbox("编辑捕鱼计时器",
+                "启用编辑捕鱼计时器窗口。",
                 GatherBuddy.Config.FishTimerEdit, b => GatherBuddy.Config.FishTimerEdit = b);
 
         public static void DrawFishTimerClickthroughBox()
-            => DrawCheckbox("Enable Fish Timer Clickthrough",
-                "Allow clicking through the fish timer and disabling the context menus instead.",
+            => DrawCheckbox("捕鱼计时器鼠标穿透",
+                "允许鼠标穿透捕鱼计时器, 并禁用其右键菜单。",
                 GatherBuddy.Config.FishTimerClickthrough, b => GatherBuddy.Config.FishTimerClickthrough = b);
 
         public static void DrawFishTimerHideBox()
-            => DrawCheckbox("Hide Uncaught Fish in Fish Timer",
-                "Hide all fish from the fish timer window that have not been recorded with the given combination of snagging and bait.",
+            => DrawCheckbox("在捕鱼计时器中隐藏未捕获的鱼",
+                "在捕鱼计时器窗口中隐藏所有未被给定的钓组和钓饵的组合记录的鱼。",
                 GatherBuddy.Config.HideUncaughtFish, b => GatherBuddy.Config.HideUncaughtFish = b);
 
         public static void DrawFishTimerHideBox2()
-            => DrawCheckbox("Hide Unavailable Fish in Fish Timer",
-                "Hide all fish from the fish timer window that have have known requirements that are unfulfilled, like Fisher's Intuition or Snagging.",
+            => DrawCheckbox("在捕鱼计时器中隐藏不可捕获的鱼",
+                "在捕鱼计时器窗口中隐藏所有前置条件未满足的鱼，例如 捕鱼人之识 或 钓组。",
                 GatherBuddy.Config.HideUnavailableFish, b => GatherBuddy.Config.HideUnavailableFish = b);
 
         public static void DrawFishTimerUptimesBox()
-            => DrawCheckbox("Show Uptimes in Fish Timer",
-                "Show the uptimes for restricted fish in the fish timer window.",
+            => DrawCheckbox("在捕鱼计时器中显示出现时间",
+                "在捕鱼计时器窗口中显示限时鱼的出现时间。",
                 GatherBuddy.Config.ShowFishTimerUptimes, b => GatherBuddy.Config.ShowFishTimerUptimes = b);
 
         public static void DrawKeepRecordsBox()
-            => DrawCheckbox("Keep Fish Records",
-                "Store Fish Records on your computer. This is necessary for bite timings for the fish timer window.",
+            => DrawCheckbox("保持捕鱼记录",
+                "在你的计算机上存储捕鱼记录。这对于捕鱼计时器窗口的咬钩计时是必要的。",
                 GatherBuddy.Config.StoreFishRecords, b => GatherBuddy.Config.StoreFishRecords = b);
 
         public static void DrawShowLocalTimeInRecordsBox()
-            => DrawCheckbox("Use Local Time in Records",
-                "When displaying timestamps in the Fish Records Tab, use local time instead of Unix time.",
+            => DrawCheckbox("在钓鱼记录中使用本地时间",
+                "在钓鱼记录标签页中显示时间戳时, 使用本地时间而非 Unix 时间。",
                 GatherBuddy.Config.UseUnixTimeFishRecords, b => GatherBuddy.Config.UseUnixTimeFishRecords = b);
         
         public static void DrawFishTimerScale()
         {
             var value = GatherBuddy.Config.FishTimerScale / 1000f;
             ImGui.SetNextItemWidth(SetInputWidth);
-            var ret = ImGui.DragFloat("Fish Timer Bite Time Scale", ref value, 0.1f, FishRecord.MinBiteTime / 500f,
+            var ret = ImGui.DragFloat("捕鱼计时器咬钩计时尺寸", ref value, 0.1f, FishRecord.MinBiteTime / 500f,
                 FishRecord.MaxBiteTime / 1000f,
-                "%2.3f Seconds");
+                "%2.3f 秒");
 
-            ImGuiUtil.HoverTooltip("The fishing timer window bite times are scaled to this value.\n"
-              + "If your bite time exceeds the value, the progress bar and bite windows will not be displayed.\n"
-              + "You should probably keep this as high as your highest bite window and as low as possible. About 40 seconds is usually enough.");
+            ImGuiUtil.HoverTooltip("捕鱼计时器窗口咬钩计时的尺寸取决于这个值。\n"
+              + "如果你的咬钩时间超过该值, 进度条和咬钩窗口将不显示。\n"
+              + "你应该把这个值保持在你的最高咬钩窗口, 且尽可能低。通常来说 40 秒够了。");
 
             if (!ret)
                 return;
@@ -597,9 +595,9 @@ public partial class Interface
         {
             int value = GatherBuddy.Config.ShowSecondIntervals;
             ImGui.SetNextItemWidth(SetInputWidth);
-            var ret = ImGui.DragInt("Fish Timer Interval Separators", ref value, 0.01f, 0, 16);
-            ImGuiUtil.HoverTooltip("The fishing timer window can show a number of interval lines and corresponding seconds between 0 and 16.\n"
-              + "Set to 0 to turn this feature off.");
+            var ret = ImGui.DragInt("捕鱼计时器间隔分隔符", ref value, 0.01f, 0, 16);
+            ImGuiUtil.HoverTooltip("捕鱼计时器窗口可以显示若干间隔线和 0 到 16 之间的相应的秒数。\n"
+              + "设置为 0 关闭此功能。");
             if (!ret)
                 return;
 
@@ -615,9 +613,9 @@ public partial class Interface
         {
             var value = GatherBuddy.Config.SecondIntervalsRounding;
             ImGui.SetNextItemWidth(SetInputWidth);
-            var ret = ImGui.DragInt("Fish Timer Interval Rounding", ref value, 0.01f, 0, 3);
-            ImGuiUtil.HoverTooltip("Round the displayed second value to this number of digits past the decimal. \n"
-                + "Set to 0 to display only whole numbers.");
+            var ret = ImGui.DragInt("捕鱼计时器秒数小数位数", ref value, 0.01f, 0, 3);
+            ImGuiUtil.HoverTooltip("将显示的秒数四舍五入到小数点后指定的位数。 \n"
+                + "设为 0 时仅显示整数。");
             if (!ret)
                 return;
 
@@ -630,77 +628,77 @@ public partial class Interface
         }
 
         public static void DrawHideFishPopupBox()
-            => DrawCheckbox("Hide Catch Popup",
-                "Prevents the popup window that shows you your caught fish and its size, amount and quality from being shown.",
+            => DrawCheckbox("隐藏捕获弹窗",
+                "阻止弹出显示你捕获的鱼以及它的尺寸、数量和品质的弹窗。",
                 GatherBuddy.Config.HideFishSizePopup, b => GatherBuddy.Config.HideFishSizePopup = b);
 
         public static void DrawCollectableHintPopupBox()
-            => DrawCheckbox("Show Collectable Hints",
-                "Show if a fish is collectable in the fish timer window.",
+            => DrawCheckbox("显示收藏品提醒",
+                "在捕鱼计时器窗口中显示该鱼是否为收藏品",
                 GatherBuddy.Config.ShowCollectableHints, b => GatherBuddy.Config.ShowCollectableHints = b);
 
         public static void DrawDoubleHookHintPopupBox()
-            => DrawCheckbox("Show Multi Hook Hints",
-                "Show if a fish can be double or triple hooked in Cosmic Exploration.", // TODO: add ocean fishing when implemented.
+            => DrawCheckbox("显示多重提钩提醒",
+                "在宇宙探索中显示该鱼是否可被双重提钩或三重提钩。", // TODO: add ocean fishing when implemented.
                 GatherBuddy.Config.ShowMultiHookHints, b => GatherBuddy.Config.ShowMultiHookHints = b);
         
         
         // Fish Stats Window
         public static void DrawEnableFishStats()
-            => DrawCheckbox("Enable Fish Stats",
-                "New tab for aggregating and reporting fish stats based on local records. Currently in testing.",
+            => DrawCheckbox("启用鱼类统计",
+                "新增基于本地记录汇总与报告的统计标签页(当前正在测试中)。",
                 GatherBuddy.Config.EnableFishStats, b => GatherBuddy.Config.EnableFishStats = b);
         public static void DrawEnableReportTime()  
-            => DrawCheckbox("Copy Time Stats when reporting.",
-                "When copying the report, add min and max times to the report.",
+            => DrawCheckbox("报告时复制时长统计",
+                "复制报告时, 附加最短与最长时间统计。",
                 GatherBuddy.Config.EnableReportTime, b => GatherBuddy.Config.EnableReportTime = b);
         public static void DrawEnableReportSize()  
-            => DrawCheckbox("Copy Sizes Stats when reporting.",
-                "When copying the report, add min and max sizes to the report.",
+            => DrawCheckbox("报告时复制尺寸统计",
+                "复制报告时, 附加最小与最大尺寸统计。",
                 GatherBuddy.Config.EnableReportSize, b => GatherBuddy.Config.EnableReportSize = b);
         public static void DrawEnableReportMulti() 
-            => DrawCheckbox("Copy Multi Hook Stats when reporting.",
-                "When copying the report, add stats about multi-hook yields to the report.",
+            => DrawCheckbox("报告时复制多重提钩统计",
+                "复制报告时，附加多重提钩(双重提钩/三重提钩)产量统计",
                 GatherBuddy.Config.EnableReportMulti, b => GatherBuddy.Config.EnableReportMulti = b);
         public static void DrawEnableGraphs()      
-            => DrawCheckbox("Enable Graphs.",
-                "When viewing a fishing spot, enable visualization of fish report data. Extreme Testing!",
+            => DrawCheckbox("启用图表",
+                "在查看钓点时启用鱼类报告数据的图表可视化, 非常实验性！",
                 GatherBuddy.Config.EnableFishStatsGraphs, b => GatherBuddy.Config.EnableFishStatsGraphs = b);
 
         // Spearfishing Helper
         public static void DrawSpearfishHelperBox()
-            => DrawCheckbox("Show Spearfishing Helper",
-                "Toggle whether to show the Spearfishing Helper while spearfishing.",
+            => DrawCheckbox("显示刺鱼助手",
+                "切换是否在刺鱼时显示刺鱼助手。",
                 GatherBuddy.Config.ShowSpearfishHelper, b => GatherBuddy.Config.ShowSpearfishHelper = b);
 
         public static void DrawSpearfishNamesBox()
-            => DrawCheckbox("Show Fish Name Overlay",
-                "Toggle whether to show the identified names of fish in the spearfishing window.",
+            => DrawCheckbox("显示鱼名悬浮窗",
+                "切换是否在刺鱼窗口中显示被识别的鱼的名称。",
                 GatherBuddy.Config.ShowSpearfishNames, b => GatherBuddy.Config.ShowSpearfishNames = b);
 
         public static void DrawAvailableSpearfishBox()
-            => DrawCheckbox("Show List of Available Fish",
-                "Toggle whether to show the list of fish available in your current spearfishing spot on the side of the spearfishing window.",
+            => DrawCheckbox("显示可捕获的鱼的列表",
+                "切换是否在刺鱼窗口的一侧显示当前刺鱼点可捕获的鱼的列表。",
                 GatherBuddy.Config.ShowAvailableSpearfish, b => GatherBuddy.Config.ShowAvailableSpearfish = b);
 
         public static void DrawSpearfishSpeedBox()
-            => DrawCheckbox("Show Speed of Fish in Overlay",
-                "Toggle whether to show the speed of fish in the spearfishing window in addition to their names.",
+            => DrawCheckbox("在悬浮窗中显示鱼的速度",
+                "切换是否在刺鱼窗口中鱼的名字旁额外显示鱼的速度。",
                 GatherBuddy.Config.ShowSpearfishSpeed, b => GatherBuddy.Config.ShowSpearfishSpeed = b);
 
         public static void DrawSpearfishCenterLineBox()
-            => DrawCheckbox("Show Center Line",
-                "Toggle whether to show a straight line up from the center of the spearfishing gig in the spearfishing window.",
+            => DrawCheckbox("显示中心线",
+                "切换是否在刺鱼窗口中显示一条从鱼叉的中心向上的直线。",
                 GatherBuddy.Config.ShowSpearfishCenterLine, b => GatherBuddy.Config.ShowSpearfishCenterLine = b);
 
         public static void DrawSpearfishIconsAsTextBox()
-            => DrawCheckbox("Show Speed and Size as Text",
-                "Toggle whether to show the speed and size of available fish as text instead of icons.",
+            => DrawCheckbox("以文本方式显示速度和尺寸",
+                "切换是否以文本替代图标显示可捕获的鱼的速度和大小。",
                 GatherBuddy.Config.ShowSpearfishListIconsAsText, b => GatherBuddy.Config.ShowSpearfishListIconsAsText = b);
 
         public static void DrawSpearfishFishNameFixed()
-            => DrawCheckbox("Show Fish Names in Fixed Position",
-                "Toggle whether to show the identified names of fish on the moving fish themselves or in a fixed position.",
+            => DrawCheckbox("在固定位置显示鱼的名称",
+                "切换在移动的鱼上显示已识别的鱼的名称还是在一个固定位置上显示。",
                 GatherBuddy.Config.FixNamesOnPosition, b => GatherBuddy.Config.FixNamesOnPosition = b);
 
         public static void DrawSpearfishFishNamePercentage()
@@ -710,7 +708,7 @@ public partial class Interface
 
             var tmp = (int)GatherBuddy.Config.FixNamesPercentage;
             ImGui.SetNextItemWidth(SetInputWidth);
-            if (!ImGui.DragInt("Fish Name Position Percentage", ref tmp, 0.1f, 0, 100, "%i%%"))
+            if (!ImGui.DragInt("鱼的名称的位置百分比", ref tmp, 0.1f, 0, 100, "%i%%"))
                 return;
 
             tmp = Math.Clamp(tmp, 0, 100);
@@ -723,23 +721,23 @@ public partial class Interface
 
         // Gather Window
         public static void DrawShowGatherWindowBox()
-            => DrawCheckbox("Show Gather Window",
-                "Show a small window with pinned Gatherables and their uptimes.",
+            => DrawCheckbox("显示采集窗口",
+                "显示一个包含选定的可采集物和它们的出现时间的小窗口。",
                 GatherBuddy.Config.ShowGatherWindow, b => GatherBuddy.Config.ShowGatherWindow = b);
 
         public static void DrawGatherWindowAnchorBox()
-            => DrawCheckbox("Anchor Gather Window to Bottom Left",
-                "Lets the Gather Window grow to the top and shrink from the top instead of the bottom.",
+            => DrawCheckbox("以左下角锚定采集窗口",
+                "让采集窗口向顶部增长并从顶部收缩。",
                 GatherBuddy.Config.GatherWindowBottomAnchor, b => GatherBuddy.Config.GatherWindowBottomAnchor = b);
 
         public static void DrawGatherWindowTimersBox()
-            => DrawCheckbox("Show Gather Window Timers",
-                "Show the uptimes for gatherables in the gather window.",
+            => DrawCheckbox("显示采集窗口计时器",
+                "在采集窗口中显示可采集物的出现时间。",
                 GatherBuddy.Config.ShowGatherWindowTimers, b => GatherBuddy.Config.ShowGatherWindowTimers = b);
 
         public static void DrawGatherWindowAlarmsBox()
-            => DrawCheckbox("Show Active Alarms in Gather Window",
-                "Additionally show active alarms as a last gather window preset, obeying the regular rules for the window.",
+            => DrawCheckbox("在采集窗口中显示激活的闹钟",
+                "额外显示激活的闹钟作为采集窗口的最后一个预设, 遵守该窗口的常规规则。",
                 GatherBuddy.Config.ShowGatherWindowAlarms, b =>
                 {
                     GatherBuddy.Config.ShowGatherWindowAlarms = b;
@@ -747,56 +745,56 @@ public partial class Interface
                 });
 
         public static void DrawSortGatherWindowBox()
-            => DrawCheckbox("Sort Gather Window by Uptime",
-                "Sort the items selected for the gather window by their uptimes.",
+            => DrawCheckbox("在采集窗口中以出现时间排序",
+                "按出现时间对采集窗口中所选的物品进行排序。",
                 GatherBuddy.Config.SortGatherWindowByUptime, b => GatherBuddy.Config.SortGatherWindowByUptime = b);
 
         public static void DrawGatherWindowShowOnlyAvailableBox()
-            => DrawCheckbox("Show Only Available Items",
-                "Show only those items from your gather window setup that are currently available.",
+            => DrawCheckbox("仅显示可采集物品",
+                "仅显示采集窗口设置中的当前可采集的物品。",
                 GatherBuddy.Config.ShowGatherWindowOnlyAvailable, b => GatherBuddy.Config.ShowGatherWindowOnlyAvailable = b);
 
         public static void DrawHideGatherWindowCompletedItemsBox()
-            => DrawCheckbox("Hide Completed Items",
-                "Hide items that have the required inventory amount present in inventory.",
+            => DrawCheckbox("隐藏已经完成的物品",
+                "隐藏已经满足自动采集数量要求的物品",
                 GatherBuddy.Config.HideGatherWindowCompletedItems, b => GatherBuddy.Config.HideGatherWindowCompletedItems = b);
 
         public static void DrawHideGatherWindowInDutyBox()
-            => DrawCheckbox("Hide Gather Window in Duty",
-                "Hide the gather window when bound by any duty.",
+            => DrawCheckbox("副本任务中隐藏采集窗口",
+                "副本任务中隐藏采集窗口",
                 GatherBuddy.Config.HideGatherWindowInDuty, b => GatherBuddy.Config.HideGatherWindowInDuty = b);
 
         public static void DrawGatherWindowHoldKey()
         {
-            DrawCheckbox("Only Show Gather Window if Holding Key",
-                "Only show the gather window if you are holding your selected key.",
+            DrawCheckbox("仅在按住快捷键时显示采集窗口",
+                "仅在你按住你所选的快捷键时显示采集窗口。",
                 GatherBuddy.Config.OnlyShowGatherWindowHoldingKey, b => GatherBuddy.Config.OnlyShowGatherWindowHoldingKey = b);
 
             if (!GatherBuddy.Config.OnlyShowGatherWindowHoldingKey)
                 return;
 
             ImGui.SetNextItemWidth(SetInputWidth);
-            Widget.KeySelector("Hotkey to Hold", "Set the hotkey to hold to keep the window visible.",
+            Widget.KeySelector("需要按住的快捷键", "置一个用来按下保持窗口可见的快捷键。",
                 GatherBuddy.Config.GatherWindowHoldKey,
                 k => GatherBuddy.Config.GatherWindowHoldKey = k, Configuration.ValidKeys);
         }
 
         public static void DrawGatherWindowLockBox()
-            => DrawCheckbox("Lock Gather Window Position",
-                "Prevent moving the gather window by dragging it around.",
+            => DrawCheckbox("锁定采集窗口位置",
+                "防止拖动移动采集窗口。",
                 GatherBuddy.Config.LockGatherWindow, b => GatherBuddy.Config.LockGatherWindow = b);
 
 
         public static void DrawGatherWindowHotkeyInput()
         {
-            if (Widget.ModifiableKeySelector("Hotkey to Open Gather Window", "Set a hotkey to open the Gather Window.", SetInputWidth,
+            if (Widget.ModifiableKeySelector("打开采集窗口的快捷键", "设置一个用来打开采集窗口的快捷键。", SetInputWidth,
                     GatherBuddy.Config.GatherWindowHotkey, k => GatherBuddy.Config.GatherWindowHotkey = k, Configuration.ValidKeys))
                 GatherBuddy.Config.Save();
         }
 
         public static void DrawMainInterfaceHotkeyInput()
         {
-            if (Widget.ModifiableKeySelector("Hotkey to Open Main Interface", "Set a hotkey to open the main GatherBuddy interface.",
+            if (Widget.ModifiableKeySelector("打开主界面的快捷键", "设置一个用来打开 GatherBuddy 主界面的快捷键",
                     SetInputWidth,
                     GatherBuddy.Config.MainInterfaceHotkey, k => GatherBuddy.Config.MainInterfaceHotkey = k, Configuration.ValidKeys))
                 GatherBuddy.Config.Save();
@@ -806,8 +804,8 @@ public partial class Interface
         public static void DrawGatherWindowDeleteModifierInput()
         {
             ImGui.SetNextItemWidth(SetInputWidth);
-            if (Widget.ModifierSelector("Modifier to Delete Items on Right-Click",
-                    "Set the modifier key to be used while right-clicking items in the gather window to delete them.",
+            if (Widget.ModifierSelector("右键删除物品的修饰键",
+                    "设置用来在右键单击采集窗口中的物品以删除它们时配合使用的修饰键。",
                     GatherBuddy.Config.GatherWindowDeleteModifier, k => GatherBuddy.Config.GatherWindowDeleteModifier = k))
                 GatherBuddy.Config.Save();
         }
@@ -817,18 +815,18 @@ public partial class Interface
         {
             var tmp     = GatherBuddy.Config.AetherytePreference == AetherytePreference.Cost;
             var oldPref = GatherBuddy.Config.AetherytePreference;
-            if (ImGui.RadioButton("Prefer Cheaper Aetherytes", tmp))
+            if (ImGui.RadioButton("偏好更便宜的以太之光", tmp))
                 GatherBuddy.Config.AetherytePreference = AetherytePreference.Cost;
             var hovered = ImGui.IsItemHovered();
             ImGui.SameLine();
-            if (ImGui.RadioButton("Prefer Less Travel Time", !tmp))
+            if (ImGui.RadioButton("偏好更少跑图时长", !tmp))
                 GatherBuddy.Config.AetherytePreference = AetherytePreference.Distance;
             hovered |= ImGui.IsItemHovered();
             if (hovered)
                 ImGui.SetTooltip(
-                    "Specify whether you prefer aetherytes that are closer to your target (less travel time)"
-                  + " or aetherytes that are cheaper to teleport to when scanning through all available nodes for an item."
-                  + " Only matters if the item is not timed and has multiple sources.");
+                    "指定你是更喜欢离目标更近的以太之光(更少的跑图时间)"
+                  + " 还是在为了指定物品扫描所有可采集点后传送花费更便宜的以太之光。"
+                  + " 只有在物品没有时间限制并且有多个可采集点时有效。");
 
             if (oldPref != GatherBuddy.Config.AetherytePreference)
             {
@@ -838,27 +836,36 @@ public partial class Interface
         }
 
         public static void DrawAlarmFormatInput()
-            => DrawFormatInput("Alarm Chat Format",
-                "Keep empty to have no chat output.\nCan replace:\n- {Alarm} with the alarm name in brackets.\n- {Item} with the item link.\n- {Offset} with the alarm offset in seconds.\n- {DurationString} with 'will be up for the next ...' or 'is currently up for ...'.\n- {Location} with the map flag link and location name.",
+            => DrawFormatInput("闹钟的消息格式",
+                "保持为空以不输出任何消息。\n"
+              + "可替换：\n"
+              + "- {Alarm} 带括号的闹钟名称。\n"
+              + "- {Item} 物品链接。\n"
+              + "- {Offset} 以秒为单位的闹钟偏移量。\n"
+              + "- {DurationString} “还需要等待...”或“还能够维持...”。\n"
+              + "- {Location} 地图旗帜链接与位置名称。",
                 GatherBuddy.Config.AlarmFormat, Configuration.DefaultAlarmFormat, s => GatherBuddy.Config.AlarmFormat = s);
 
         public static void DrawIdentifiedGatherableFormatInput()
-            => DrawFormatInput("Identified Gatherable Chat Format",
-                "Keep empty to have no chat output.\nCan replace:\n- {Input} with the entered search text.\n- {Item} with the item link.",
+            => DrawFormatInput("被识别的可采集物的消息格式",
+                "保持为空以不输出任何消息。\n"
+              + "可替换：\n"
+              + "- {Input} 输入的搜索文本。\n"
+              + "- {Item} 物品链接。",
                 GatherBuddy.Config.IdentifiedGatherableFormat, Configuration.DefaultIdentifiedGatherableFormat,
                 s => GatherBuddy.Config.IdentifiedGatherableFormat = s);
 
         public static void DrawAlwaysMapsBox()
-            => DrawCheckbox("Always gather maps when available",      "GBR will always grab maps first if it sees one in a node",
+            => DrawCheckbox("有藏宝图时优先采集", "如果采集点中出现藏宝图, GBR 会优先采集藏宝图。",
                 GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps, b => GatherBuddy.Config.AutoGatherConfig.AlwaysGatherMaps = b);
 
         public static void DrawUseExistingAutoHookPresetsBox()
         {
-            DrawCheckbox("Use existing AutoHook presets",
-                "Use your own AutoHook presets instead of GBR-generated ones.\n"
-              + "Name your preset using the fish's Item ID (e.g., '46188' for Goldentail).\n"
-              + "Find Fish IDs by hovering over fish in the Fish tab.\n"
-              + "Your presets will never be deleted - only GBR-generated presets are cleaned up.",
+            DrawCheckbox("使用已存在的 AutoHook 预设",
+                "使用你自己的 AutoHook 预设, 而不是由 GBR 自动生成的预设。\n"
+              + "将预设名称设为该鱼的物品 ID(例如：\"46188\" 对应黄金鳗)。\n"
+              + "在 钓/刺鱼 标签页将鼠标悬停在鱼上即可查看其物品 ID。\n"
+              + "你的自定义预设永远不会被删除——只有 GBR 自动生成的预设会被清理。",
                 GatherBuddy.Config.AutoGatherConfig.UseExistingAutoHookPresets,
                 b => GatherBuddy.Config.AutoGatherConfig.UseExistingAutoHookPresets = b);
             ImGui.SameLine();
@@ -867,9 +874,9 @@ public partial class Interface
 
         public static void DrawSurfaceSlapConfig()
         {
-            DrawCheckbox("Enable automatic Surface Slap",
-                "Automatically enable Surface Slap for non-target fish that share the same bite type as your target fish.\n"
-              + "This helps remove unwanted fish to increase catch rates of your target.",
+            DrawCheckbox("启用自动『拍击水面』",
+                "当非目标鱼与目标鱼具有相同咬钩类型时, 自动启用『拍击水面』。\n"
+              + "这有助于排除不需要的鱼, 提高目标鱼的上钩率。",
                 GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap,
                 b => GatherBuddy.Config.AutoGatherConfig.EnableSurfaceSlap = b);
             
@@ -878,14 +885,14 @@ public partial class Interface
                 ImGui.Indent();
                 
                 var gpAbove = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove;
-                if (ImGui.RadioButton("Use Surface Slap when GP is Above", gpAbove))
+                if (ImGui.RadioButton("当 GP 高于阈值时使用『拍击水面』", gpAbove))
                 {
                     GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = true;
                     GatherBuddy.Config.Save();
                 }
                 
                 ImGui.SameLine();
-                if (ImGui.RadioButton("Below", !gpAbove))
+                if (ImGui.RadioButton("低于阈值", !gpAbove))
                 {
                     GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPAbove = false;
                     GatherBuddy.Config.Save();
@@ -893,12 +900,12 @@ public partial class Interface
                 
                 var gpThreshold = GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold;
                 ImGui.SetNextItemWidth(SetInputWidth);
-                if (ImGui.DragInt("GP Threshold", ref gpThreshold, 1, 0, 10000))
+                if (ImGui.DragInt("GP 阈值", ref gpThreshold, 1, 0, 10000))
                 {
                     GatherBuddy.Config.AutoGatherConfig.SurfaceSlapGPThreshold = Math.Max(0, gpThreshold);
                     GatherBuddy.Config.Save();
                 }
-                ImGuiUtil.HoverTooltip("Surface Slap will be used when your GP is above/below this threshold.");
+                ImGuiUtil.HoverTooltip("当你的 GP 高于/低于此阈值时, 将使用『拍击水面』。");
                 
                 ImGui.Unindent();
             }
@@ -906,9 +913,9 @@ public partial class Interface
 
         public static void DrawIdenticalCastConfig()
         {
-            DrawCheckbox("Enable automatic Identical Cast",
-                "Automatically enable Identical Cast for your target fish to increase catch rates.\n"
-              + "Identical Cast improves catch rate when used on the same fishing hole.",
+            DrawCheckbox("启用自动『专一垂钓』",
+                "为目标鱼自动启用『专一垂钓』以提高上钩率。\n"
+              + "在同一钓点使用『专一垂钓』可提升捕获成功率。",
                 GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast,
                 b => GatherBuddy.Config.AutoGatherConfig.EnableIdenticalCast = b);
             
@@ -917,14 +924,14 @@ public partial class Interface
                 ImGui.Indent();
                 
                 var gpAbove = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove;
-                if (ImGui.RadioButton("Use Identical Cast when GP is Above", gpAbove))
+                if (ImGui.RadioButton("当 GP 高于阈值时使用『专一垂钓』", gpAbove))
                 {
                     GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = true;
                     GatherBuddy.Config.Save();
                 }
                 
                 ImGui.SameLine();
-                if (ImGui.RadioButton("Below##IdenticalCast", !gpAbove))
+                if (ImGui.RadioButton("低于阈值##IdenticalCast", !gpAbove))
                 {
                     GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPAbove = false;
                     GatherBuddy.Config.Save();
@@ -932,12 +939,12 @@ public partial class Interface
                 
                 var gpThreshold = GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold;
                 ImGui.SetNextItemWidth(SetInputWidth);
-                if (ImGui.DragInt("GP Threshold##IdenticalCast", ref gpThreshold, 1, 0, 10000))
+                if (ImGui.DragInt("GP 阈值##IdenticalCast", ref gpThreshold, 1, 0, 10000))
                 {
                     GatherBuddy.Config.AutoGatherConfig.IdenticalCastGPThreshold = Math.Max(0, gpThreshold);
                     GatherBuddy.Config.Save();
                 }
-                ImGuiUtil.HoverTooltip("Identical Cast will be used when your GP is above/below this threshold.");
+                ImGuiUtil.HoverTooltip("当你的 GP 高于/低于此阈值时，将使用『专一垂钓』。");
                 
                 ImGui.Unindent();
             }
@@ -945,8 +952,8 @@ public partial class Interface
 
         public static void DrawUseHookTimersBox()
         {
-            DrawCheckbox("Use Hook Timers in AutoHook Presets",
-                "Enable bite timer windows in generated AutoHook presets.",
+            DrawCheckbox("在 AutoHook 预设中启用咬钩计时器",
+                "在自动生成的 AutoHook 预设中启用咬钩计时窗口。",
                 GatherBuddy.Config.AutoGatherConfig.UseHookTimers,
                 b => GatherBuddy.Config.AutoGatherConfig.UseHookTimers = b);
             ImGui.SameLine();
@@ -954,33 +961,33 @@ public partial class Interface
         }
 
         public static void DrawAutoCollectablesFishingBox()
-            => DrawCheckbox("Auto Collectables",
-                "Auto accept/decline collectable fish based on minimum collectability.",
+            => DrawCheckbox("自动处理鱼类收藏品",
+                "根据最低收藏价值自动接受或拒绝鱼类收藏品。",
                 GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing,
                 b => GatherBuddy.Config.AutoGatherConfig.AutoCollectablesFishing = b);
         
         public static void DrawDiademAutoAetherCannonBox()
-            => DrawCheckbox("Diadem Auto-Aethercannon",
-                "Automatically target and fire aethercannon at nearby enemies when gauge is ready (≥200).\n"
-              + "Only fires while not pathing/navigating. 2-second cooldown between uses.",
+            => DrawCheckbox("云冠群岛自动以太钻孔机",
+                "当以太钻孔机能量充足(≥200)时, 自动瞄准并攻击附近敌人。\n"
+              + "仅在未进行寻路/导航时开火, 每次使用间隔 2 秒。",
                 GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon,
                 b => GatherBuddy.Config.AutoGatherConfig.DiademAutoAetherCannon = b);
         
         public static void DrawCollectOnAutogatherDisabledBox()
-            => DrawCheckbox("Turn in collectables when AutoGather stops",
-                "Automatically turn in collectables when AutoGather is disabled",
+            => DrawCheckbox("自动采集停止时交易收藏品",
+                "当自动采集停止时自动交易收藏品",
                 GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled,
                 b => GatherBuddy.Config.CollectableConfig.CollectOnAutogatherDisabled = b);
         
         public static void DrawEnableAutogatherOnFinishBox()
-            => DrawCheckbox("Re-enable AutoGather after turning in",
-                "Automatically re-enable AutoGather after collectable turn-in completes",
+            => DrawCheckbox("交易完成后重新启用自动采集",
+                "在收藏品交易完成后自动重新启用自动采集",
                 GatherBuddy.Config.CollectableConfig.EnableAutogatherOnFinish,
                 b => GatherBuddy.Config.CollectableConfig.EnableAutogatherOnFinish = b);
         
         public static void DrawBuyAfterEachCollectBox()
-            => DrawCheckbox("Buy scrip shop items after each turn-in",
-                "Automatically purchase scrip shop items after turning in collectables",
+            => DrawCheckbox("交易后自动购买票据商店物品",
+                "在收藏品交易完成后自动购买票据商店物品。",
                 GatherBuddy.Config.CollectableConfig.BuyAfterEachCollect,
                 b => GatherBuddy.Config.CollectableConfig.BuyAfterEachCollect = b);
         
@@ -989,12 +996,12 @@ public partial class Interface
             var shopItems = ScripShopItemManager.ShopItems;
             var purchaseList = GatherBuddy.Config.CollectableConfig.ScripShopItems;
             
-            ImGui.TextUnformatted("Items in purchase queue:");
+            ImGui.TextUnformatted("购买队列中的物品:");
             ImGui.Spacing();
             
             if (purchaseList.Count == 0)
             {
-                ImGui.TextDisabled("No items in queue. Add items below.");
+                ImGui.TextDisabled("队列中没有物品, 请在下方添加。");
             }
             else
             {
@@ -1034,7 +1041,7 @@ public partial class Interface
                     }
                     
                     ImGui.SameLine();
-                    if (ImGui.Button($"Remove##{purchaseItem.Name}"))
+                    if (ImGui.Button($"移除##{purchaseItem.Name}"))
                     {
                         toRemove = purchaseItem;
                     }
@@ -1050,18 +1057,18 @@ public partial class Interface
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
-            ImGui.TextUnformatted("Add Item:");
+            ImGui.TextUnformatted("添加物品:");
             
             if (shopItems.Count() == 0)
             {
-                ImGui.TextDisabled("No scrip shop items available. Data may not be loaded.");
+                ImGui.TextDisabled("没有可用的票据商店物品, 数据可能尚未加载。");
             }
             else
             {
-                if (ImGui.BeginCombo("###AddScripShopItem", "Select item..."))
+                if (ImGui.BeginCombo("###AddScripShopItem", "选择物品..."))
                 {
                     ImGui.SetNextItemWidth(SetInputWidth - 20);
-                    ImGui.InputTextWithHint("###ScripShopFilter", "Search...", ref _scripShopFilterText, 100);
+                    ImGui.InputTextWithHint("###ScripShopFilter", "搜索...", ref _scripShopFilterText, 100);
                     ImGui.Separator();
                     
                     foreach (var item in shopItems)
@@ -1101,18 +1108,18 @@ public partial class Interface
         public static void DrawManualPresetGenerator()
         {
             ImGui.Separator();
-            ImGui.TextUnformatted("Manual Preset Generator");
+            ImGui.TextUnformatted("手动预设生成器");
             ImGui.Spacing();
             
             var availableFish = GatherBuddy.GameData.Fishes.Values.Where(f => !f.IsSpearFish).ToList();
             
-            ImGui.TextUnformatted("Select Target Fish:");
+            ImGui.TextUnformatted("选择目标鱼类:");
             ImGui.SetNextItemWidth(SetInputWidth);
             
-            if (ImGui.BeginCombo("###FishSelector", _selectedFish?.Name[GatherBuddy.Language] ?? "None"))
+            if (ImGui.BeginCombo("###FishSelector", _selectedFish?.Name[GatherBuddy.Language] ?? "无"))
             {
                 ImGui.SetNextItemWidth(SetInputWidth - 20);
-                ImGui.InputTextWithHint("###FishFilter", "Search...", ref _fishFilterText, 100);
+                ImGui.InputTextWithHint("###FishFilter", "搜索...", ref _fishFilterText, 100);
                 ImGui.Separator();
                 
                 using (var child = ImRaii.Child("###FishList", new Vector2(0, 200 * ImGuiHelpers.GlobalScale), false))
@@ -1142,13 +1149,13 @@ public partial class Interface
             if (_selectedFish != null)
             {
                 ImGui.Spacing();
-                ImGui.TextUnformatted("Preset Name:");
+                ImGui.TextUnformatted("预设名称:");
                 ImGui.SetNextItemWidth(SetInputWidth);
                 ImGui.InputText("###PresetNameInput", ref _presetName, 64);
-                ImGuiUtil.HoverTooltip("The preset name should match the fish's Item ID for GBR to use it automatically.");
+                ImGuiUtil.HoverTooltip("预设名称应与该鱼的物品 ID 一致, 以便 GBR 自动使用此预设。");
                 
                 ImGui.Spacing();
-                if (ImGui.Button("Generate Preset"))
+                if (ImGui.Button("生成预设"))
                 {
                     GenerateManualPreset(_selectedFish, _presetName);
                 }
@@ -1164,11 +1171,11 @@ public partial class Interface
             
             if (success)
             {
-                Dalamud.Chat.Print($"[GatherBuddy] Generated preset '{presetName}' for {fish.Name[GatherBuddy.Language]}");
+                Dalamud.Chat.Print($"[GatherBuddy] 已为 {fish.Name[GatherBuddy.Language]} 生成预设: '{presetName}'");
             }
             else
             {
-                Dalamud.Chat.PrintError($"[GatherBuddy] Failed to generate preset for {fish.Name[GatherBuddy.Language]}");
+                Dalamud.Chat.PrintError($"[GatherBuddy] 无法为 {fish.Name[GatherBuddy.Language]} 生成预设");
             }
         }
     }
@@ -1177,9 +1184,9 @@ public partial class Interface
     private void DrawConfigTab()
     {
         using var id  = ImRaii.PushId("Config");
-        using var tab = ImRaii.TabItem("Config");
-        ImGuiUtil.HoverTooltip("Set up your very own GatherBuddy to your meticulous specifications.\n"
-          + "If you treat him well, he might even become a real boy.");
+        using var tab = ImRaii.TabItem("设置");
+        ImGuiUtil.HoverTooltip("按照你的严谨喜好来配置属于你的 GatherBuddy。\n"
+          + "如果你对他好一点, 他说不定还能变成真正的男孩。");
 
         if (!tab)
             return;
@@ -1188,9 +1195,9 @@ public partial class Interface
         if (!child)
             return;
 
-        if (ImGui.CollapsingHeader("Auto-Gather"))
+        if (ImGui.CollapsingHeader("自动采集"))
         {
-            if (ImGui.TreeNodeEx("General##autoGeneral"))
+            if (ImGui.TreeNodeEx("通用##autoGeneral"))
             {
                 AutoGatherUI.DrawMountSelector();
                 ConfigFunctions.DrawMountUpDistance();
@@ -1209,7 +1216,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Fishing"))
+            if (ImGui.TreeNodeEx("捕鱼"))
             {
                 ConfigFunctions.DrawUseExistingAutoHookPresetsBox();
                 ConfigFunctions.DrawFishingSpotMinutes();
@@ -1222,7 +1229,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Advanced"))
+            if (ImGui.TreeNodeEx("高级"))
             {
                 ConfigFunctions.DrawRepairBox();
                 if (GatherBuddy.Config.AutoGatherConfig.DoRepair)
@@ -1251,7 +1258,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
             
-            if (ImGui.TreeNodeEx("Collectable"))
+            if (ImGui.TreeNodeEx("收藏品"))
             {
                 ConfigFunctions.DrawCollectOnAutogatherDisabledBox();
                 ConfigFunctions.DrawEnableAutogatherOnFinishBox();
@@ -1261,7 +1268,7 @@ public partial class Interface
                 ImGui.Separator();
                 ImGui.Spacing();
                 
-                if (ImGui.CollapsingHeader("Scrip Shop Purchase List"))
+                if (ImGui.CollapsingHeader("票据商店购买列表"))
                 {
                     ConfigFunctions.DrawScripShopItemManager();
                 }
@@ -1270,9 +1277,9 @@ public partial class Interface
             }
         }
 
-        if (ImGui.CollapsingHeader("General"))
+        if (ImGui.CollapsingHeader("通用设置"))
         {
-            if (ImGui.TreeNodeEx("Gather Command"))
+            if (ImGui.TreeNodeEx("采集命令"))
             {
                 ConfigFunctions.DrawPreferredJobSelect();
                 ConfigFunctions.DrawGearChangeBox();
@@ -1286,15 +1293,15 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Set Names"))
+            if (ImGui.TreeNodeEx("套装名"))
             {
-                ConfigFunctions.DrawSetInput("Miner",    GatherBuddy.Config.MinerSetName,    s => GatherBuddy.Config.MinerSetName    = s);
-                ConfigFunctions.DrawSetInput("Botanist", GatherBuddy.Config.BotanistSetName, s => GatherBuddy.Config.BotanistSetName = s);
-                ConfigFunctions.DrawSetInput("Fisher",   GatherBuddy.Config.FisherSetName,   s => GatherBuddy.Config.FisherSetName   = s);
+                ConfigFunctions.DrawSetInput("采矿工",    GatherBuddy.Config.MinerSetName,    s => GatherBuddy.Config.MinerSetName    = s);
+                ConfigFunctions.DrawSetInput("园艺工", GatherBuddy.Config.BotanistSetName, s => GatherBuddy.Config.BotanistSetName = s);
+                ConfigFunctions.DrawSetInput("捕鱼人",   GatherBuddy.Config.FisherSetName,   s => GatherBuddy.Config.FisherSetName   = s);
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Alarms"))
+            if (ImGui.TreeNodeEx("闹钟"))
             {
                 ConfigFunctions.DrawAlarmToggle();
                 ConfigFunctions.DrawAlarmsInDutyToggle();
@@ -1304,7 +1311,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Messages"))
+            if (ImGui.TreeNodeEx("消息"))
             {
                 ConfigFunctions.DrawPrintTypeSelector();
                 ConfigFunctions.DrawErrorTypeSelector();
@@ -1319,9 +1326,9 @@ public partial class Interface
             ImGui.NewLine();
         }
 
-        if (ImGui.CollapsingHeader("Interface"))
+        if (ImGui.CollapsingHeader("界面设置"))
         {
-            if (ImGui.TreeNodeEx("Config Window"))
+            if (ImGui.TreeNodeEx("配置窗口"))
             {
                 ConfigFunctions._base = this;
                 ConfigFunctions.DrawOpenOnStartBox();
@@ -1335,7 +1342,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Fish Timer"))
+            if (ImGui.TreeNodeEx("钓鱼窗口"))
             {
                 ConfigFunctions.DrawKeepRecordsBox();
                 ConfigFunctions.DrawShowLocalTimeInRecordsBox();
@@ -1354,7 +1361,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Fish Stats [Testing]"))
+            if (ImGui.TreeNodeEx("鱼类统计 [测试]"))
             {
                 ConfigFunctions.DrawEnableFishStats();
                 ConfigFunctions.DrawEnableReportTime();
@@ -1364,7 +1371,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Gather Window"))
+            if (ImGui.TreeNodeEx("采集窗口"))
             {
                 ConfigFunctions.DrawShowGatherWindowBox();
                 ConfigFunctions.DrawGatherWindowAnchorBox();
@@ -1381,7 +1388,7 @@ public partial class Interface
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx("Spearfishing Helper"))
+            if (ImGui.TreeNodeEx("刺鱼助手"))
             {
                 ConfigFunctions.DrawSpearfishHelperBox();
                 ConfigFunctions.DrawSpearfishNamesBox();
@@ -1397,7 +1404,7 @@ public partial class Interface
             ImGui.NewLine();
         }
 
-        if (ImGui.CollapsingHeader("Colors"))
+        if (ImGui.CollapsingHeader("颜色"))
         {
             foreach (var color in Enum.GetValues<ColorId>())
             {
@@ -1409,16 +1416,16 @@ public partial class Interface
 
             ImGui.NewLine();
 
-            if (Widget.PaletteColorPicker("Names in Chat", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorNames,
+            if (Widget.PaletteColorPicker("聊天栏中的名字", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorNames,
                     Configuration.DefaultSeColorNames, Configuration.ForegroundColors, out var idx))
                 GatherBuddy.Config.SeColorNames = idx;
-            if (Widget.PaletteColorPicker("Commands in Chat", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorCommands,
+            if (Widget.PaletteColorPicker("聊天栏中的命令", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorCommands,
                     Configuration.DefaultSeColorCommands, Configuration.ForegroundColors, out idx))
                 GatherBuddy.Config.SeColorCommands = idx;
-            if (Widget.PaletteColorPicker("Arguments in Chat", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorArguments,
+            if (Widget.PaletteColorPicker("聊天栏中的参数", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorArguments,
                     Configuration.DefaultSeColorArguments, Configuration.ForegroundColors, out idx))
                 GatherBuddy.Config.SeColorArguments = idx;
-            if (Widget.PaletteColorPicker("Alarm Message in Chat", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorAlarm,
+            if (Widget.PaletteColorPicker("聊天栏中的闹钟消息", Vector2.One * ImGui.GetFrameHeight(), GatherBuddy.Config.SeColorAlarm,
                     Configuration.DefaultSeColorAlarm, Configuration.ForegroundColors, out idx))
                 GatherBuddy.Config.SeColorAlarm = idx;
 
